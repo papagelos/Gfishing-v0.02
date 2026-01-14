@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b08241db876fc564e8f2e9134f74aabe, type: 3}
+  m_Name: World_10
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.WorldDefinition
+  worldId: world_10
+  displayName: World 2
+  backdrop: {fileID: 5421054903295963221, guid: 8997391cb8024a54bb6ff25ca4dbc366, type: 3}
+  upwardBonus: 0
+  tightenBonus: 0
+  defaultPool:
+  - fish: {fileID: 11400000, guid: 993298c4a74d05944b7545cf3d9dbbf7, type: 2}
+    weight: 0
+  - fish: {fileID: 11400000, guid: ac7c8372261355147b3d4def108f9055, type: 2}
+    weight: 0
+  lakes:
+  - lakeId: world2 lake1
+    displayName: w2l1
+    unlockCost: 0
+    backdropOverride: {fileID: 5421054903295963221, guid: 8997391cb8024a54bb6ff25ca4dbc366, type: 3}
+    addUpwardBonus: 0
+    addTightenBonus: 0
+    quantityScale: 0
+    usePoolOverride: 0
+    poolOverride: []
+    isBossLake: 0
+    bossFish: {fileID: 0}
+  - lakeId: world2 lake2
+    displayName: w2L2
+    unlockCost: 0
+    backdropOverride: {fileID: 5032411367789734811, guid: 56e34f5897118854e8dd9101294a9850, type: 3}
+    addUpwardBonus: 0
+    addTightenBonus: 0
+    quantityScale: 0
+    usePoolOverride: 0
+    poolOverride: []
+    isBossLake: 0
+    bossFish: {fileID: 0}

@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f378c3bba65cae4490e8bca934978a9, type: 3}
+  m_Name: AIStoryBook_Main
+  m_EditorClassIdentifier: Assembly-CSharp::AIStoryBook
+  entries:
+  - id: Welcome_Lake1
+    text: 'Welcome to Lake 1, World 1.
+
+
+      Your first goal is to clear this lake.
+      You do that by catching one of each species that live here.
+
+      ||
+
+      When
+      you have caught them all, you will wake the wrath of the Boss Alpha Fish in
+      this lake, who you will have to defeat in order to unlock Lake 2. ||
+
+
+      There
+      are a few problems, however. The fishing tool given to you by the galactic
+      fishing museum is very weak and can only catch the most weak of fish. That
+      is why you only see one species of fish in the lake currently. Your rod power
+      is 10. Earn credits by fishing, and upgrade it to power 15 to unlock the next
+      fish species. Good luck!'
+    showOnce: 0
+    pauseGame: 0
+  - id: Tutorial_ReactionBar_StopInGreen
+    text: a bar will show up. hit the green area (story)
+    showOnce: 1
+    pauseGame: 1
+  - id: Tutorial_Beep_WaitForBeep
+    text: ok now sound will be heard. x1 (story)
+    showOnce: 1
+    pauseGame: 1
+  - id: Tutorial_Bullseye_Reaction
+    text: This is story bullseye reaction
+    showOnce: 0
+    pauseGame: 1

@@ -1,0 +1,390 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7322f6eb3186b0645b2c12a60cfb06f9, type: 3}
+  m_Name: FishMetaIndex
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.FishMetaIndex
+  entries:
+  - fish: {fileID: 11400000, guid: 79660cbd3500ab8458ef5750a59ec376, type: 2}
+    meta: {fileID: 11400000, guid: 37f3b94b7918d7c46885ff7991647516, type: 2}
+    key: Fish_Aegis_Stingray_0
+  - fish: {fileID: 11400000, guid: 32bf851b86f59bf4d8dcd3b6ca57b076, type: 2}
+    meta: {fileID: 11400000, guid: f494fbb40f28bb74b9b4fcaa1ef038c0, type: 2}
+    key: Fish_Amethyst_Trisight
+  - fish: {fileID: 11400000, guid: 7a3dba6f9aa5178468367c237a573966, type: 2}
+    meta: {fileID: 11400000, guid: 022e674ecc8cefd40bc9a4636bb2fd43, type: 2}
+    key: Fish_Apex_Keelfin_0
+  - fish: {fileID: 11400000, guid: 0a75cd818cefc834f892861d21537863, type: 2}
+    meta: {fileID: 11400000, guid: a076141311f469943918990b39989813, type: 2}
+    key: Fish_Apex_Prismata
+  - fish: {fileID: 11400000, guid: f459826f416dc864bad20714f8fcb284, type: 2}
+    meta: {fileID: 11400000, guid: 4a66f9f69cff80248825b768d2413b0b, type: 2}
+    key: Fish_Astrolabe_Starreel
+  - fish: {fileID: 11400000, guid: c30c88e0715d805438ab2e3e33d9801a, type: 2}
+    meta: {fileID: 11400000, guid: 8fb4c4b72ac18014bb2322658347b888, type: 2}
+    key: Fish_Aurelia_Shardspike
+  - fish: {fileID: 11400000, guid: 27ec553b0d4dec547a7f01efacba73de, type: 2}
+    meta: {fileID: 11400000, guid: 3dfb9ad992a192841a591db754708015, type: 2}
+    key: Fish_Auric_Hammer_0
+  - fish: {fileID: 11400000, guid: 297b89e1457585c4ab50a574a611815c, type: 2}
+    meta: {fileID: 11400000, guid: be3ee316697fe4047b694a71b63d7b3a, type: 2}
+    key: Fish_Aurora_Cod
+  - fish: {fileID: 11400000, guid: 2e9b155673d927644b25a883ad2d3614, type: 2}
+    meta: {fileID: 11400000, guid: cda38f50b5f2f8f4c87477fa282e470e, type: 2}
+    key: Fish_Aurora_Sash_Jellybloom_0
+  - fish: {fileID: 11400000, guid: bd09d427b0ea11745b04e9e1a5478119, type: 2}
+    meta: {fileID: 11400000, guid: 39ffd63b280ffc0408be6343a2de47af, type: 2}
+    key: Fish_Aurora_Sawtail_0
+  - fish: {fileID: 11400000, guid: b6c53767d7553cf418f21b8ae2745c1f, type: 2}
+    meta: {fileID: 11400000, guid: 3609aea0d6be06e4abc902d1fa9d537c, type: 2}
+    key: Fish_BeakKnight_0
+  - fish: {fileID: 11400000, guid: f26a98c51bd9f2042a04123e5c73bec3, type: 2}
+    meta: {fileID: 11400000, guid: 3565d671b9e668e4eb50ef6fbffea775, type: 2}
+    key: Fish_Bluepernova_0
+  - fish: {fileID: 11400000, guid: 432e805c47180b44a979487339038a02, type: 2}
+    meta: {fileID: 11400000, guid: 29b7c10894e1c324c92c6fbeeaf29475, type: 2}
+    key: Fish_Boilermackerel_0
+  - fish: {fileID: 11400000, guid: 5a6d6b1a4a129b347b745475eefb9869, type: 2}
+    meta: {fileID: 11400000, guid: 0ea88c1a8f607f445874fe7f8eaa69f8, type: 2}
+    key: Fish_Bronze_Brick_0
+  - fish: {fileID: 11400000, guid: f92b494046c760d4fb1ade07e4f972ef, type: 2}
+    meta: {fileID: 11400000, guid: 69855f3947e7e8046aae7eedd55dcc27, type: 2}
+    key: Fish_Bronze_Lionfish_0
+  - fish: {fileID: 11400000, guid: e098d2304e72c414b83d1e54b2b7c470, type: 2}
+    meta: {fileID: 11400000, guid: ddb8c01e6d8b86543aff1678f9447ba3, type: 2}
+    key: Fish_Bumblebee_Fish_0
+  - fish: {fileID: 11400000, guid: f2058f625ea285a47ba403d49f29c41c, type: 2}
+    meta: {fileID: 11400000, guid: 97a23be1dfd83614da9f16668ca732d3, type: 2}
+    key: Fish_Candy_Crate_Boxfish_0
+  - fish: {fileID: 11400000, guid: 066e2998f2f60e243820f7286c0856e6, type: 2}
+    meta: {fileID: 11400000, guid: d4916cacb1952d74f8876444b5ccabfb, type: 2}
+    key: Fish_Carbon_Glass_TriEye_0
+  - fish: {fileID: 11400000, guid: f238f8056509ed5489203846fd00a5b7, type: 2}
+    meta: {fileID: 11400000, guid: 4588581ae0f111440b9914884b23f712, type: 2}
+    key: Fish_Celtic_Crossfin_0
+  - fish: {fileID: 11400000, guid: 97a135aa9892c2e428693b56b1080682, type: 2}
+    meta: {fileID: 11400000, guid: 318cbded6f47bec4cad1a3ab218609b6, type: 2}
+    key: Fish_Centipike_Racer_0
+  - fish: {fileID: 11400000, guid: 8403041ca16b4ec4d9ec388eb40b424c, type: 2}
+    meta: {fileID: 11400000, guid: a1f48b94ba6294b44aa002bfe9d5820f, type: 2}
+    key: Fish_ChatGPT_Image_Nov_5,_2025,_11_05_22_PM_0
+  - fish: {fileID: 11400000, guid: d8cc79a993006d0438bc1db0a3df49f6, type: 2}
+    meta: {fileID: 11400000, guid: 5e2acab5fa7f5414e92b33cfa3b6f156, type: 2}
+    key: Fish_ChatGPT_Image_Nov_5,_2025,_11_11_14_PM_0
+  - fish: {fileID: 11400000, guid: 8079080f4122d3e409baddd7b32dcd41, type: 2}
+    meta: {fileID: 11400000, guid: f3e7bc468d8a9ae42b8dfad8bfa5b019, type: 2}
+    key: Fish_Checker_Discus_0
+  - fish: {fileID: 11400000, guid: d5bc01079543d564392a46fcfbc32ade, type: 2}
+    meta: {fileID: 11400000, guid: 6e05392e7668027419cd7310727837b8, type: 2}
+    key: Fish_Chevron_BellyDot_Seahorse_0
+  - fish: {fileID: 11400000, guid: fe129a9aa37b26d4db5df0743007fabc, type: 2}
+    meta: {fileID: 11400000, guid: 4931b78f48ca4854f9e33c404a530077, type: 2}
+    key: Fish_Chromaflow_Sailfish_0
+  - fish: {fileID: 11400000, guid: 5a7bad535e13418488b12313ec195c47, type: 2}
+    meta: {fileID: 11400000, guid: 4257a968a67683b49ae745c1693f21d4, type: 2}
+    key: Fish_Chronosand_Vesselfin
+  - fish: {fileID: 11400000, guid: 1d4a13182cd93c74bb2b24184f28a50f, type: 2}
+    meta: {fileID: 11400000, guid: 79718fab309d54d4cb3b00e61ca9b87b, type: 2}
+    key: Fish_circuit_Hammerhead_0
+  - fish: {fileID: 11400000, guid: b9c28d65803eeca4ea6da98b34a71baa, type: 2}
+    meta: {fileID: 11400000, guid: 143e54cd9672a474eaf621cd8146a431, type: 2}
+    key: Fish_ClownFish_0
+  - fish: {fileID: 11400000, guid: 393806faf37a05a4bb29b1b01672441d, type: 2}
+    meta: {fileID: 11400000, guid: 3b95fe2aeb0c7d941a33dadd8701037f, type: 2}
+    key: Fish_ClownMask_Fish_0
+  - fish: {fileID: 11400000, guid: 6acf59d13237cf44cb9dac31f3520586, type: 2}
+    meta: {fileID: 11400000, guid: 72654b18f83007c4c868a4f748592bd2, type: 2}
+    key: Fish_cobalt_CircleFish_0
+  - fish: {fileID: 11400000, guid: 17cd027ffe78a2242a2f2caabb734d91, type: 2}
+    meta: {fileID: 11400000, guid: 0a132c2ef13f1464086a9d17cc01982b, type: 2}
+    key: Fish_Cobalt_Mako_0
+  - fish: {fileID: 11400000, guid: f24c70ace14a85e45b35ba3c8942c4ef, type: 2}
+    meta: {fileID: 11400000, guid: 2bb4ef45552f28c4e8bd72fc80adb61b, type: 2}
+    key: Fish_Cobblecod_0
+  - fish: {fileID: 11400000, guid: d03f9c7ade7e58a43bfd062c3447d455, type: 2}
+    meta: {fileID: 11400000, guid: b86ed0ef1503a2c46b458177aaab16ec, type: 2}
+    key: Fish_Compass_Manta_1536
+  - fish: {fileID: 11400000, guid: a4a4b7cf890262e4eb37359ac58a79fc, type: 2}
+    meta: {fileID: 11400000, guid: 6febae21ff61b7e44b0f3b4d31322dfb, type: 2}
+    key: Fish_Coral_Engine_Ring
+  - fish: {fileID: 11400000, guid: a87548c96ace3b3429b002c101280aa7, type: 2}
+    meta: {fileID: 11400000, guid: d47f8fb86bb03044db4751a446977611, type: 2}
+    key: Fish_Crying_Lionfish_0
+  - fish: {fileID: 11400000, guid: 8b29f5c4299e9a3419fa9c312de44751, type: 2}
+    meta: {fileID: 11400000, guid: b7154b88f144015428b8ec9c98caed23, type: 2}
+    key: Fish_Cubic_0
+  - fish: {fileID: 11400000, guid: a8ccd2e02c37a864c8cb0aa8ab28d916, type: 2}
+    meta: {fileID: 11400000, guid: 6edbd5f3e0b63d24683a7a6f313fe43a, type: 2}
+    key: Fish_Dorsal_Cross_Reefshark_0
+  - fish: {fileID: 11400000, guid: 0d37572bc2cfa0a4fa95e5aa87165fd0, type: 2}
+    meta: {fileID: 11400000, guid: 993d14a7ef2c0f4469a69dcdb2bc085a, type: 2}
+    key: Fish_Draculus_0
+  - fish: {fileID: 11400000, guid: d8de7a400b92f1f43be14078ad90d52a, type: 2}
+    meta: {fileID: 11400000, guid: 73c9925337d726244acc6174e8415084, type: 2}
+    key: Fish_Ember_Lanternfin_1536
+  - fish: {fileID: 11400000, guid: 68cb773cba830bf468c148851b383802, type: 2}
+    meta: {fileID: 11400000, guid: ba6e83afe95e10040afd0a5297283a72, type: 2}
+    key: Fish_Galaxy_Boxfish_0
+  - fish: {fileID: 11400000, guid: 9be43925a1c9f0046ad22e8bc447ae2f, type: 2}
+    meta: {fileID: 11400000, guid: 9870b2161d974384da0129fa3dd1a6b2, type: 2}
+    key: Fish_GalaxyTail_0
+  - fish: {fileID: 11400000, guid: 513df384578d69a4387673d413f3f3ab, type: 2}
+    meta: {fileID: 11400000, guid: 14036a15981ec9546859caa01ae76d4f, type: 2}
+    key: Fish_Glide_Mode_Neon_Eel_0
+  - fish: {fileID: 11400000, guid: b2aa11d5b73c13b4eb3b2ab25f382dc5, type: 2}
+    meta: {fileID: 11400000, guid: 323822b312babd543bbb152bb8a2b2f1, type: 2}
+    key: Fish_Gridglow_Mola_0
+  - fish: {fileID: 11400000, guid: 048e8e35c1b18ea4a88d0f26a59fb100, type: 2}
+    meta: {fileID: 11400000, guid: 8f7e0d24e2876fb4d9f281ee86a34b36, type: 2}
+    key: Fish_Grumpy_Thunderloaf_0
+  - fish: {fileID: 11400000, guid: 5acc599e5993504488b5cec9348c998c, type: 2}
+    meta: {fileID: 11400000, guid: 5bd3161f98a77024eb8f732931499268, type: 2}
+    key: Fish_Gyrohalo_Smokestacks_1536
+  - fish: {fileID: 11400000, guid: ab784cebfb807be4eb9522cf0f9674bd, type: 2}
+    meta: {fileID: 11400000, guid: fc764b74d47955643ac2c3180bb9a2d8, type: 2}
+    key: Fish_Halo_Nebulark
+  - fish: {fileID: 11400000, guid: 61eeb2e42bee69e469cf04035b687981, type: 2}
+    meta: {fileID: 11400000, guid: a4c85dfcd6370684b9cd90588429323e, type: 2}
+    key: Fish_Harlequin_Seahorse_0
+  - fish: {fileID: 11400000, guid: 9e36f987d3a11bc4f8fbe1d2ecb69a68, type: 2}
+    meta: {fileID: 11400000, guid: a4381a93540c72540a1e302cc8673484, type: 2}
+    key: Fish_Headband_Fish_0
+  - fish: {fileID: 11400000, guid: 4cd74b1b7185e2046ac3ec169a74d779, type: 2}
+    meta: {fileID: 11400000, guid: c9b15b556cae5da4dbc5f5a55a5e929c, type: 2}
+    key: Fish_Hellfire_Angler_0
+  - fish: {fileID: 11400000, guid: 1d78c67c2933ce3409c6e6840cc6e148, type: 2}
+    meta: {fileID: 11400000, guid: 3f84c0e01b5da354fb871eb6bf170568, type: 2}
+    key: Fish_Hypergloss_Rallyfish_MkII_0
+  - fish: {fileID: 11400000, guid: b435192e9f1ad7e4888523847f7cd086, type: 2}
+    meta: {fileID: 11400000, guid: b10c04ddc60323b428c49e60dd8947f7, type: 2}
+    key: Fish_iridescent_Barb_0
+  - fish: {fileID: 11400000, guid: 1bdbe93cd2f5cca4baa0a53dee10080b, type: 2}
+    meta: {fileID: 11400000, guid: 233ebdf371c15f2428ab0a35b66230a2, type: 2}
+    key: Fish_Iridium_Railwyrm
+  - fish: {fileID: 11400000, guid: 5b2a15ee9a9e4134da9b523e4854f089, type: 2}
+    meta: {fileID: 11400000, guid: 2a9af6f7cd4d5874eb7d298b467ad44f, type: 2}
+    key: Fish_kelp_Dragon_0
+  - fish: {fileID: 11400000, guid: 13900f6ff2471c84581389379f68d4bf, type: 2}
+    meta: {fileID: 11400000, guid: 51294f1c1aa65b3468714a103ae101b2, type: 2}
+    key: Fish_Knotcoil_Ribbona
+  - fish: {fileID: 11400000, guid: a1b5144d9aadf594985e2a87319053e0, type: 2}
+    meta: {fileID: 11400000, guid: 3e17a78b27d5cc24ca4535051b3bb335, type: 2}
+    key: Fish_Lanternfold_Koinari
+  - fish: {fileID: 11400000, guid: 345f869605acb7d48b021526745bde41, type: 2}
+    meta: {fileID: 11400000, guid: 6924f1f7c5b7cd244ad96e39bc5bc18e, type: 2}
+    key: Fish_Laser_Lattice_RibbonEel_0
+  - fish: {fileID: 11400000, guid: 3e5422a1e14244d4886229a48b029e34, type: 2}
+    meta: {fileID: 11400000, guid: 347c175931d7f9c459b7dcc4f4e2fada, type: 2}
+    key: Fish_Lava_Line_Catwhisker_1536
+  - fish: {fileID: 11400000, guid: c9b5bf0d46a45a64eb80616e7d266485, type: 2}
+    meta: {fileID: 11400000, guid: ee632ad47a19c8a44ab70d609f8810a3, type: 2}
+    key: Fish_Leafy_Sash_Seadragon_0
+  - fish: {fileID: 11400000, guid: a1c6dc3019a5e62488e8784d11eb0446, type: 2}
+    meta: {fileID: 11400000, guid: ffb69081550cf60478fb1c1a57642cd1, type: 2}
+    key: Fish_Legendary_L
+  - fish: {fileID: 11400000, guid: 8396968ef5310944d8b498c6f353bae4, type: 2}
+    meta: {fileID: 11400000, guid: b325eb802c08f6a4aa3270fe6173c82b, type: 2}
+    key: Fish_Loop_Ness_Monster_0
+  - fish: {fileID: 11400000, guid: a5214a58828aeb94ba6b968846581fd0, type: 2}
+    meta: {fileID: 11400000, guid: e7335c6e22698154591340de81b5741e, type: 2}
+    key: Fish_Lustre_Angel_0
+  - fish: {fileID: 11400000, guid: 69bd639503bf92b49ba6b7c9787408d1, type: 2}
+    meta: {fileID: 11400000, guid: 02ae3d13f6985f64481d17cde25fd415, type: 2}
+    key: Fish_Mandala_Manta_0
+  - fish: {fileID: 11400000, guid: c710c9ddbf499694fa88ebeb6f09a94a, type: 2}
+    meta: {fileID: 11400000, guid: d5b757caebab18a469307eb35008901c, type: 2}
+    key: Fish_Mango_Chevron_Stingray_0
+  - fish: {fileID: 11400000, guid: 6ae95eddbb7399e46838b37ecb804689, type: 2}
+    meta: {fileID: 11400000, guid: b2eb442b0d0a52d439e7740f4cbcbf61, type: 2}
+    key: Fish_midnight_Angler_0
+  - fish: {fileID: 11400000, guid: 95f7e4e89e952bc4b9e0d0f82ee1c1ef, type: 2}
+    meta: {fileID: 11400000, guid: 43c6e4784d3a6504f8cde658b09f8df7, type: 2}
+    key: Fish_Molten_Hexfin
+  - fish: {fileID: 11400000, guid: 04e4278ff4fc51744a47974dcad9fdb0, type: 2}
+    meta: {fileID: 11400000, guid: 9272ec6d6bdf7ce48ac681d506870fd1, type: 2}
+    key: Fish_Nautilus_Zebra_Dragonfish_0
+  - fish: {fileID: 11400000, guid: 1da155ed8ba84ac43b2d9d25031beb67, type: 2}
+    meta: {fileID: 11400000, guid: 491628bba959a4b418d681eec0bc7d52, type: 2}
+    key: Fish_Nebula_Puffer_0
+  - fish: {fileID: 11400000, guid: d7c8133f2a139a743b40fdaafc79857f, type: 2}
+    meta: {fileID: 11400000, guid: 1cfee4874840c7943b44f938112f1f45, type: 2}
+    key: Fish_nebula_whip_0
+  - fish: {fileID: 11400000, guid: 2be192fe9c28d924ab1be602b918adb2, type: 2}
+    meta: {fileID: 11400000, guid: f2b4aa0322ab4024f8d68c4a49f828a1, type: 2}
+    key: Fish_Nebulais
+  - fish: {fileID: 11400000, guid: 8f2683d5b0a234145bf3379228ac9538, type: 2}
+    meta: {fileID: 11400000, guid: 06ca55adcafc63d42ad07fc772d05c6a, type: 2}
+    key: Fish_Neon_Jester_0
+  - fish: {fileID: 11400000, guid: 36f4b1bc277fd6f45ab6865c05ff4309, type: 2}
+    meta: {fileID: 11400000, guid: 7219cae84ad1d5441a07eb8377eaacbe, type: 2}
+    key: Fish_Obsidian_Eyemaul_1536
+  - fish: {fileID: 11400000, guid: 1a64d6795f0fc5c418b1b006393ca36a, type: 2}
+    meta: {fileID: 11400000, guid: 3e0ac061f62a53b42a72dc23bb2da076, type: 2}
+    key: Fish_Obsidian_Manta_0
+  - fish: {fileID: 11400000, guid: bd553e7a3a5543c439fc5d13c6f34b5a, type: 2}
+    meta: {fileID: 11400000, guid: d95100ca5e24c9647a00e0ff588d32bb, type: 2}
+    key: Fish_Opal_Parrotfish_0
+  - fish: {fileID: 11400000, guid: 502755add1c529d4a9dc46e6e4209133, type: 2}
+    meta: {fileID: 11400000, guid: 111292a44b2444c44a61b373185c32f2, type: 2}
+    key: Fish_Opal_Snapper_0
+  - fish: {fileID: 11400000, guid: ac25c72ce26dd2c4fbcd46803c33029d, type: 2}
+    meta: {fileID: 11400000, guid: dc2ed7b6075cdd2429ed75a0b67ec639, type: 2}
+    key: Fish_Orchid_Streamrunner
+  - fish: {fileID: 11400000, guid: 22c0b5d8f2616a540a1ea7ccebd7d90b, type: 2}
+    meta: {fileID: 11400000, guid: 40fb81ab0a1c5e345a12679aba7644a6, type: 2}
+    key: Fish_Ouroboros_0
+  - fish: {fileID: 11400000, guid: c9e03d1604ee2134e9725bc2855f30f6, type: 2}
+    meta: {fileID: 11400000, guid: 13dbb278c20f90c4898e4e05ee6de872, type: 2}
+    key: Fish_Pangolin_Pike_0
+  - fish: {fileID: 11400000, guid: 2cf10eb30edf32442a73666aae0a3dc8, type: 2}
+    meta: {fileID: 11400000, guid: e6ebbd7c449fa4b4e9c19c654758c462, type: 2}
+    key: Fish_Pearl_Necklace_0
+  - fish: {fileID: 11400000, guid: 6e6d8db8f2064b94fb5e2a1715da2f23, type: 2}
+    meta: {fileID: 11400000, guid: bfcb335259e910c408c263862c30b7c6, type: 2}
+    key: Fish_PoutsAlot_0
+  - fish: {fileID: 11400000, guid: 4315035065f85b448b1565803933fd7e, type: 2}
+    meta: {fileID: 11400000, guid: 87fb8980ae5a4d74eabbbfda34d67919, type: 2}
+    key: Fish_PretzelFish_0
+  - fish: {fileID: 11400000, guid: bbd9de596f6e7f4488694c8019a6a1a2, type: 2}
+    meta: {fileID: 11400000, guid: 9e20387b83cdf544daa5881eafdff51e, type: 2}
+    key: Fish_Prism_Boxfish_0
+  - fish: {fileID: 11400000, guid: 8a11046323322ab45b4312432359441a, type: 2}
+    meta: {fileID: 11400000, guid: 4e46c071d9836c1499d687c579a6c5b1, type: 2}
+    key: Fish_Prism_Jelly_0
+  - fish: {fileID: 11400000, guid: 0a7da7c25383d93408852707eb09a8b2, type: 2}
+    meta: {fileID: 11400000, guid: 14e731b93db0d4a40a325b6f37ac4cb1, type: 2}
+    key: Fish_Prism_Pike_0
+  - fish: {fileID: 11400000, guid: 74be0b95f1cc5ee42b2fd1aa6ce63515, type: 2}
+    meta: {fileID: 11400000, guid: e5d6222b5e1f3644e967129047c24e7d, type: 2}
+    key: Fish_PrismJaw_0
+  - fish: {fileID: 11400000, guid: d20f14241466a5045ad2b46bd6c3410a, type: 2}
+    meta: {fileID: 11400000, guid: 190a4321da620e14fb348fe39658f926, type: 2}
+    key: Fish_Rainbow_Snacc_Serpentine_(1)_0
+  - fish: {fileID: 11400000, guid: 0c33c255f196ecf4096918a199b0ed69, type: 2}
+    meta: {fileID: 11400000, guid: f35579c88c2225e49858e15c338b9019, type: 2}
+    key: Fish_RainbowTail
+  - fish: {fileID: 11400000, guid: c225f6ad14253464d9d7a7315bf2e246, type: 2}
+    meta: {fileID: 11400000, guid: a3c7d612a2186224e81bb3a2fdc51938, type: 2}
+    key: Fish_RhinoFish_0
+  - fish: {fileID: 11400000, guid: 021545bba113b5943847094b29ffb29c, type: 2}
+    meta: {fileID: 11400000, guid: 2c35b0e3ef279be48a30a1306eb05caf, type: 2}
+    key: Fish_Ribbon_Catwhisker_1536
+  - fish: {fileID: 11400000, guid: dbc4af1cefc09b34fa40c85045d93879, type: 2}
+    meta: {fileID: 11400000, guid: 486d4202da92f8d448ab10d89d56a868, type: 2}
+    key: Fish_Ridgeback_Angel_0
+  - fish: {fileID: 11400000, guid: 6301d2ba9228bdd4d983ba23902b7229, type: 2}
+    meta: {fileID: 11400000, guid: 659330a38b2389e4faa035ad62eb4ec2, type: 2}
+    key: Fish_RingFish_0
+  - fish: {fileID: 11400000, guid: 189ec0b716691794b88f77a96614d533, type: 2}
+    meta: {fileID: 11400000, guid: f4f83b2df66e7454fa18c56975b02a2b, type: 2}
+    key: Fish_Robocop_Fish_0
+  - fish: {fileID: 11400000, guid: 9ee5650788e441247a57c6ce93d3b500, type: 2}
+    meta: {fileID: 11400000, guid: ca062b006b2333141a6fb235822c3521, type: 2}
+    key: Fish_Sabre_Torpedo_0
+  - fish: {fileID: 11400000, guid: bda117c0dbdc16c44b5c24ea087642ac, type: 2}
+    meta: {fileID: 11400000, guid: c07df31bb28cfd5489336796922f8686, type: 2}
+    key: Fish_Saffron_butterfly_0
+  - fish: {fileID: 11400000, guid: 79e98a16d80d9d848aaa3545600e9899, type: 2}
+    meta: {fileID: 11400000, guid: 4cd2fb4b18df2ba49b817a987beb5052, type: 2}
+    key: Fish_Sash_Belt_Trackdot_Parrotfish_0
+  - fish: {fileID: 11400000, guid: ea6d2c80661f8d9489b0c55a02286b7f, type: 2}
+    meta: {fileID: 11400000, guid: bcbe962cf83ea9a49963a85e1d258c34, type: 2}
+    key: Fish_Sextant_Manta
+  - fish: {fileID: 11400000, guid: deea558d3c0b40849a9cc2c408562bcd, type: 2}
+    meta: {fileID: 11400000, guid: 4ca4c287feea26d44a65c95373dddeea, type: 2}
+    key: Fish_SnotShell_0
+  - fish: {fileID: 11400000, guid: ddec176aea29e8f4fa4a0162a6cf36a2, type: 2}
+    meta: {fileID: 11400000, guid: 2c6145113e0d920438c060b4ff56b314, type: 2}
+    key: Fish_Spectral_Snapper_0
+  - fish: {fileID: 11400000, guid: 732202127097fbf42a07602de0814c75, type: 2}
+    meta: {fileID: 11400000, guid: 1d2f87d87099b7c489a54508a844104e, type: 2}
+    key: Fish_Starcoil_Eel_0
+  - fish: {fileID: 11400000, guid: f2f0fa2083ce6dc45b18a1403aad206d, type: 2}
+    meta: {fileID: 11400000, guid: f7aeb1751a5284e4883bb37fc1e03293, type: 2}
+    key: Fish_Starlace_Gourami_0
+  - fish: {fileID: 11400000, guid: 4809c4a9c94e15a45ad208efadb8e26d, type: 2}
+    meta: {fileID: 11400000, guid: 48a1fd4746e5af4479702bfe5acee8c9, type: 2}
+    key: Fish_Starwind_Sailfish_0
+  - fish: {fileID: 11400000, guid: ec21ab11a364d7a4d8699426541bcaf9, type: 2}
+    meta: {fileID: 11400000, guid: 4a6d11c3bb7e270458987bdf18b5e7d6, type: 2}
+    key: Fish_Sunburst_Sash_TideTurtle_0
+  - fish: {fileID: 11400000, guid: 38de745eae56ae04cb027733d5f347a7, type: 2}
+    meta: {fileID: 11400000, guid: ef07573501f18c342bdf2446b0b9af06, type: 2}
+    key: Fish_Sunforge_barb_0
+  - fish: {fileID: 11400000, guid: e237dd420c1618347bcba39aad95b6d0, type: 2}
+    meta: {fileID: 11400000, guid: 2933d4019ff597c498264d41dee7004a, type: 2}
+    key: Fish_T20_0
+  - fish: {fileID: 11400000, guid: 1d3da380af2e76440b30fa0764f35873, type: 2}
+    meta: {fileID: 11400000, guid: 12c3d7806f9d4824e9a9a4bcad0c80ce, type: 2}
+    key: Fish_Tangerine_Tearstripe_Lionfin_0
+  - fish: {fileID: 11400000, guid: af51dab44e023b54c84106c6d465b548, type: 2}
+    meta: {fileID: 11400000, guid: ed38e4976d4e8174796259c8404798f0, type: 2}
+    key: Fish_Target_Tail_Spikepuff_0
+  - fish: {fileID: 11400000, guid: 58bc587d4a21afa4f959a58c58ad193b, type: 2}
+    meta: {fileID: 11400000, guid: 2e4db8c478b3892488e8c869d7f41953, type: 2}
+    key: Fish_Tesseract_Lantern_Eel
+  - fish: {fileID: 11400000, guid: 6b6f80f18d8f72047b18742cd95a9da0, type: 2}
+    meta: {fileID: 11400000, guid: 6d3fef4c5da9a524d8cc9f4617995a08, type: 2}
+    key: Fish_Tesserfin_0
+  - fish: {fileID: 11400000, guid: abff86ff3e026d84a99a1e29314789f2, type: 2}
+    meta: {fileID: 11400000, guid: ffb81a5e0aeedc841a5f57488ca8a20a, type: 2}
+    key: Fish_Triplestack_Gyroreef
+  - fish: {fileID: 11400000, guid: 6ee8618196e902847a4c35ee7d463012, type: 2}
+    meta: {fileID: 11400000, guid: cb8dfcaee1553164399d6e9977adb9b8, type: 2}
+    key: Fish_Triquetra_Seadragon_0
+  - fish: {fileID: 11400000, guid: 50a7f86e2a6c44348b061763db0161bd, type: 2}
+    meta: {fileID: 11400000, guid: cc37f57553f7d4c4ca0bda1f095fbf66, type: 2}
+    key: Fish_Velvet_Eel_0
+  - fish: {fileID: 11400000, guid: 0ad7fe2da881ea844a247db8354006ac, type: 2}
+    meta: {fileID: 11400000, guid: ee092f1c74c5de94fa594a57fd443ffd, type: 2}
+    key: Fish_Whaleosaurs_Rex_0
+  - fish: {fileID: 11400000, guid: 4a350ab8cd85fbf44b68964c4ec1bb5e, type: 2}
+    meta: {fileID: 11400000, guid: c14fa37962f53c34bafbf604eddf2322, type: 2}
+    key: Fish_Whisker_Catfish_0
+  - fish: {fileID: 11400000, guid: 74c382dabf7609f4ea372d8c6759fe7d, type: 2}
+    meta: {fileID: 11400000, guid: 8eeaec928460344439d98e600072c16d, type: 2}
+    key: Fish_Whiskerina_Grande_0
+  - fish: {fileID: 11400000, guid: 10b3d74eed2c8df4d917c9597ba3a2d8, type: 2}
+    meta: {fileID: 11400000, guid: 78fd0ef572d16964baf0fe1a8038324f, type: 2}
+    key: Fish_Wolverine_Ironfin_0
+  - fish: {fileID: 11400000, guid: b07526d6e0de42047ba61c03645272b8, type: 2}
+    meta: {fileID: 11400000, guid: dceeabb67b1a7f64dbaa686b43685dce, type: 2}
+    key: Fish_Zapricorn_0
+  - fish: {fileID: 11400000, guid: ac7c8372261355147b3d4def108f9055, type: 2}
+    meta: {fileID: 11400000, guid: 4e27f08e15915804d93d9b0819f604a9, type: 2}
+    key: Fish_Zebra_Party_Angelflare_0
+  - fish: {fileID: 11400000, guid: bb7b2cea859a12444a0a1553e0f168d4, type: 2}
+    meta: {fileID: 11400000, guid: 9e13e8b78cf4c2d4b8c01503b06796b5, type: 2}
+    key: Fish_Zeppelin_Subfish_1536
+  - fish: {fileID: 11400000, guid: 993298c4a74d05944b7545cf3d9dbbf7, type: 2}
+    meta: {fileID: 11400000, guid: 6f2653578ecd2a143bce78119ef88d01, type: 2}
+    key: Fish_Zeppelineon_Copperfin
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 7b19de204b195b148a9a4137848f9474, type: 2}
+    key: Fish_
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 4526799f654c29c47b1f8d9f6bbb478f, type: 2}
+    key: Abyssal DreadMaw
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 78707534cf8280442889650e8e9304cb, type: 2}
+    key: Abyssal Sturgeon
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 83af42bd276dd394882d184f13e3c4ac, type: 2}
+    key: Fish_Plasma_Overdrive_Eel_0
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 625a8bd909fe73a4ab4f526ddf22dcf6, type: 2}
+    key: Fish_Prism_Reefrunner_0
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: 81196d0c52a8a0449a65ea2e2bbd2aae, type: 2}
+    key: Fish_Racing_Sash_Octobot_0
+  - fish: {fileID: 0}
+    meta: {fileID: 11400000, guid: caf5b2bd55bd7c845ab625e15b41a7bf, type: 2}
+    key: Fish_Striped_CG_Angelfin_0

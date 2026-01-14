@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f37660ff0b52fdf418d7663053823d62, type: 3}
+  m_Name: Building_blacksmith
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingDefinition
+  displayName: Blacksmith
+  icon: {fileID: -8337281393119725202, guid: 41cbe599b935397428da4922d9ee2cf2, type: 3}
+  prefab: {fileID: 0}
+  localOffset: {x: 0, y: 0.02, z: 0}
+  localEuler: {x: 0, y: 0, z: 0}

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc47376d3e3b5034dabeb8c3d651bf2a, type: 3}
+  m_Name: Rod_Default
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Data.RodDefinition
+  id: rod_default
+  displayName: Fishing Tool
+  description: A basic Fishing Tool. Quite pityful.
+  rarity: 0
+  tier: 1
+  clearanceLevelRequired: 0
+  basePower: 10
+  powerPerUpgradeLevel: 1
+  maxUpgradeLevel: 10
+  qualityCap: 40
+  overcapDifficultyScale: 1
+  prepTimeMultiplier: 1
+  fpReductionMultiplier: 1
+  greenZoneSizeModifier: 1
+  greenZoneSpeedModifier: 1
+  reactionWindowModifier: 1
+  extraHitWindows: 0
+  autoResolveThresholdFactor: 0.3
+  robotEfficiencyMultiplier: 1
+  socketCount: 0
+  basePrice: 0
+  craftRecipeId: 0
+  isPrototype: 0
+  icon: {fileID: 4434341241732322764, guid: a5c8f5fec7d3f8e4da197ff167a142a5, type: 3}
+  cardArt: {fileID: 4434341241732322764, guid: a5c8f5fec7d3f8e4da197ff167a142a5, type: 3}
+  worldModelPrefab: {fileID: 0}

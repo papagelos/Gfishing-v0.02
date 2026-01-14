@@ -1,0 +1,97 @@
+Make a crisp full-screen menu (16:9 → 4096×2304) with Photopea
+
+Goal: turn a DALL·E image (often 1024×1024 or 1536×1024) into a clean 4096×2304 (16:9) PNG that scales perfectly in Unity without stretching.
+
+A. Prep — choose your path
+
+If your source is already landscape (e.g., 1536×1024): we’ll expand canvas to 1792×1024 and “outpaint” the sides, then upscale to 4096×2304.
+
+If your source is square (1024×1024): Crop to 1024×576 (16:9), then canvas-expand to 1792×1024 (optional, for extra side detail), then upscale to 4096×2304.
+
+(DPI doesn’t matter for games — pixels do.)
+
+B. Step-by-step in Photopea
+
+Open Photopea → File → Open (load your image).
+
+(Optional) Crop to 16:9
+
+Press C (Crop tool) → in the top bar set Fixed Ratio: 16:9 → position → Enter.
+
+Result should be something like 1024×576 (from 1024×1024) or keep 1536×1024 if already 16:9-ish.
+
+Canvas-expand to working 16:9 (if needed)
+
+Image → Canvas Size…
+
+Set Width = 1792 px, Height = 1024 px, Anchor = center, Canvas extension color = Transparent → OK.
+
+Manual “outpaint” the sides (edge stretch/fill)
+
+Pick Rectangle Select (M). (If the tool shows Elliptical, long-press it and choose Rectangular.)
+
+On the Background/image layer, drag a vertical strip (≈ 80–150 px) along the left edge where the art looks safe to extend.
+
+Ctrl+C (copy) → Ctrl+V (paste). A new layer appears with that strip.
+
+Edit → Free Transform (menu path; don’t rely on Ctrl+T if your browser hijacks it).
+Drag the left handle outward to fully cover the left transparent margin. Enter to apply.
+
+Repeat for the right side (you can also Layer → Duplicate Layer the left strip and Edit → Transform → Flip Horizontal, then move it).
+
+Feather seams:
+Select the top strip layer → click Add Raster Mask (bottom of Layers panel). Choose Gradient Tool (G), linear Black→White; drag a short gradient from the strip edge inwards so it softly blends with the original art.
+Touch up with Spot Healing (J) or Clone Stamp (S) on a new layer if needed.
+
+Upscale to final size
+
+Image → Image Size…
+Set Width = 4096, Height = 2304, Resample = Bicubic (Smoother) → OK.
+(Leave DPI as-is — it’s irrelevant for Unity.)
+
+Crispen edges slightly
+
+Filter → Sharpen → Unsharp Mask
+Amount 25–35%, Radius 0.3–0.6 px, Threshold 0–2. Subtle is key.
+
+Export
+
+File → Export As → PNG (keep transparency if you have any) → Save.
+
+C. Unity import & usage (once per asset)
+
+Select the PNG in Project → Inspector:
+
+Texture Type: Sprite (2D and UI)
+
+Sprite Mode: Single | Mesh Type: Full Rect
+
+Max Size: 4096
+
+Compression: None (best quality) or BC7 (if you need smaller size)
+
+sRGB (Color Texture): ✔ | Mip Maps: ✖ (UI) | Filter Mode: Bilinear | Wrap Mode: Clamp
+
+Apply.
+
+On your Image component (the menu background):
+
+Preserve Aspect: ✔ (this pillarboxes ultrawide instead of stretching).
+
+If you prefer strict control, you can add Aspect Ratio Fitter → Fit In Parent with Aspect Ratio = 1.77778 (16:9).
+
+D. Quick troubleshooting
+
+“Copied area is empty” → Make sure the image layer is selected (not its mask), and your selection actually covers pixels; Feather should be 0 px.
+
+Free Transform shortcut opens a browser tab → Use Edit → Free Transform from the menu instead of Ctrl+T.
+
+Visible seams → Use wider strips, blend with layer masks + gradient, and/or a tiny Gaussian Blur along the seam on the strip layer.
+
+Looks too soft after upscaling → Re-run Unsharp Mask (keep it conservative).
+
+Target summary
+
+Final export: 4096×2304 PNG
+
+Unity: Sprite (2D and UI), Full Rect, Max Size 4096, Compression None/BC7, sRGB ✔, MipMaps ✖, Preserve Aspect ✔

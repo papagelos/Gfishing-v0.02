@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - MiniGames
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - UIBackdrop
+  - Water
+  - UI
+  - Fish
+  - Hook
+  - FarmMap
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Background
+    uniqueID: 2781264729
+    locked: 0
+  - name: World
+    uniqueID: 465904601
+    locked: 0
+  - name: Characters
+    uniqueID: 4216705863
+    locked: 0
+  - name: Effects
+    uniqueID: 784249843
+    locked: 0
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  m_RenderingLayers:
+  - Default

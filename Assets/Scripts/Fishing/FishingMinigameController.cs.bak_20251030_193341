@@ -1,0 +1,334 @@
+﻿using System.Collections;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using GalacticFishing.UI; // ReactionBarUI + GreenZoneController
+using TMPro;
+using UnityEngine.UI;
+
+[System.Serializable] public class FishEvent : UnityEvent<FishIdentity> { }
+
+public class FishingMinigameController : MonoBehaviour
+{
+    [Header("Assign ReactionBar")]
+    [SerializeField] private CanvasGroup reactionBarGroup;
+    [SerializeField] private ReactionBarUI reactionBarUI;
+    [SerializeField] private GreenZoneController greenZone;
+
+    [Header("Click Source (disabled while game is up)")]
+    [SerializeField] private FishClickCaster clickCaster;
+
+    [Header("Prompt UI (optional)")]
+    [SerializeField] private TextMeshProUGUI tmpPrompt;  // assign one OR the next line
+    [SerializeField] private Text uiPrompt;
+
+    [SerializeField] private string hookedMsg   = "HOOKED! Wait for the beepâ€¦ then CLICK!";
+    [SerializeField] private string tooSoonMsg  = "Too soon!";
+    [SerializeField] private string tooSlowMsg  = "Too slow!";
+    [SerializeField] private string successMsg  = "GREAT JOB!";
+    [SerializeField] private float  successMsgSeconds = 1.0f;
+    [SerializeField] private float  failMsgSeconds    = 1.0f;
+
+    [Header("Beep SFX (optional)")]
+    [SerializeField] private AudioSource beepSource;
+    [SerializeField] private AudioClip   beepClip;
+
+    [Header("Visual Beep: Fish (optional)")]
+    [SerializeField] private BeepFishFX beepFishFX;
+
+    [Header("Scare Settings (on miss & fail)")]
+    [SerializeField] private LayerMask fishMask = ~0;
+    [SerializeField] private float searchRadius = 3f;
+    [SerializeField] private GameObject scarePoofPrefab;
+    [SerializeField] private float destroyDelay = 0.05f;
+
+    [Header("Events")]
+    public FishEvent OnFishHooked;
+    public FishEvent OnFishFailed;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogs = false;
+
+    private enum State { Idle, BarShown, AwaitBeep, AwaitWindow }
+    private State _state = State.Idle;
+
+    private FishIdentity _current;
+    private float _prevTimeScale = 1f;
+
+    // phase-2 timing (unscaled)
+    private float _beepAt = 0f;
+    private float _windowEnd = 0f;
+
+    // input/frame gates
+    private int  _ignorePressUntilFrame = 0;
+    private bool _requireMouseUpToReenable = false;
+    private int  _reenableCasterAtFrame = 0;
+
+    private GameObject BarRootGO => reactionBarGroup ? reactionBarGroup.gameObject : null;
+
+    private void Awake()
+    {
+        // make sure the prompt is hidden at boot so â€œNew Textâ€ never shows
+        ClearPrompt();
+    }
+
+    // -------- wired from FishClickCaster --------
+    public void HandleFishClicked(FishIdentity fish)
+    {
+        if (_state != State.Idle) return;
+
+        _current = fish;
+        PauseWorld();
+        if (clickCaster) clickCaster.enabled = false;
+
+        ShowReactionBar();
+        _ignorePressUntilFrame = Time.frameCount + 1; // gate same-press resolve
+        _state = State.BarShown;
+
+        if (debugLogs) Debug.Log("[Mini] Start: bar shown");
+    }
+
+    public void HandleMissClicked(Vector2 where)
+    {
+        if (_state != State.Idle) return;
+
+        var nearest = FindNearestFish(where, searchRadius);
+        if (nearest) ScareAndDespawn(nearest);
+    }
+
+    private void Update()
+    {
+        var mouse = Mouse.current;
+        var kb    = Keyboard.current;
+        bool press =
+            (mouse != null && mouse.leftButton.wasPressedThisFrame) ||
+            (kb != null && kb.spaceKey.wasPressedThisFrame);
+
+        switch (_state)
+        {
+            case State.BarShown:
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    bool ok = IsMarkerInsideGreenZone();
+                    if (!ok)
+                    {
+                        FailAndCleanup("missed green", tooSoonMsg);
+                        return;
+                    }
+
+                    // Phase 1 success â†’ show HOOKED overlay and prep phase 2
+                    HideReactionBar();
+                    ShowPrompt(hookedMsg);
+                    HookCardService.ShowInProgress(_current ? _current.DisplayName : string.Empty);
+
+                    // Show the hooked fish at full opacity through phase 2
+                    if (beepFishFX && _current)
+                    {
+                        var sr0 = _current.GetComponentInChildren<SpriteRenderer>();
+                        if (sr0 && sr0.sprite)
+                        {
+                            beepFishFX.Show(sr0.sprite, 999f);
+                        }
+                    }
+
+                    float min = Mathf.Max(0f,  _current ? _current.reaction2.beepDelayMin  : 0.5f);
+                    float max = Mathf.Max(min, _current ? _current.reaction2.beepDelayMax  : 2f);
+                    float win = Mathf.Max(0.05f,_current ? _current.reaction2.successWindow : 1.2f);
+
+                    float delay = Random.Range(min, max);
+                    _beepAt    = Time.unscaledTime + delay;
+                    _windowEnd = _beepAt + win;
+
+                    _ignorePressUntilFrame = Time.frameCount + 1;
+                    _state = State.AwaitBeep;
+                    if (debugLogs) Debug.Log($"[Mini] Phase2: wait {delay:0.00}s, window {win:0.00}s");
+                }
+                break;
+
+            case State.AwaitBeep:
+                // Early click = fail (anti-spam). If you want â€œignoreâ€ instead, we can change this.
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    FailAndCleanup("clicked before beep", tooSoonMsg);
+                    return;
+                }
+
+                if (Time.unscaledTime >= _beepAt)
+                {
+                    if (beepSource && beepClip) beepSource.PlayOneShot(beepClip);
+                    _ignorePressUntilFrame = Time.frameCount + 1; // avoid same-frame press
+                    _state = State.AwaitWindow;
+                    if (debugLogs) Debug.Log("[Mini] Beep!");
+                }
+                break;
+
+            case State.AwaitWindow:
+                if (Time.unscaledTime > _windowEnd)
+                {
+                    FailAndCleanup("too slow after beep", tooSlowMsg);
+                    return;
+                }
+
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    // SUCCESS
+                    ShowPrompt(successMsg);
+                    StartCoroutine(HidePromptAfter(successMsgSeconds));
+                    if (beepFishFX) beepFishFX.HideImmediate();
+
+                    // flash âœ“ before hide
+                    HookCardService.FlashCaught(_current ? _current.DisplayName : string.Empty, 0.45f);
+
+                    ResumeWorldDeferred();
+                    OnFishHooked?.Invoke(_current);
+                    _current = null;
+                    _state = State.Idle;
+                    if (debugLogs) Debug.Log("[Mini] Success â†’ caught");
+                }
+                break;
+
+            case State.Idle:
+                // re-enable caster only after mouse up & one frame
+                if (_requireMouseUpToReenable &&
+                    mouse != null && !mouse.leftButton.isPressed &&
+                    Time.frameCount >= _reenableCasterAtFrame)
+                {
+                    if (clickCaster) clickCaster.enabled = true;
+                    _requireMouseUpToReenable = false;
+                    if (debugLogs) Debug.Log("[Mini] Click caster re-enabled");
+                }
+                break;
+        }
+    }
+
+    // -------- bar/prompt helpers --------
+    private void ShowReactionBar()
+    {
+        if (BarRootGO && !BarRootGO.activeSelf) BarRootGO.SetActive(true);
+        if (reactionBarGroup)
+        {
+            reactionBarGroup.alpha = 1f;
+            reactionBarGroup.interactable = true;
+            reactionBarGroup.blocksRaycasts = true;
+        }
+        if (reactionBarUI) reactionBarUI.StartRun();
+    }
+
+    private void HideReactionBar()
+    {
+        if (reactionBarUI) reactionBarUI.StopRun();
+        if (reactionBarGroup)
+        {
+            reactionBarGroup.alpha = 0f;
+            reactionBarGroup.interactable = false;
+            reactionBarGroup.blocksRaycasts = false;
+        }
+    }
+
+    private void ShowPrompt(string msg)
+    {
+        if (tmpPrompt) { tmpPrompt.gameObject.SetActive(true); tmpPrompt.text = msg; }
+        if (uiPrompt)  { uiPrompt.gameObject.SetActive(true);  uiPrompt.text  = msg; }
+    }
+    private void ClearPrompt()
+    {
+        if (tmpPrompt) { tmpPrompt.text = ""; tmpPrompt.gameObject.SetActive(false); }
+        if (uiPrompt)  { uiPrompt.text  = ""; uiPrompt.gameObject.SetActive(false); }
+    }
+    private IEnumerator HidePromptAfter(float seconds)
+    {
+        if (seconds <= 0f) { ClearPrompt(); yield break; }
+        float end = Time.unscaledTime + seconds;
+        while (Time.unscaledTime < end) yield return null;
+        ClearPrompt();
+    }
+
+    // -------- world pause / resume --------
+    private void PauseWorld()
+    {
+        _prevTimeScale = Time.timeScale;
+        Time.timeScale = 0f;
+    }
+    private void ResumeWorldDeferred()
+    {
+        Time.timeScale = _prevTimeScale;
+        _requireMouseUpToReenable = true;
+        _reenableCasterAtFrame = Time.frameCount + 1;
+        _ignorePressUntilFrame = Time.frameCount + 1;
+        if (clickCaster) clickCaster.enabled = false;
+    }
+
+    // -------- fail path --------
+    private void FailAndCleanup(string reason, string promptOverride)
+    {
+        if (debugLogs) Debug.Log($"[Mini] FAIL: {reason}");
+        if (!string.IsNullOrEmpty(promptOverride))
+        {
+            ShowPrompt(promptOverride);
+            StartCoroutine(HidePromptAfter(failMsgSeconds));
+        }
+        else ClearPrompt();
+
+        HideReactionBar();
+        if (beepFishFX) beepFishFX.HideImmediate();
+
+        // flash âœ• before hide
+        HookCardService.FlashEscaped(_current ? _current.DisplayName : string.Empty, 0.45f);
+
+        ResumeWorldDeferred();
+
+        if (_current) ScareAndDespawn(_current);
+        OnFishFailed?.Invoke(_current);
+        _current = null;
+        _state = State.Idle;
+    }
+
+    // -------- checks / utility --------
+    private bool IsMarkerInsideGreenZone()
+    {
+        if (reactionBarUI == null || greenZone == null) return false;
+        float u = reactionBarUI.MarkerNormalized01(); // 0..1
+        var segs = greenZone.CurrentSegments;
+        if (segs == null) return false;
+
+        foreach (var s in segs)
+        {
+            float a = Mathf.Clamp01(s.start01);
+            float b = Mathf.Clamp01(s.start01 + s.length01);
+            if (u >= a && u <= b) return true;
+        }
+        return false;
+    }
+
+    private FishIdentity FindNearestFish(Vector2 worldPos, float radius)
+    {
+        var hits = Physics2D.OverlapCircleAll(worldPos, radius, fishMask);
+        float best = float.MaxValue; FishIdentity bestFish = null;
+        foreach (var h in hits)
+        {
+            var id = h.GetComponentInParent<FishIdentity>(); if (!id) continue;
+            Vector2 closest = h.ClosestPoint(worldPos);
+            float d2 = (closest - worldPos).sqrMagnitude;
+            if (d2 < best) { best = d2; bestFish = id; }
+        }
+        return bestFish;
+    }
+
+    private void ScareAndDespawn(FishIdentity fish)
+    {
+        if (!fish) return;
+        if (scarePoofPrefab)
+        {
+            var sr = fish.GetComponentInChildren<SpriteRenderer>();
+            var fx = Instantiate(scarePoofPrefab, fish.transform.position, Quaternion.identity);
+            var fxSr = fx.GetComponentInChildren<SpriteRenderer>();
+            if (fxSr && sr)
+            {
+                fxSr.sortingLayerID = sr.sortingLayerID;
+                fxSr.sortingOrder   = sr.sortingOrder + 1;
+            }
+        }
+        Destroy(fish.gameObject, destroyDelay);
+    }
+}
+

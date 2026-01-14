@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7219cbc9980d9d4a8e27914b3735a0d, type: 3}
+  m_Name: FishCatalogSettings
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::GalacticFishing.FishCatalogSettings
+  spritesFolder: Assets/Sprites/Fish
+  dataFolder: Assets/Data/Fish
+  prefabsFolder: Assets/Prefabs/Fish
+  registryPath: Assets/Data/FishRegistry.asset
+  useSharedPrefab: 1
+  baseFishPrefab: {fileID: 8843471684983171812, guid: 12f47d8175101414592a6b20c6aead35, type: 3}
+  defaultRarity: 0
+  baselineMeters: 0.5
+  sigmaLogSize: 0.25
+  nativeScaleMult: 1
+  autoBuildOnImport: 1

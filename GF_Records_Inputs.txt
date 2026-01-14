@@ -1,0 +1,1685 @@
+// === BEGIN .\Assets\Scripts\Fish\FishIdentity.cs ===
+// FishIdentity.cs
+using UnityEngine;
+using GalacticFishing; // resolves FishMeta without changing any other logic
+
+[System.Serializable]
+public class Reaction2Settings
+{
+    [Tooltip("Random delay BEFORE the beep (seconds, realtime).")]
+    public float beepDelayMin = 0.5f;
+
+    [Tooltip("Random delay BEFORE the beep (seconds, realtime). Max must be >= Min.")]
+    public float beepDelayMax = 2.0f;
+
+    [Tooltip("Allowed reaction window AFTER the beep (seconds, realtime).")]
+    public float successWindow = 1.2f;
+}
+
+public class FishIdentity : MonoBehaviour
+{
+    [Header("Identity")]
+    [SerializeField] private string displayName = "Fish";
+    public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? gameObject.name : displayName;
+
+    [Header("Optional metadata (ScriptableObject)")]
+    public FishMeta meta;
+    [Tooltip("If true, copy Reaction2 values from meta (if present) on Awake.")]
+    public bool applyMetaReactionOnAwake = true;
+
+    [Header("Catch Difficulty (Phase 2)")]
+    public Reaction2Settings reaction2 = new Reaction2Settings();
+
+    private void Awake()
+    {
+        if (applyMetaReactionOnAwake && meta != null)
+        {
+            // Copy Reaction2 overrides if meta present
+            reaction2.beepDelayMin = Mathf.Max(0f,            meta.reaction2.beepDelayMin);
+            reaction2.beepDelayMax = Mathf.Max(reaction2.beepDelayMin, meta.reaction2.beepDelayMax);
+            reaction2.successWindow = Mathf.Max(0.05f,        meta.reaction2.successWindow);
+        }
+    }
+
+    private void OnValidate()
+    {
+        if (reaction2 == null) reaction2 = new Reaction2Settings();
+        reaction2.beepDelayMin = Mathf.Max(0f, reaction2.beepDelayMin);
+        reaction2.beepDelayMax = Mathf.Max(reaction2.beepDelayMin, reaction2.beepDelayMax);
+        reaction2.successWindow = Mathf.Max(0.05f, reaction2.successWindow);
+    }
+}
+
+
+// === END .\Assets\Scripts\Fish\FishIdentity.cs ===
+
+// === BEGIN .\Assets\Scripts\Fishing\FishingMinigameController.cs ===
+using System.Collections;
+using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.InputSystem;
+using UnityEngine.EventSystems; // <-- for IsPointerOverGameObject
+using GalacticFishing.UI; // ReactionBarUI + GreenZoneController
+using TMPro;
+using UnityEngine.UI;
+
+[System.Serializable] public class FishEvent : UnityEvent<FishIdentity> { }
+
+public class FishingMinigameController : MonoBehaviour
+{
+    [Header("Assign ReactionBar")]
+    [SerializeField] private CanvasGroup reactionBarGroup;
+    [SerializeField] private ReactionBarUI reactionBarUI;
+    [SerializeField] private GreenZoneController greenZone;
+
+    [Header("Click Source (disabled while game is up)")]
+    [SerializeField] private FishClickCaster clickCaster;
+
+    [Header("Prompt UI (optional)")]
+    [SerializeField] private TextMeshProUGUI tmpPrompt;  // assign one OR the next line
+    [SerializeField] private Text uiPrompt;
+
+    [SerializeField] private string hookedMsg   = "HOOKED! Wait for the beep… then CLICK!";
+    [SerializeField] private string tooSoonMsg  = "Too soon!";
+    [SerializeField] private string tooSlowMsg  = "Too slow!";
+    [SerializeField] private string successMsg  = "GREAT JOB!";
+    [SerializeField] private float  successMsgSeconds = 1.0f;
+    [SerializeField] private float  failMsgSeconds    = 1.0f;
+
+    [Header("Beep SFX (optional)")]
+    [SerializeField] private AudioSource beepSource;
+    [SerializeField] private AudioClip   beepClip;
+
+    [Header("Visual Beep: Fish (optional)")]
+    [SerializeField] private BeepFishFX beepFishFX;
+
+    [Header("Scare Settings (on miss & fail)")]
+    [SerializeField] private LayerMask fishMask = ~0;
+    [SerializeField] private float searchRadius = 3f;
+    [SerializeField] private GameObject scarePoofPrefab;
+    [SerializeField] private float destroyDelay = 0.05f;
+
+    [Header("Events")]
+    public FishEvent OnFishHooked;
+    public FishEvent OnFishFailed;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogs = false;
+
+    // ---------- NEW: UI guard ----------
+    [Header("UI Guard (optional)")]
+    [Tooltip("Drag the CanvasGroup from 'Inventory-background' here. If present (alpha>0 and interactable/blocksRaycasts), gameplay clicks are ignored.")]
+    [SerializeField] private CanvasGroup inventoryCanvasGroup;
+
+    private enum State { Idle, BarShown, AwaitBeep, AwaitWindow }
+    private State _state = State.Idle;
+
+    private FishIdentity _current;
+    private float _prevTimeScale = 1f;
+
+    // phase-2 timing (unscaled)
+    private float _beepAt = 0f;
+    private float _windowEnd = 0f;
+
+    // input/frame gates
+    private int  _ignorePressUntilFrame = 0;
+    private bool _requireMouseUpToReenable = false;
+    private int  _reenableCasterAtFrame = 0;
+
+    private GameObject BarRootGO => reactionBarGroup ? reactionBarGroup.gameObject : null;
+
+    private void Awake()
+    {
+        // make sure the prompt is hidden at boot so “New Text” never shows
+        ClearPrompt();
+    }
+
+    // ---------- UI guard helpers ----------
+    private bool InventoryLooksOpen()
+    {
+        if (!inventoryCanvasGroup) return false;
+        if (!inventoryCanvasGroup.gameObject.activeInHierarchy) return false;
+        // treat as visible when it’s actually shown and intended to catch input
+        return inventoryCanvasGroup.alpha > 0.01f &&
+               (inventoryCanvasGroup.interactable || inventoryCanvasGroup.blocksRaycasts);
+    }
+
+    private bool PointerOverAnyUI()
+    {
+        var es = EventSystem.current;
+        if (!es) return false;
+
+        // Works with both old/new input systems; the paramless overload is fine for mouse.
+        if (es.IsPointerOverGameObject()) return true;
+
+        // Extra safety for devices with explicit IDs (new input system pointers)
+        try
+        {
+            if (Mouse.current != null && es.IsPointerOverGameObject(Mouse.current.deviceId)) return true;
+        }
+        catch { /* ignore if module doesn't support it */ }
+
+        return false;
+    }
+
+    // Should we block gameplay right now?
+    private bool BlockGameplayNow() => InventoryLooksOpen() || PointerOverAnyUI();
+
+    // -------- wired from FishClickCaster --------
+    public void HandleFishClicked(FishIdentity fish)
+    {
+        // BLOCK: don't start minigame if inventory/any UI is under the cursor
+        if (_state != State.Idle || BlockGameplayNow()) return;
+
+        _current = fish;
+        PauseWorld();
+        if (clickCaster) clickCaster.enabled = false;
+
+        ShowReactionBar();
+        _ignorePressUntilFrame = Time.frameCount + 1; // gate same-press resolve
+        _state = State.BarShown;
+
+        if (debugLogs) Debug.Log("[Mini] Start: bar shown");
+    }
+
+    public void HandleMissClicked(Vector2 where)
+    {
+        // If inventory/any UI is up, ignore miss-click behavior entirely.
+        if (_state != State.Idle || BlockGameplayNow()) return;
+
+        var nearest = FindNearestFish(where, searchRadius);
+        if (nearest) ScareAndDespawn(nearest);
+    }
+
+    private void Update()
+    {
+        // If nothing is running and UI is up, do nothing this frame.
+        if (_state == State.Idle && BlockGameplayNow()) return;
+
+        var mouse = Mouse.current;
+        var kb    = Keyboard.current;
+        bool press =
+            (mouse != null && mouse.leftButton.wasPressedThisFrame) ||
+            (kb != null && kb.spaceKey.wasPressedThisFrame);
+
+        switch (_state)
+        {
+            case State.BarShown:
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    bool ok = IsMarkerInsideGreenZone();
+                    if (!ok)
+                    {
+                        FailAndCleanup("missed green", tooSoonMsg);
+                        return;
+                    }
+
+                    // Phase 1 success ? show HOOKED overlay and prep phase 2
+                    HideReactionBar();
+                    ShowPrompt(hookedMsg);
+                    HookCardService.ShowInProgress(_current ? _current.DisplayName : string.Empty);
+
+                    // Show the hooked fish at full opacity through phase 2
+                    if (beepFishFX && _current)
+                    {
+                        var sr0 = _current.GetComponentInChildren<SpriteRenderer>();
+                        if (sr0 && sr0.sprite)
+                        {
+                            beepFishFX.Show(sr0.sprite, 999f);
+                        }
+                    }
+
+                    float min = Mathf.Max(0f,  _current ? _current.reaction2.beepDelayMin  : 0.5f);
+                    float max = Mathf.Max(min, _current ? _current.reaction2.beepDelayMax  : 2f);
+                    float win = Mathf.Max(0.05f,_current ? _current.reaction2.successWindow : 1.2f);
+
+                    float delay = Random.Range(min, max);
+                    _beepAt    = Time.unscaledTime + delay;
+                    _windowEnd = _beepAt + win;
+
+                    _ignorePressUntilFrame = Time.frameCount + 1;
+                    _state = State.AwaitBeep;
+                    if (debugLogs) Debug.Log($"[Mini] Phase2: wait {delay:0.00}s, window {win:0.00}s");
+                }
+                break;
+
+            case State.AwaitBeep:
+                // Early click = fail (anti-spam). If you want “ignore” instead, we can change this.
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    FailAndCleanup("clicked before beep", tooSoonMsg);
+                    return;
+                }
+
+                if (Time.unscaledTime >= _beepAt)
+                {
+                    if (beepSource && beepClip) beepSource.PlayOneShot(beepClip);
+                    _ignorePressUntilFrame = Time.frameCount + 1; // avoid same-frame press
+                    _state = State.AwaitWindow;
+                    if (debugLogs) Debug.Log("[Mini] Beep!");
+                }
+                break;
+
+            case State.AwaitWindow:
+                if (Time.unscaledTime > _windowEnd)
+                {
+                    FailAndCleanup("too slow after beep", tooSlowMsg);
+                    return;
+                }
+
+                if (press && Time.frameCount >= _ignorePressUntilFrame)
+                {
+                    // SUCCESS
+                    ShowPrompt(successMsg);
+                    StartCoroutine(HidePromptAfter(successMsgSeconds));
+                    if (beepFishFX) beepFishFX.HideImmediate();
+
+                    // flash ? before hide
+                    HookCardService.FlashCaught(_current ? _current.DisplayName : string.Empty);
+
+                    ResumeWorldDeferred();
+                    OnFishHooked?.Invoke(_current);
+                    _current = null;
+                    _state = State.Idle;
+                    if (debugLogs) Debug.Log("[Mini] Success ? caught");
+                }
+                break;
+
+            case State.Idle:
+                // re-enable caster only after mouse up & one frame
+                if (_requireMouseUpToReenable &&
+                    mouse != null && !mouse.leftButton.isPressed &&
+                    Time.frameCount >= _reenableCasterAtFrame)
+                {
+                    if (clickCaster) clickCaster.enabled = true;
+                    _requireMouseUpToReenable = false;
+                    if (debugLogs) Debug.Log("[Mini] Click caster re-enabled");
+                }
+                break;
+        }
+    }
+
+    // -------- bar/prompt helpers --------
+    private void ShowReactionBar()
+    {
+        if (BarRootGO && !BarRootGO.activeSelf) BarRootGO.SetActive(true);
+        if (reactionBarGroup)
+        {
+            reactionBarGroup.alpha = 1f;
+            reactionBarGroup.interactable = true;
+            reactionBarGroup.blocksRaycasts = true;
+        }
+        if (reactionBarUI) reactionBarUI.StartRun();
+    }
+
+    private void HideReactionBar()
+    {
+        if (reactionBarUI) reactionBarUI.StopRun();
+        if (reactionBarGroup)
+        {
+            reactionBarGroup.alpha = 0f;
+            reactionBarGroup.interactable = false;
+            reactionBarGroup.blocksRaycasts = false;
+        }
+    }
+
+    private void ShowPrompt(string msg)
+    {
+        if (tmpPrompt) { tmpPrompt.gameObject.SetActive(true); tmpPrompt.text = msg; }
+        if (uiPrompt)  { uiPrompt.gameObject.SetActive(true);  uiPrompt.text  = msg; }
+    }
+    private void ClearPrompt()
+    {
+        if (tmpPrompt) { tmpPrompt.text = ""; tmpPrompt.gameObject.SetActive(false); }
+        if (uiPrompt)  { uiPrompt.text  = ""; uiPrompt.gameObject.SetActive(false); }
+    }
+    private IEnumerator HidePromptAfter(float seconds)
+    {
+        if (seconds <= 0f) { ClearPrompt(); yield break; }
+        float end = Time.unscaledTime + seconds;
+        while (Time.unscaledTime < end) yield return null;
+        ClearPrompt();
+    }
+
+    // -------- world pause / resume --------
+    private void PauseWorld()
+    {
+        _prevTimeScale = Time.timeScale;
+        Time.timeScale = 0f;
+    }
+    private void ResumeWorldDeferred()
+    {
+        Time.timeScale = _prevTimeScale;
+        _requireMouseUpToReenable = true;
+        _reenableCasterAtFrame = Time.frameCount + 1;
+        _ignorePressUntilFrame = Time.frameCount + 1;
+        if (clickCaster) clickCaster.enabled = false;
+    }
+
+    // -------- fail path --------
+    private void FailAndCleanup(string reason, string promptOverride)
+    {
+        if (debugLogs) Debug.Log($"[Mini] FAIL: {reason}");
+        if (!string.IsNullOrEmpty(promptOverride))
+        {
+            ShowPrompt(promptOverride);
+            StartCoroutine(HidePromptAfter(failMsgSeconds));
+        }
+        else ClearPrompt();
+
+        HideReactionBar();
+        if (beepFishFX) beepFishFX.HideImmediate();
+
+        // flash ? before hide
+        HookCardService.FlashEscaped(_current ? _current.DisplayName : string.Empty);
+
+        ResumeWorldDeferred();
+
+        if (_current) ScareAndDespawn(_current);
+        OnFishFailed?.Invoke(_current);
+        _current = null;
+        _state = State.Idle;
+    }
+
+    // -------- checks / utility --------
+    private bool IsMarkerInsideGreenZone()
+    {
+        if (reactionBarUI == null || greenZone == null) return false;
+        float u = reactionBarUI.MarkerNormalized01(); // 0..1
+        var segs = greenZone.CurrentSegments;
+        if (segs == null) return false;
+
+        foreach (var s in segs)
+        {
+            float a = Mathf.Clamp01(s.start01);
+            float b = Mathf.Clamp01(s.start01 + s.length01);
+            if (u >= a && u <= b) return true;
+        }
+        return false;
+    }
+
+    private FishIdentity FindNearestFish(Vector2 worldPos, float radius)
+    {
+        var hits = Physics2D.OverlapCircleAll(worldPos, radius, fishMask);
+        float best = float.MaxValue; FishIdentity bestFish = null;
+        foreach (var h in hits)
+        {
+            var id = h.GetComponentInParent<FishIdentity>(); if (!id) continue;
+            Vector2 closest = h.ClosestPoint(worldPos);
+            float d2 = (closest - worldPos).sqrMagnitude;
+            if (d2 < best) { best = d2; bestFish = id; }
+        }
+        return bestFish;
+    }
+
+    private void ScareAndDespawn(FishIdentity fish)
+    {
+        if (!fish) return;
+        if (scarePoofPrefab)
+        {
+            var sr = fish.GetComponentInChildren<SpriteRenderer>();
+            var fx = Instantiate(scarePoofPrefab, fish.transform.position, Quaternion.identity);
+            var fxSr = fx.GetComponentInChildren<SpriteRenderer>();
+            if (fxSr && sr)
+            {
+                fxSr.sortingLayerID = sr.sortingLayerID;
+                fxSr.sortingOrder   = sr.sortingOrder + 1;
+            }
+        }
+        Destroy(fish.gameObject, destroyDelay);
+    }
+}
+
+
+// === END .\Assets\Scripts\Fishing\FishingMinigameController.cs ===
+
+// === BEGIN .\Assets\Scripts\Services\CatchToInventory.cs ===
+using System;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
+using GalacticFishing; // Fish, FishRegistry
+
+/// <summary>
+/// Hooks FishingMinigameController success into InventoryService + stats persistence.
+/// Attach to an always-alive object (use your "Systems" GameObject).
+/// </summary>
+public class CatchToInventory : MonoBehaviour
+{
+    [Header("Links")]
+    [SerializeField] private FishingMinigameController minigame;
+    [SerializeField] private FishRegistry registry;
+    [Tooltip("Optional: if registry unassigned, we try to fetch it from an InventoryGridController in the scene.")]
+    [SerializeField] private InventoryGridController inventoryGrid;
+
+    [Header("Debug")]
+    [SerializeField] private bool logs = false;
+
+    // ---- subscription (supports C# event or UnityEvent) ----
+    EventInfo _eventInfo;
+    Delegate _eventHandlerDelegate;
+
+    FieldInfo _unityEventField;
+    object _unityEventInstance;
+    Delegate _unityActionDelegate;
+
+    void Awake()
+    {
+        if (!minigame) minigame = FindFirstObjectByType<FishingMinigameController>();
+
+        if (!registry)
+        {
+            if (!inventoryGrid) inventoryGrid = FindFirstObjectByType<InventoryGridController>();
+            if (inventoryGrid)
+            {
+                var t = inventoryGrid.GetType();
+                var p = t.GetProperty("FishRegistry", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (p != null && typeof(FishRegistry).IsAssignableFrom(p.PropertyType))
+                    registry = p.GetValue(inventoryGrid) as FishRegistry;
+                else
+                {
+                    var f = t.GetField("FishRegistry", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                    if (f != null && typeof(FishRegistry).IsAssignableFrom(f.FieldType))
+                        registry = f.GetValue(inventoryGrid) as FishRegistry;
+                }
+            }
+        }
+
+        if (registry && !InventoryService.IsInitialized)
+            InventoryService.Initialize(registry);
+    }
+
+    void OnEnable()
+    {
+        if (minigame == null)
+        {
+            Debug.LogWarning("[CatchToInventory] No FishingMinigameController found.");
+            return;
+        }
+
+        var t = minigame.GetType();
+
+        // Try C# event
+        _eventInfo = t.GetEvent("OnFishHooked", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+        if (_eventInfo != null)
+        {
+            _eventHandlerDelegate = Delegate.CreateDelegate(_eventInfo.EventHandlerType, this, nameof(OnFishHooked));
+            _eventInfo.AddEventHandler(minigame, _eventHandlerDelegate);
+            if (logs) Debug.Log("[CatchToInventory] Subscribed to OnFishHooked (C# event).");
+            return;
+        }
+
+        // Fallback UnityEvent<FishIdentity>
+        _unityEventField = t.GetField("OnFishHooked", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+        if (_unityEventField != null)
+        {
+            _unityEventInstance = _unityEventField.GetValue(minigame);
+            if (_unityEventInstance != null)
+            {
+                var ueType = _unityEventInstance.GetType();
+                var add = ueType.GetMethod("AddListener", BindingFlags.Public | BindingFlags.Instance);
+                if (add != null)
+                {
+                    var unityActionType = typeof(UnityEngine.Events.UnityAction<>).MakeGenericType(typeof(FishIdentity));
+                    _unityActionDelegate = Delegate.CreateDelegate(unityActionType, this, nameof(OnFishHooked));
+                    add.Invoke(_unityEventInstance, new object[] { _unityActionDelegate });
+                    if (logs) Debug.Log("[CatchToInventory] Subscribed to OnFishHooked (UnityEvent).");
+                    return;
+                }
+            }
+        }
+
+        Debug.LogWarning("[CatchToInventory] Could not subscribe to OnFishHooked.");
+    }
+
+    void OnDisable()
+    {
+        if (_eventInfo != null && _eventHandlerDelegate != null && minigame != null)
+        {
+            _eventInfo.RemoveEventHandler(minigame, _eventHandlerDelegate);
+            _eventInfo = null; _eventHandlerDelegate = null;
+        }
+        if (_unityEventField != null && _unityEventInstance != null && _unityActionDelegate != null)
+        {
+            var ueType = _unityEventInstance.GetType();
+            var remove = ueType.GetMethod("RemoveListener", BindingFlags.Public | BindingFlags.Instance);
+            remove?.Invoke(_unityEventInstance, new object[] { _unityActionDelegate });
+            _unityEventField = null; _unityEventInstance = null; _unityActionDelegate = null;
+        }
+    }
+
+    // ---- event handler ----
+    void OnFishHooked(FishIdentity identity)
+    {
+        if (identity == null) return;
+
+        // Make sure counts system is ready
+        if (!InventoryService.IsInitialized && registry != null)
+            InventoryService.Initialize(registry);
+
+        // 1) Resolve id
+        int id = ResolveFishId(identity, registry, out string dbgName, out string dbgSpriteName);
+
+        if (id < 0)
+        {
+            Debug.LogWarning($"[CatchToInventory] Could not resolve fish id for caught fish. " +
+                             $"name='{dbgName ?? "?"}' sprite='{dbgSpriteName ?? "?"}'.");
+            return;
+        }
+
+        // 2) Read runtime stats (optional)
+        var stats = InventoryStatsService.RuntimeStats.From(
+            TryReadFloat(identity, "WeightKg"),
+            TryReadFloat(identity, "LengthCm"),
+            TryReadInt  (identity, "Quality")
+        );
+
+        // 3) Update counts + stats persistence
+        InventoryService.Add(id, 1);
+        InventoryStatsService.RecordCatch(id, stats);
+
+        if (logs)
+            Debug.Log($"[CatchToInventory] +1 id={id} name='{RegistryName(registry, id)}'  " +
+                      $"W={(stats.hasWeight? stats.weightKg.ToString("0.###")+"kg":"â€”")}  " +
+                      $"L={(stats.hasLength? stats.lengthCm.ToString("0.#")+"cm":"â€”")}  " +
+                      $"Q={(stats.hasQuality? stats.quality.ToString():"â€”")}");
+    }
+
+    // ---- resolution helpers ----
+
+    int ResolveFishId(FishIdentity identity, FishRegistry reg, out string dbgName, out string dbgSpriteName)
+    {
+        dbgName = TryGetDisplayName(identity);
+        dbgSpriteName = TryGetSprite(identity)?.name;
+
+        // A) Direct ScriptableObject reference on identity (Fish/FishDef/Definition/etc.)
+        var def = TryGetFishDefFromIdentity(identity);
+        if (def != null)
+        {
+            int id = InventoryService.GetId(def);
+            if (id >= 0) return id;
+        }
+
+        // B) By display name (normalized)
+        int idByName = ResolveFishIdByName(dbgName, reg);
+        if (idByName >= 0) return idByName;
+
+        // C) By sprite match (rendererâ€™s sprite equals registry.fishes[i].sprite, or same sprite name)
+        var spr = TryGetSprite(identity);
+        if (spr)
+        {
+            int idBySprite = ResolveFishIdBySprite(spr, reg);
+            if (idBySprite >= 0) return idBySprite;
+        }
+
+        return -1;
+    }
+
+    Fish TryGetFishDefFromIdentity(object identity)
+    {
+        if (identity == null) return null;
+        var t = identity.GetType();
+        foreach (var n in new[] { "Fish", "Definition", "Def", "FishDef", "Data" })
+        {
+            var p = t.GetProperty(n, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (p != null && typeof(Fish).IsAssignableFrom(p.PropertyType))
+                return p.GetValue(identity) as Fish;
+
+            var f = t.GetField(n, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (f != null && typeof(Fish).IsAssignableFrom(f.FieldType))
+                return f.GetValue(identity) as Fish;
+        }
+        return null;
+    }
+
+    int ResolveFishIdByName(string displayName, FishRegistry reg)
+    {
+        if (reg == null || string.IsNullOrWhiteSpace(displayName)) return -1;
+
+        string target = Norm(displayName);
+
+        for (int i = 0; i < reg.fishes.Count; i++)
+        {
+            var f = reg.fishes[i];
+            var d = string.IsNullOrEmpty(f.displayName) ? f.name : f.displayName;
+            if (Norm(d) == target) return i;
+        }
+
+        // forgiving: trim suffixes like "_0" / "(Clone)"
+        target = Norm(TrimSuffix(displayName));
+        for (int i = 0; i < reg.fishes.Count; i++)
+        {
+            var f = reg.fishes[i];
+            var d = string.IsNullOrEmpty(f.displayName) ? f.name : f.displayName;
+            if (Norm(TrimSuffix(d)) == target) return i;
+        }
+
+        return -1;
+    }
+
+    int ResolveFishIdBySprite(Sprite spr, FishRegistry reg)
+    {
+        if (!spr || reg == null) return -1;
+
+        // Exact sprite instance match
+        for (int i = 0; i < reg.fishes.Count; i++)
+            if (reg.fishes[i] && reg.fishes[i].sprite == spr) return i;
+
+        // Fallback: sprite name match (common when sprites are duplicated at import)
+        string target = spr.name;
+        for (int i = 0; i < reg.fishes.Count; i++)
+        {
+            var s = reg.fishes[i] ? reg.fishes[i].sprite : null;
+            if (s && string.Equals(s.name, target, StringComparison.OrdinalIgnoreCase))
+                return i;
+        }
+        return -1;
+    }
+
+    string RegistryName(FishRegistry reg, int id)
+    {
+        if (!reg || id < 0 || id >= reg.fishes.Count || !reg.fishes[id]) return "?";
+        var f = reg.fishes[id];
+        return string.IsNullOrEmpty(f.displayName) ? f.name : f.displayName;
+    }
+
+    // ---- read helpers ----
+
+    string TrimSuffix(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        s = s.Replace(" (Clone)", "", StringComparison.OrdinalIgnoreCase);
+        int us = s.LastIndexOf('_');
+        if (us > 0)
+        {
+            var tail = s.Substring(us + 1);
+            if (int.TryParse(tail, out _)) return s.Substring(0, us);
+        }
+        return s;
+    }
+
+    string Norm(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return "";
+        // remove spaces, underscores, hyphens, punctuation; lowercase
+        var filtered = new System.Text.StringBuilder(s.Length);
+        foreach (char c in s)
+            if (char.IsLetterOrDigit(c)) filtered.Append(char.ToLowerInvariant(c));
+        return filtered.ToString();
+    }
+
+    string TryGetDisplayName(object identity)
+    {
+        var t = identity.GetType();
+        foreach (var n in new[] { "DisplayName", "displayName", "Name", "name" })
+        {
+            var p = t.GetProperty(n, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (p != null && p.PropertyType == typeof(string))
+            {
+                var s = p.GetValue(identity) as string;
+                if (!string.IsNullOrEmpty(s)) return s;
+            }
+            var f = t.GetField(n, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (f != null && f.FieldType == typeof(string))
+            {
+                var s = f.GetValue(identity) as string;
+                if (!string.IsNullOrEmpty(s)) return s;
+            }
+        }
+        // last resort: GO name
+        return (identity as Component)?.gameObject.name ?? identity.ToString();
+    }
+
+    Sprite TryGetSprite(Component identity)
+    {
+        if (!identity) return null;
+        var sr = identity.GetComponentInChildren<SpriteRenderer>();
+        if (sr && sr.sprite) return sr.sprite;
+
+        // If fish are UI Images instead of SpriteRenderers:
+        var img = identity.GetComponentInChildren<UnityEngine.UI.Image>();
+        if (img && img.sprite) return img.sprite;
+
+        return null;
+    }
+
+    float? TryReadFloat(object obj, string name)
+    {
+        try
+        {
+            var p = obj.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (p != null && (p.PropertyType == typeof(float) || p.PropertyType == typeof(double)))
+                return Convert.ToSingle(p.GetValue(obj));
+
+            var f = obj.GetType().GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (f != null && (f.FieldType == typeof(float) || f.FieldType == typeof(double)))
+                return Convert.ToSingle(f.GetValue(obj));
+        } catch {}
+        return null;
+    }
+
+    int? TryReadInt(object obj, string name)
+    {
+        try
+        {
+            var p = obj.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (p != null && p.PropertyType == typeof(int))
+                return (int)p.GetValue(obj);
+
+            var f = obj.GetType().GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            if (f != null && f.FieldType == typeof(int))
+                return (int)f.GetValue(obj);
+        } catch {}
+        return null;
+    }
+}
+
+
+// === END .\Assets\Scripts\Services\CatchToInventory.cs ===
+
+// === BEGIN .\Assets\Scripts\UI\HubPanelController.cs ===
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.Events;
+using TMPro;
+
+namespace GalacticFishing.UI
+{
+    public sealed class HubPanelController : MonoBehaviour
+    {
+        [Header("Scene References")]
+        [SerializeField] private Transform leftColumn;   // Panel_Hub/LeftColumn
+        [SerializeField] private Transform rightGrid;    // Panel_Hub/RightGrid
+
+        [Header("Worlds Tab")]
+        [SerializeField] private GalacticFishing.WorldManager worldManager;
+        [SerializeField] private List<GalacticFishing.WorldDefinition> worlds = new();
+
+        [Header("Custom Tabs")]
+        [SerializeField] private List<CustomPage> customPages = new(); // e.g., UPGRADES
+
+        [Header("Behaviour")]
+        [SerializeField] private bool closePanelAfterWorldPick = false;
+
+        [Header("GRID Label Style (Right side)")]
+        [SerializeField] private bool gridUseAutoSize = true;
+        [SerializeField] private float gridAutoMin = 16f;
+        [SerializeField] private float gridAutoMax = 40f;
+        [SerializeField] private TextOverflowModes gridOverflow = TextOverflowModes.Ellipsis;
+        [SerializeField] private bool gridWordWrap = false;
+        [SerializeField] private bool smartTwoLineIfLong = false;
+        [SerializeField] private int twoLineThreshold = 12;
+
+        [Header("LEFT TAB Label Style (override)")]
+        [SerializeField] private bool leftUseAutoSize = true;
+        [SerializeField] private float leftAutoMin = 28f;
+        [SerializeField] private float leftAutoMax = 96f;
+        [SerializeField] private TextOverflowModes leftOverflow = TextOverflowModes.Ellipsis;
+        [SerializeField] private bool leftWordWrap = false;
+
+        [Header("Pagination (auto builds PREV/NEXT)")]
+        [SerializeField] private bool autoBuildPagerUI = true;
+        [SerializeField] private bool showPagerWhenSinglePage = false;
+        [SerializeField] private Vector2 pagerOffset = new Vector2(0f, -16f);
+        [SerializeField] private bool pagerStackVertical = false; // show stack (1, â€”, 2) instead of 1/2
+        [SerializeField] private string pagerDivider = "â€”";
+        [SerializeField] private string pagerSlash = "/";
+
+        // runtime pager refs
+        [SerializeField] private Button pagerPrev;
+        [SerializeField] private TMP_Text pagerText;
+        [SerializeField] private Button pagerNext;
+        private LayoutElement pagerLabelLE; // <â€” was missing
+
+        [Header("Pagination Style")]
+        [SerializeField] private string prevLabel = "PREV <";
+        [SerializeField] private string nextLabel = "> NEXT";
+        [SerializeField] private float pagerFontSize = 32f;
+        [SerializeField] private Color pagerTextColor = Color.white;
+        [SerializeField] private Vector2 pagerButtonSize = new Vector2(140f, 44f);
+        [SerializeField] private float pagerSpacing = 24f;
+
+        [Tooltip("Optional sprite for PREV/NEXT button background (leave null for clean).")]
+        [SerializeField] private Sprite pagerButtonSprite = null;
+
+        [Tooltip("Background color; if fully transparent, we'll auto-set to very small alpha so the full rect is clickable.")]
+        [SerializeField] private Color pagerButtonColor = new Color(1, 1, 1, 0f);
+
+        // ----- internal -----
+        private List<Cell> _left = new();
+        private List<Cell> _grid = new();
+
+        private int _currentTabType = 0;  // 0=Museum, 1=Worlds, 2+=Custom
+        private int _currentPage = 0;
+        private int _pageSize = 15;
+        private int _pageCount = 1;
+
+        [System.Serializable] public class CustomPage { public string tabLabel = "UPGRADES"; public List<CustomItem> items = new(); }
+        [System.Serializable] public class CustomItem { public string label = "Item"; public Sprite icon; public UnityEvent onClick; }
+
+        private struct Cell
+        {
+            public GameObject go;
+            public Button     button;
+            public TMP_Text   label;
+            public Image      icon;
+        }
+
+        void Awake()
+        {
+            if (!leftColumn || !rightGrid) { Debug.LogWarning("[HubPanelController] Assign LeftColumn & RightGrid."); return; }
+
+            _left = CollectCells(leftColumn);
+            _grid = CollectCells(rightGrid);
+            _pageSize = _grid.Count;
+
+            ApplyLeftLabelStyle();
+            ApplyGridLabelStyle();
+
+            if (autoBuildPagerUI) EnsurePagerUI();
+            WirePagerButtons();
+
+            SetupLeftTabs();
+            ShowMuseumPage();
+        }
+
+        // ---------- collect tiles ----------
+        private List<Cell> CollectCells(Transform parent)
+        {
+            var list = new List<Cell>(parent.childCount);
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var t = parent.GetChild(i);
+                var go = t.gameObject;
+
+                var img = go.GetComponent<Image>(); if (!img) img = go.AddComponent<Image>();
+                var btn = go.GetComponent<Button>(); if (!btn) btn = go.AddComponent<Button>();
+                if (!btn.targetGraphic) btn.targetGraphic = img;
+                btn.navigation = new Navigation { mode = Navigation.Mode.None };
+
+                var label = go.GetComponentInChildren<TMP_Text>(true);
+                Image icon = null; var iconTr = go.transform.Find("Icon"); if (iconTr) icon = iconTr.GetComponent<Image>();
+
+                list.Add(new Cell { go = go, button = btn, label = label, icon = icon });
+            }
+            return list;
+        }
+
+        private void StyleLabel(TMP_Text L, bool useAuto, float min, float max, TextOverflowModes overflow, bool wrap)
+        {
+            if (!L) return;
+            L.enableAutoSizing = useAuto;
+            if (useAuto) { L.fontSizeMin = min; L.fontSizeMax = max; }
+            L.overflowMode = overflow;
+            L.enableWordWrapping = wrap;
+            L.ForceMeshUpdate();
+        }
+
+        private void ApplyLeftLabelStyle() { foreach (var c in _left) StyleLabel(c.label, leftUseAutoSize, leftAutoMin, leftAutoMax, leftOverflow, leftWordWrap); }
+        private void ApplyGridLabelStyle() { foreach (var c in _grid) StyleLabel(c.label, gridUseAutoSize, gridAutoMin, gridAutoMax, gridOverflow, gridWordWrap); }
+
+        private string MakeFit(string s)
+        {
+            if (!smartTwoLineIfLong || string.IsNullOrEmpty(s) || s.Length < twoLineThreshold) return s;
+            int space = s.IndexOf(' ');
+            return (space > 0 && space < s.Length - 1) ? s[..space] + "\n" + s[(space + 1)..] : s;
+        }
+
+        // ---------- pager UI ----------
+        private void EnsurePagerUI()
+        {
+            if (pagerPrev && pagerText && pagerNext) return;
+
+            var rg = rightGrid as RectTransform;
+            if (!rg) return;
+
+            // Root container
+            var rootGO = new GameObject("Pager", typeof(RectTransform));
+            var rootRT = (RectTransform)rootGO.transform;
+            rootRT.SetParent(rg, false);
+            rootRT.anchorMin = new Vector2(0.5f, 0f);
+            rootRT.anchorMax = new Vector2(0.5f, 0f);
+            rootRT.pivot     = new Vector2(0.5f, 1f);
+            rootRT.anchoredPosition = pagerOffset;
+            rootRT.SetAsLastSibling(); // on top for raycasts
+
+            // Layout
+            var h = rootGO.AddComponent<HorizontalLayoutGroup>();
+            h.childAlignment = TextAnchor.MiddleCenter;
+            h.spacing = pagerSpacing;
+            h.padding = new RectOffset(0,0,0,0);
+
+            // PREV button
+            pagerPrev = CreateTextButton("Prev", prevLabel, rootRT);
+
+            // label
+            pagerText = CreatePagerLabel("Page", "1/1", rootRT);
+
+            // NEXT button
+            pagerNext = CreateTextButton("Next", nextLabel, rootRT);
+        }
+
+        private Button CreateTextButton(string name, string label, RectTransform parent)
+        {
+            // Root button includes LayoutElement so HorizontalLayoutGroup respects its slot.
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+            rt.sizeDelta = pagerButtonSize;
+
+            var layout = go.GetComponent<LayoutElement>();
+            layout.minWidth = pagerButtonSize.x; layout.preferredWidth = pagerButtonSize.x;
+            layout.minHeight = pagerButtonSize.y; layout.preferredHeight = pagerButtonSize.y;
+
+            var img = go.GetComponent<Image>();
+            img.sprite = pagerButtonSprite;
+            img.color = pagerButtonColor;
+            img.raycastTarget = true;
+            img.alphaHitTestMinimumThreshold = 0f;
+
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition = Selectable.Transition.None;
+
+            var txtGo = new GameObject("Text", typeof(RectTransform));
+            var txtRt = (RectTransform)txtGo.transform;
+            txtRt.SetParent(rt, false);
+            txtRt.anchorMin = Vector2.zero;
+            txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero;
+            txtRt.offsetMax = Vector2.zero;
+            txtRt.pivot = new Vector2(0.5f, 0.5f);
+
+            var tmp = txtGo.AddComponent<TextMeshProUGUI>();
+            tmp.text = label;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableAutoSizing = false;
+            tmp.fontSize = pagerFontSize;
+            tmp.color = pagerTextColor;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.raycastTarget = false;
+
+            return btn;
+        }
+
+        private TMP_Text CreatePagerLabel(string name, string label, RectTransform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(LayoutElement));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+            rt.sizeDelta = new Vector2(120f, pagerButtonSize.y);
+
+            pagerLabelLE = go.GetComponent<LayoutElement>();
+            pagerLabelLE.minWidth = 120f; pagerLabelLE.preferredWidth = 120f;
+            pagerLabelLE.minHeight = pagerButtonSize.y; pagerLabelLE.preferredHeight = pagerButtonSize.y;
+
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.enableWordWrapping = false; tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.text = label;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableAutoSizing = false;
+            tmp.fontSize = Mathf.Max(18f, pagerFontSize * 0.8f);
+            tmp.color = pagerTextColor;
+            tmp.raycastTarget = false;
+            return tmp;
+        }
+
+        private void WirePagerButtons()
+        {
+            if (pagerPrev) { pagerPrev.onClick.RemoveAllListeners(); pagerPrev.onClick.AddListener(PrevPage); }
+            if (pagerNext) { pagerNext.onClick.RemoveAllListeners(); pagerNext.onClick.AddListener(NextPage); }
+        }
+
+        private void PrevPage()
+        {
+            if (_pageCount <= 1) return;
+            _currentPage = Mathf.Clamp(_currentPage - 1, 0, _pageCount - 1);
+            RedrawCurrentTab();
+        }
+
+        private void NextPage()
+        {
+            if (_pageCount <= 1) return;
+            _currentPage = Mathf.Clamp(_currentPage + 1, 0, _pageCount - 1);
+            RedrawCurrentTab();
+        }
+
+        private void UpdatePager(int page, int pages)
+        {
+            _pageCount = Mathf.Max(1, pages);
+            _currentPage = Mathf.Clamp(page, 0, _pageCount - 1);
+
+            ApplyPagerMode(_currentPage + 1, _pageCount);
+            if (pagerPrev) pagerPrev.interactable = (_currentPage > 0);
+            if (pagerNext) pagerNext.interactable = (_currentPage < _pageCount - 1);
+
+            var show = showPagerWhenSinglePage ? true : (_pageCount > 1);
+            if (pagerPrev) pagerPrev.gameObject.SetActive(show);
+            if (pagerText) pagerText.gameObject.SetActive(show);
+            if (pagerNext) pagerNext.gameObject.SetActive(show);
+        }
+
+        // ---------- tabs ----------
+        private void SetupLeftTabs()
+        {
+            if (_left.Count > 0 && _left[0].label) _left[0].label.text = "MUSEUM";
+            if (_left.Count > 1 && _left[1].label) _left[1].label.text = "WORLDS";
+
+            if (_left.Count > 0) _left[0].button.onClick.AddListener(() => { _currentTabType = 0; _currentPage = 0; ShowMuseumPage(); });
+            if (_left.Count > 1) _left[1].button.onClick.AddListener(() => { _currentTabType = 1; _currentPage = 0; ShowWorldsPage(); });
+
+            int start = 2;
+            for (int i = 0; i < customPages.Count; i++)
+            {
+                int li = start + i; if (li >= _left.Count) break;
+                var page = customPages[i];
+                if (_left[li].label) _left[li].label.text = page.tabLabel;
+                int cap = i;
+                _left[li].button.onClick.AddListener(() =>
+                {
+                    _currentTabType = 2 + cap;
+                    _currentPage = 0;
+                    ShowCustomPage(cap);
+                });
+            }
+        }
+
+        private void RedrawCurrentTab()
+        {
+            if (_currentTabType == 0) ShowMuseumPage();
+            else if (_currentTabType == 1) ShowWorldsPage();
+            else ShowCustomPage(_currentTabType - 2);
+        }
+
+        // ---------- pages ----------
+        private void ShowMuseumPage()
+        {
+            for (int i = 0; i < _grid.Count; i++)
+            {
+                var c = _grid[i];
+                c.go.SetActive(true);
+                if (c.icon) c.icon.enabled = false;
+
+                string text = (i < 10) ? "SELL" : "Future Content";
+                if (smartTwoLineIfLong) text = MakeFit(text);
+                if (c.label) c.label.text = text;
+
+                c.button.onClick.RemoveAllListeners();
+            }
+            UpdatePager(0, 1);
+        }
+
+        private void ShowWorldsPage()
+        {
+            int total = worlds.Count;
+            int pages = Mathf.Max(1, Mathf.CeilToInt(total / (float)_pageSize));
+            _currentPage = Mathf.Clamp(_currentPage, 0, pages - 1);
+
+            int start = _currentPage * _pageSize;
+            int end   = Mathf.Min(start + _pageSize, total);
+
+            int gridIdx = 0;
+            for (int i = start; i < end && gridIdx < _grid.Count; i++, gridIdx++)
+            {
+                var c = _grid[gridIdx];
+                var w = worlds[i];
+                c.go.SetActive(true);
+                if (c.icon) { c.icon.sprite = null; c.icon.enabled = false; }
+
+                string name = (w && !string.IsNullOrWhiteSpace(w.displayName)) ? w.displayName : $"World {i + 1}";
+                if (smartTwoLineIfLong) name = MakeFit(name);
+                if (c.label) c.label.text = name;
+
+                c.button.onClick.RemoveAllListeners();
+                int captureIndex = i;
+                c.button.onClick.AddListener(() =>
+                {
+                    if (worldManager && worlds[captureIndex] != null)
+                    {
+                        worldManager.world = worlds[captureIndex];
+                        worldManager.lakeIndex = 0;
+                        worldManager.ApplyWorldContext();
+                    }
+                    if (closePanelAfterWorldPick)
+                    {
+                        var cg = GetComponent<CanvasGroup>(); if (cg) cg.alpha = 0f;
+                        gameObject.SetActive(false);
+                    }
+                });
+            }
+
+            for (; gridIdx < _grid.Count; gridIdx++) _grid[gridIdx].go.SetActive(false);
+
+            UpdatePager(_currentPage, pages);
+        }
+
+        private void ShowCustomPage(int pageIndex)
+        {
+            if (pageIndex < 0 || pageIndex >= customPages.Count) { UpdatePager(0, 1); return; }
+            var page = customPages[pageIndex];
+
+            int total = page.items.Count;
+            int pages = Mathf.Max(1, Mathf.CeilToInt(total / (float)_pageSize));
+            _currentPage = Mathf.Clamp(_currentPage, 0, pages - 1);
+
+            int start = _currentPage * _pageSize;
+            int end   = Mathf.Min(start + _pageSize, total);
+
+            int gridIdx = 0;
+            for (int i = start; i < end && gridIdx < _grid.Count; i++, gridIdx++)
+            {
+                var c = _grid[gridIdx];
+                var item = page.items[i];
+                c.go.SetActive(true);
+
+                string text = smartTwoLineIfLong ? MakeFit(item.label) : item.label;
+                if (c.label) c.label.text = text;
+
+                if (c.icon) { c.icon.sprite = item.icon; c.icon.enabled = (item.icon != null); }
+
+                c.button.onClick.RemoveAllListeners();
+                if (item.onClick != null) c.button.onClick.AddListener(() => item.onClick.Invoke());
+            }
+
+            for (; gridIdx < _grid.Count; gridIdx++) _grid[gridIdx].go.SetActive(false);
+
+            UpdatePager(_currentPage, pages);
+        }
+
+        private void ApplyPagerMode(int current, int total)
+        {
+            if (!pagerText) return;
+
+            if (pagerStackVertical)
+            {
+                // Use explicit newline characters so we don't create multi-line literals in code.
+                pagerText.text = current.ToString() + "\n" + pagerDivider + "\n" + total.ToString();
+                pagerText.alignment = TextAlignmentOptions.Center;
+                if (pagerLabelLE != null)
+                {
+                    pagerLabelLE.minWidth = 40f;
+                    pagerLabelLE.preferredWidth = 40f;
+                    pagerLabelLE.minHeight = Mathf.Max(pagerButtonSize.y, 60f);
+                    pagerLabelLE.preferredHeight = Mathf.Max(pagerButtonSize.y, 60f);
+                }
+            }
+            else
+            {
+                pagerText.text = current.ToString() + pagerSlash + total.ToString();
+                pagerText.alignment = TextAlignmentOptions.Center;
+                if (pagerLabelLE != null)
+                {
+                    pagerLabelLE.minWidth = 120f;
+                    pagerLabelLE.preferredWidth = 120f;
+                    pagerLabelLE.minHeight = pagerButtonSize.y;
+                    pagerLabelLE.preferredHeight = pagerButtonSize.y;
+                }
+            }
+        }
+    }
+}
+
+
+// === END .\Assets\Scripts\UI\HubPanelController.cs ===
+
+// === BEGIN .\Assets\Scripts\UI\InventoryPager.cs ===
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+namespace GalacticFishing.UI
+{
+    /// Lightweight PREV / X/Y / NEXT pager for InventoryGridController.
+    /// Put this on the same object as InventoryGridController (e.g., inventory-background).
+    [DisallowMultipleComponent]
+    [ExecuteAlways] // <- build/position in edit mode too
+    public class InventoryPager : MonoBehaviour
+    {
+        [Header("Hook to your grid")]
+        [SerializeField] private InventoryGridController grid;
+
+        [Header("Build & Style")]
+        [SerializeField] private bool   autoBuildUI  = true;
+        [SerializeField] private Vector2 offset      = new Vector2(-280f, -400f); // what you liked
+        [SerializeField] private float  spacing      = 24f;
+        [SerializeField] private Vector2 buttonSize  = new Vector2(140f, 44f);
+        [SerializeField] private string prevLabel    = "PREV <";
+        [SerializeField] private string nextLabel    = "> NEXT";
+        [SerializeField] private float  fontSize     = 24f;
+        [SerializeField] private Color  textColor    = Color.white;
+        [SerializeField] private Sprite buttonSprite = null;
+        [SerializeField] private Color  buttonColor  = new Color(1f, 1f, 1f, 0f);
+
+        [Header("Use existing UI (optional)")]
+        [SerializeField] private Button   prevButton;
+        [SerializeField] private TMP_Text pageText;
+        [SerializeField] private Button   nextButton;
+
+        // runtime/editor refs
+        RectTransform pagerRT;
+        HorizontalLayoutGroup hlg;
+
+        void Awake()
+        {
+            HookGrid();
+            if (autoBuildUI) EnsureUI();
+            Wire();
+            ApplyLayout();
+            Refresh();
+        }
+
+        void OnEnable()
+        {
+            HookGrid();
+            if (autoBuildUI) EnsureUI();
+            Wire();
+            ApplyLayout();
+            Refresh();
+        }
+
+        // When values change in Inspector (edit mode), push to UI
+        void OnValidate()
+        {
+            // Delay one frame in edit mode to let Unity serialize first-time values.
+            if (!isActiveAndEnabled) return;
+            HookGrid();
+            if (autoBuildUI) EnsureUI();
+            ApplyLayout();
+            Refresh();
+        }
+
+        void HookGrid()
+        {
+            if (!grid)
+            {
+                grid = GetComponent<InventoryGridController>();
+                if (!grid) grid = FindObjectOfType<InventoryGridController>();
+            }
+        }
+
+        void EnsureUI()
+        {
+            if (!prevButton || !pageText || !nextButton || !pagerRT)
+            {
+                // Try to reuse an existing child called "Pager"
+                var existing = transform.Find("Pager");
+                if (existing)
+                {
+                    pagerRT = existing as RectTransform;
+                    hlg     = pagerRT.GetComponent<HorizontalLayoutGroup>();
+                    if (!hlg) hlg = pagerRT.gameObject.AddComponent<HorizontalLayoutGroup>();
+
+                    // Attempt to pick up already-built children
+                    if (!prevButton) prevButton = pagerRT.GetComponentInChildren<Button>(true);
+                    if (!pageText)   pageText   = pagerRT.GetComponentInChildren<TMP_Text>(true);
+                    if (!nextButton)
+                    {
+                        // If there was only one Button found, create the rest below
+                        prevButton = null; pageText = null; nextButton = null;
+                    }
+                }
+
+                if (!pagerRT)
+                {
+                    var parentRT = transform as RectTransform;
+                    if (!parentRT) parentRT = gameObject.AddComponent<RectTransform>();
+
+                    var rootGO = new GameObject("Pager", typeof(RectTransform));
+                    pagerRT = (RectTransform)rootGO.transform;
+                    pagerRT.SetParent(parentRT, false);
+                    hlg = rootGO.AddComponent<HorizontalLayoutGroup>();
+                }
+
+                // (Re)build children if any are missing
+                if (!prevButton || !pageText || !nextButton)
+                {
+                    // Clear children
+                    for (int i = pagerRT.childCount - 1; i >= 0; i--)
+                        DestroyImmediate(pagerRT.GetChild(i).gameObject);
+
+                    prevButton = CreateTextButton("Prev", prevLabel, pagerRT);
+                    pageText   = CreateLabel("Page", "1/1", pagerRT);
+                    nextButton = CreateTextButton("Next", nextLabel, pagerRT);
+                }
+            }
+        }
+
+        Button CreateTextButton(string name, string label, RectTransform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+
+            var le = go.GetComponent<LayoutElement>();
+            le.minWidth = buttonSize.x;  le.preferredWidth  = buttonSize.x;
+            le.minHeight = buttonSize.y; le.preferredHeight = buttonSize.y;
+
+            var img = go.GetComponent<Image>();
+            img.sprite = buttonSprite;
+            img.color  = buttonColor;
+            img.raycastTarget = true;
+
+            var btn = go.GetComponent<Button>();
+            btn.targetGraphic = img;
+            btn.transition    = Selectable.Transition.None;
+
+            var txtGO = new GameObject("Text", typeof(RectTransform));
+            var txtRT = (RectTransform)txtGO.transform;
+            txtRT.SetParent(rt, false);
+            txtRT.anchorMin = Vector2.zero; txtRT.anchorMax = Vector2.one;
+            txtRT.offsetMin = Vector2.zero; txtRT.offsetMax = Vector2.zero;
+
+            var tmp = txtGO.AddComponent<TextMeshProUGUI>();
+            tmp.text = label;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableAutoSizing = false;
+            tmp.fontSize = fontSize;
+            tmp.color = textColor;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.raycastTarget = false;
+
+            return btn;
+        }
+
+        TMP_Text CreateLabel(string name, string label, RectTransform parent)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(LayoutElement));
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(parent, false);
+
+            var le = go.GetComponent<LayoutElement>();
+            le.minWidth = 120f; le.preferredWidth  = 120f;
+            le.minHeight = buttonSize.y; le.preferredHeight = buttonSize.y;
+
+            var tmp = go.AddComponent<TextMeshProUGUI>();
+            tmp.text = label;
+            tmp.alignment = TextAlignmentOptions.Center;
+            tmp.enableAutoSizing = false;
+            tmp.fontSize = Mathf.Max(18f, fontSize * 0.8f);
+            tmp.color = textColor;
+            tmp.enableWordWrapping = false;
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.raycastTarget = false;
+
+            return tmp;
+        }
+
+        void ApplyLayout()
+        {
+            if (!pagerRT) return;
+
+            // Anchor to bottom-center; use pivot Y=1 so negative Y moves upward (matches your hand tweak)
+            pagerRT.anchorMin = new Vector2(0.5f, 0f);
+            pagerRT.anchorMax = new Vector2(0.5f, 0f);
+            pagerRT.pivot     = new Vector2(0.5f, 1f);
+            pagerRT.anchoredPosition = offset;
+            pagerRT.localScale = Vector3.one;
+
+            if (!hlg) hlg = pagerRT.GetComponent<HorizontalLayoutGroup>();
+            if (hlg)
+            {
+                hlg.childAlignment = TextAnchor.MiddleCenter;
+                hlg.spacing = spacing;
+                hlg.padding = new RectOffset(0, 0, 0, 0);
+            }
+
+            // Ensure button/label sizes reflect inspector values
+            ResizeChild(prevButton);
+            ResizeChild(nextButton);
+        }
+
+        void ResizeChild(Button btn)
+        {
+            if (!btn) return;
+            var le = btn.GetComponent<LayoutElement>();
+            if (!le) le = btn.gameObject.AddComponent<LayoutElement>();
+            le.minWidth = buttonSize.x;  le.preferredWidth  = buttonSize.x;
+            le.minHeight = buttonSize.y; le.preferredHeight = buttonSize.y;
+
+            var tmp = btn.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (tmp)
+            {
+                tmp.fontSize = fontSize;
+                tmp.color    = textColor;
+            }
+        }
+
+        void Wire()
+        {
+            if (prevButton)
+            {
+                prevButton.onClick.RemoveAllListeners();
+                prevButton.onClick.AddListener(OnPrev);
+            }
+            if (nextButton)
+            {
+                nextButton.onClick.RemoveAllListeners();
+                nextButton.onClick.AddListener(OnNext);
+            }
+        }
+
+        void OnPrev()
+        {
+            if (!grid) return;
+            grid.PrevPage();
+            Refresh();
+        }
+
+        void OnNext()
+        {
+            if (!grid) return;
+            grid.NextPage();
+            Refresh();
+        }
+
+        public void Refresh()
+        {
+            if (!grid) return;
+            int cur = grid.Page + 1;
+            int max = Mathf.Max(1, grid.TotalPages);
+            if (pageText) pageText.text = cur.ToString() + "/" + max.ToString();
+            if (prevButton) prevButton.interactable = (grid.Page > 0);
+            if (nextButton) nextButton.interactable = (grid.Page < max - 1);
+        }
+
+        [ContextMenu("Rebuild Pager UI")]
+        void RebuildNow()
+        {
+            EnsureUI();
+            ApplyLayout();
+            Wire();
+            Refresh();
+        }
+    }
+}
+
+
+// === END .\Assets\Scripts\UI\InventoryPager.cs ===
+
+// === BEGIN .\Assets\Scripts\UI\InventorySlot.cs ===
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using UnityEngine.EventSystems;
+using System.Linq;
+
+public enum Rarity { Common, Uncommon, Rare, Epic, Legendary, Mythic }
+
+[System.Serializable]
+public class ItemData
+{
+    public Sprite Icon;
+    public int Count = 0;
+    public Rarity Rarity = Rarity.Common;
+    public bool Disabled = false;
+    [TextArea] public string Tooltip; // pretty name
+}
+
+public class InventorySlot : MonoBehaviour,
+    IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
+{
+    [Header("Wiring")]
+    [SerializeField] private Image icon;
+    [SerializeField] private TMP_Text countLabel;
+
+    [Header("Optional Visuals")]
+    [SerializeField] private CanvasGroup canvasGroup;   // for dimming/disable
+    [SerializeField] private Image hoverGlow;           // optional
+    [SerializeField] private Image pressedMask;         // optional
+    [Header("Legacy/Compat (optional)")]
+    [SerializeField] private Image frame;               // optional (for older utilities)
+    [SerializeField] private Image disabledMask;        // optional (for older utilities)
+    [SerializeField] private Image countBadge;          // optional badge under the count label
+    [Header("Visuals")]
+    [SerializeField] private Sprite zeroCountSprite;    // fallback sprite when empty
+
+    [Header("Rarity (Optional ring swap)")]
+    [SerializeField] private Image rarityRing;
+    [SerializeField] private Sprite common, uncommon, rare, epic, legendary, mythic;
+
+    [Header("Formatting")]
+    [SerializeField] private bool useCompactNumbers = true;
+
+    ItemData bound;
+    public int CurrentCount => bound != null ? bound.Count : 0;
+
+    void Awake()
+    {
+        if (!icon) icon = GetComponentsInChildren<Image>(true).FirstOrDefault(i => i.name.ToLower().Contains("icon"));
+        if (icon) { icon.preserveAspect = true; icon.raycastTarget = true; } // <-- make slot raycastable
+
+        if (!countLabel) countLabel = GetComponentsInChildren<TMP_Text>(true).FirstOrDefault(t => t.name.ToLower().Contains("count"));
+        if (countLabel) { countLabel.enabled = true; countLabel.gameObject.SetActive(true); countLabel.raycastTarget = false; }
+
+        if (countBadge)
+        {
+            countBadge.raycastTarget = false;
+            countBadge.enabled = true;
+            if (countBadge.gameObject) countBadge.gameObject.SetActive(false);
+        }
+
+        if (hoverGlow)   hoverGlow.raycastTarget   = false;
+        if (pressedMask) pressedMask.raycastTarget = false;
+        if (disabledMask)disabledMask.raycastTarget= false;
+        if (rarityRing)  rarityRing.raycastTarget  = false;
+    }
+
+    public InventorySlot Bind(ItemData data)
+    {
+        bound = data;
+
+        if (icon)
+        {
+            if (data.Count <= 0)
+            {
+                icon.enabled = zeroCountSprite != null;
+                icon.sprite = zeroCountSprite;
+            }
+            else
+            {
+                icon.enabled = data.Icon != null;
+                if (data.Icon != null) icon.sprite = data.Icon;
+            }
+        }
+
+        if (countLabel)
+        {
+            bool has = data.Count > 0;
+            countLabel.text = has ? (useCompactNumbers ? Compact(data.Count) : Mathf.Max(0, data.Count).ToString()) : string.Empty;
+
+            if (countBadge)
+            {
+                if (countBadge.gameObject) countBadge.gameObject.SetActive(has);
+                countBadge.enabled = has;
+            }
+        }
+
+        if (rarityRing)
+        {
+            rarityRing.enabled = true;
+            rarityRing.sprite = data.Rarity switch
+            {
+                Rarity.Uncommon  => uncommon,
+                Rarity.Rare      => rare,
+                Rarity.Epic      => epic,
+                Rarity.Legendary => legendary,
+                Rarity.Mythic    => mythic,
+                _                => common,
+            };
+        }
+
+        if (hoverGlow)   hoverGlow.enabled   = false;
+        if (pressedMask) pressedMask.enabled = false;
+        if (disabledMask)disabledMask.enabled= false;
+        ApplyDisabled(data.Disabled);
+        return this;
+    }
+
+    public void SetIcon(Sprite sprite)
+    {
+        if (!icon) return;
+        icon.enabled = sprite != null;
+        icon.sprite = sprite;
+    }
+
+    static string Compact(int value)
+    {
+        if (value >= 1_000_000_000) return (value / 1_000_000_000f).ToString("0.#") + "b";
+        if (value >= 1_000_000)     return (value / 1_000_000f).ToString("0.#") + "m";
+        if (value >= 1_000)         return (value / 1_000f).ToString("0.#") + "k";
+        return Mathf.Max(0, value).ToString();
+    }
+
+    void ApplyDisabled(bool disabled)
+    {
+        if (canvasGroup)
+        {
+            canvasGroup.alpha = disabled ? 0.33f : 1f;
+            canvasGroup.interactable = !disabled;
+            canvasGroup.blocksRaycasts = !disabled;
+        }
+        else
+        {
+            if (icon) icon.color = disabled ? new Color(1,1,1,0.33f) : Color.white;
+            if (countLabel) countLabel.alpha = disabled ? 0.5f : 1f;
+        }
+        if (disabledMask) disabledMask.enabled = disabled;
+    }
+
+    // ----- Pointer events: UI has priority over world -----
+    public void OnPointerEnter(PointerEventData _)
+    {
+        if (!IsDisabled() && hoverGlow) hoverGlow.enabled = true;
+
+        if (bound != null && bound.Count > 0 && bound.Icon != null)
+            InventoryHoverName.ShowUI(bound.Tooltip);
+        else
+            InventoryHoverName.ShowUI(""); // clears to default
+    }
+
+    public void OnPointerExit (PointerEventData _)
+    {
+        if (hoverGlow) hoverGlow.enabled = false;
+        InventoryHoverName.ClearUI();
+    }
+
+    public void OnPointerDown (PointerEventData _){ if (!IsDisabled() && pressedMask) pressedMask.enabled = true; }
+    public void OnPointerUp   (PointerEventData _){ if (pressedMask)                  pressedMask.enabled = false; }
+
+    bool IsDisabled() => bound != null && bound.Disabled;
+
+    // Legacy accessors so older tools compile without changes.
+    public Image Frame         => frame;
+    public Image IconImage     => icon;
+    public Image RarityRingImg => rarityRing;
+    public Image PressedMaskImg=> pressedMask;
+    public Image DisabledMask  => disabledMask;
+    public TMP_Text CountText  => countLabel;
+}
+
+
+// === END .\Assets\Scripts\UI\InventorySlot.cs ===
+

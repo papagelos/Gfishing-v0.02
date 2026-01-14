@@ -1,0 +1,3 @@
+F:\Coding\Gfishing v0.02\Assets\Scenes\SampleScene.unity:6236: m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.PlayerInput
+F:\Coding\Gfishing v0.02\Assets\Scenes\SampleScene.unity:9578: m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.UI.InputSystemUIInputModule
+F:\Coding\Gfishing v0.02\Assets\Scripts\UI\Controls.Inputactions:3: "name": "Controls",

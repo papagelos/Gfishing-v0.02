@@ -1,0 +1,99 @@
+﻿using UnityEngine;
+using System.Collections;
+
+[DefaultExecutionOrder(-100)]
+public class HookCardService : MonoBehaviour
+{
+    [SerializeField] private HookCardUI ui;  // Drag your HookCard here (optional)
+
+    private static HookCardService _i;
+    private static bool _warned;
+
+    private static HookCardService I
+    {
+        get
+        {
+            if (_i != null) return _i;
+            _i = FindObjectOfType<HookCardService>(true);
+            if (_i != null) return _i;
+            var go = new GameObject("HookCardService (auto)");
+            DontDestroyOnLoad(go);
+            _i = go.AddComponent<HookCardService>();
+            return _i;
+        }
+    }
+
+    void Awake()
+    {
+        if (_i == null) _i = this;
+        else if (_i != this) { Destroy(gameObject); return; }
+        TryBindUI();
+    }
+
+    bool TryBindUI()
+    {
+        if (ui) return true;
+
+        ui = FindObjectOfType<HookCardUI>(true);
+        if (ui) return true;
+
+        var all = Resources.FindObjectsOfTypeAll<HookCardUI>();
+        if (all != null && all.Length > 0) { ui = all[0]; return true; }
+
+        if (!_warned) { _warned = true; Debug.LogWarning("[HookCardService] No HookCardUI found."); }
+        return false;
+    }
+
+    // ---------- API (your existing calls keep working) ----------
+
+    public static void ShowInProgress(string fishName)
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Show(fishName, HookState.InProgress);
+    }
+
+    public static void ShowCaught(string fishName)   // <-- compatibility
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Show(fishName, HookState.Caught);
+    }
+
+    public static void ShowEscaped(string fishName)  // <-- compatibility
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Show(fishName, HookState.Escaped);
+    }
+
+    // Flash helpers (auto-hide after a short time)
+    public static void FlashCaught(string fishName, float seconds = 1.5f)
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Show(fishName, HookState.Caught);
+        s.StartCoroutine(s.HideAfter(seconds));
+    }
+
+    public static void FlashEscaped(string fishName, float seconds = 1.5f)
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Show(fishName, HookState.Escaped);
+        s.StartCoroutine(s.HideAfter(seconds));
+    }
+
+    public static void Hide()
+    {
+        var s = I; if (!s.TryBindUI()) return;
+        s.StopAllCoroutines();
+        s.ui.Hide();
+    }
+
+    IEnumerator HideAfter(float t)
+    {
+        yield return new WaitForSecondsRealtime(t);
+        if (ui) ui.Hide();
+    }
+}

@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 509b3e735acdd1e4294af5270ca8c6c0, type: 3}
+  m_Name: ShopCatalog_Crafting
+  m_EditorClassIdentifier: Assembly-CSharp::ShopCatalog
+  catalogId: shop_crafting
+  title: Crafting
+  items:
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
+  - id: 
+    title: 
+    description: 
+    icon: {fileID: 0}
+    cost: 0
+    maxLevel: 0
