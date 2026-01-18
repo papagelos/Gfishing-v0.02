@@ -19,3 +19,4 @@ MonoBehaviour:
   - {fileID: 2100000, guid: 109ff1656c7b6484a899be4031567610, type: 2}
   - {fileID: 2100000, guid: 109ff1656c7b6484a899be4031567610, type: 2}
   cost: 0
+  terrainType: 4

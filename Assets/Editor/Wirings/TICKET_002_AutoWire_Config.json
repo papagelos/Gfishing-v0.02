@@ -1,0 +1,42 @@
+{
+  "ops": [
+    {
+      "op": "ensure_tmp_button",
+      "parentPath": "UI_Root/Canvas/HexWorldUI",
+      "name": "Btn_TileUpgradeMode",
+      "label": "Upgrade Tiles",
+      "anchorMinX": 0,
+      "anchorMinY": 1,
+      "anchorMaxX": 0,
+      "anchorMaxY": 1,
+      "pivotX": 0,
+      "pivotY": 1,
+      "posX": 20,
+      "posY": -180,
+      "sizeX": 120,
+      "sizeY": 40
+    },
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/HexWorldUI/Btn_TileUpgradeMode",
+      "componentType": "UnityEngine.UI.Button",
+      "fieldName": "m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_Target",
+      "refPath": "HexWorld3DController",
+      "refComponentType": "GalacticFishing.Minigames.HexWorld.HexWorld3DController"
+    },
+    {
+      "op": "set_string",
+      "path": "UI_Root/Canvas/HexWorldUI/Btn_TileUpgradeMode",
+      "componentType": "UnityEngine.UI.Button",
+      "fieldName": "m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName",
+      "stringValue": "SetPaletteModeTileUpgrade"
+    },
+    {
+      "op": "set_int",
+      "path": "HexWorld3DController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorld3DController",
+      "fieldName": "townHallLevel",
+      "intValue": 2
+    }
+  ]
+}

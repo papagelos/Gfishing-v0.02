@@ -49,3 +49,10 @@ Assets/Sprites.meta
 Assets/Data/FishMeta
 Assets/Data/Fish
 Gpt files
+# Office docs & archives
+*.docx
+*.doc
+*.pdf
+*.zip
+*.7z
+*.rar

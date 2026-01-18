@@ -1,0 +1,798 @@
+"MASTER IMPLEMENTATION DOCUMENT (for the coding AI / ChatGPT)
+
+Feature: Village Builder Minigame (Cozy, Deep Progression)
+Game context: A minigame inside a Stardew-like game focused on fishing. Fishing primarily generates credits (money). The village produces crafting materials used to craft/upgrade rods, bait, tackle, etc.
+Core feel: Dorfromantik-style hex aesthetic + cozy “build big” freedom + deep progression that does not trivialize the main game economy.
+
+Assumption for implementation: Unity (C#) project (Galactic Fishing). If not Unity, translate systems 1:1; the logic is engine-agnostic.
+
+1) Primary design goals
+
+Player can start with a reasonably large canvas to design aesthetically and effectively.
+
+Full player control of terrain painting (no random tile reveal). Players can paint claimed tiles with available terrain types freely.
+
+Maintain deep progression via:
+
+Land expansion pacing (deeds + credits)
+
+Active building capacity (Town Hall slots)
+
+Warehouse caps (prevents AFK hoarding)
+
+Terrain tier upgrades (power comes from investment, not just painting)
+
+Landmark projects (rare, capability unlocks)
+
+Prevent “big village = infinite mats”:
+
+Land ≠ output, because production is capped by Active Slots + Storage + Tier investment.
+
+2) High-level core loop
+
+Player has a claimed land radius (starts at r3 = 37 tiles).
+
+Player can paint each claimed tile as any terrain type from the unlocked palette (free, reversible).
+
+Player can place buildings on claimed tiles (free to move, remove).
+
+Only a limited number of buildings can be Active (Town Hall Active Slots). Inactive buildings are Dormant (produce nothing).
+
+Active buildings produce resources every 60 seconds (tick).
+
+Resources go into a shared Warehouse with a hard capacity. If full, production pauses.
+
+Player earns Land Deeds (milestones + shard system) and spends Deeds to unlock bigger radius rings. Then spends Credits to actually place tiles in those rings.
+
+Player upgrades Terrain Tiers (cost resources + credits; Tier 2 requires rare parts).
+
+Player builds Landmark Projects on Tier 2 tiles (costly, limited by Admin Slots) to unlock special recipes/capabilities and provide a local bonus.
+
+Tile purchase rule
+
+Clarify that the 37 start tiles are “purchased = true” by default.
+
+For tiles beyond r3: a tile must be Purchased before it can be painted, upgraded, or host buildings.
+
+Exact definition of “ring” for costs
+
+Credit cost is based on the tile’s distance from origin (axial distance).
+
+If dist == 4 → r4 cost, dist == 5 → r5 cost, etc.
+
+This prevents ambiguity when placing tiles “inside” an unlocked radius.
+
+Can purchased tiles be removed and refunded?
+
+You currently say “tile removal free” but not whether tiles can be “unbought.”
+
+Recommend: tiles can be removed/unplaced but NOT refunded (keeps credits as a sink and avoids exploit loops).
+
+Removal just clears the tile back to “empty slot inside unlocked radius” or marks Purchased=false if you want, but no refund.
+
+When Warehouse is full
+
+Specify behavior: pause all production (simple) vs “skip outputs per building.”
+
+Recommend: pause-all, show UI warning.
+
+Resource overflow policy
+
+When producing and warehouse would exceed capacity:
+
+Recommend: produce nothing that tick (don’t partially fill), set ProductionPaused=true. (Deterministic and simple.)
+
+Building placement rule
+
+One tile can host either a Building or a Landmark (not both).
+
+Buildings can be moved freely; moving an active building keeps it active if slots allow; otherwise auto-deactivate.
+
+Landmark bonus stacking
+
+Define if multiple landmarks can affect one building.
+
+Recommend: take the highest single landmark bonus (not additive), to prevent stacking exploits later.
+
+LandmarkLocalBonus = 0.15 if within radius 3 of at least one relevant landmark, else 0.
+
+Save/load determinism
+
+State that the origin (0,0) is fixed and the starting r3 set is computed deterministically from origin.
+
+Store only deltas where possible (Purchased tiles set, terrain types/tiers, buildings, landmarks).
+
+Optional (but helpful) single line about art/grid orientation
+
+Since you already have a Dorfromantik hex gfx system, add:
+
+Axial coordinate system + flat-top orientation (if that’s what you use), so the AI doesn’t accidentally implement pointy-top math.
+
+
+3) Hex map sizing and expansion model
+3.1 Hex tile totals by radius (reference)
+
+r0 = 1
+
+r1 = 7
+
+r2 = 19
+
+r3 = 37
+
+r4 = 61
+
+r5 = 91
+
+r6 = 127
+
+r7 = 169
+
+r8 = 217
+
+3.2 Start size
+
+Start with radius r3 = 37 tiles already available (claimed/unlocked).
+
+These tiles exist immediately so the player can design from the start.
+
+3.3 Expansion gating = “rings unlocked by deeds, tiles bought by credits”
+
+Spending Land Deeds unlocks the right to expand to the next radius ring.
+
+Within unlocked radius, the player must buy/claim individual tiles using credits (money from fishing).
+
+Ring unlock cost (deeds):
+
+Unlock r4: 1 deed
+
+Unlock r5: 2 deeds
+
+Unlock r6: 3 deeds
+
+Unlock r7: 4 deeds
+
+Per-tile placement cost (credits) by ring:
+
+Tiles in r4 ring: 60 credits each (24 tiles total)
+
+Tiles in r5 ring: 90 credits each (30 tiles)
+
+Tiles in r6 ring: 140 credits each (36 tiles)
+
+Tiles in r7 ring: 220 credits each (42 tiles)
+
+Tile removal: free
+Tile repaint: free
+Building move/remove: free
+
+4) Terrain painting + tiers (key anti-trivialization system)
+4.1 Terrain types (palette)
+
+Painting is free. Terrain palette evolves over time.
+
+Base palette (available from start):
+
+Forest
+
+Rocky/Quarry
+
+Meadow/Plains
+
+Wetland/Bog
+
+Later unlocks (via progression):
+
+Ore Ridge
+
+Waterfront
+
+4.2 Terrain tiers (power comes from upgrades, not paint)
+
+Every tile has:
+
+TerrainType (painted by player)
+
+TerrainTier (0/1/2)
+
+Tier weights (used for district math):
+
+Tier 0 (Basic): weight 0
+
+Tier 1 (Improved): weight 1
+
+Tier 2 (Pristine): weight 2
+
+Tier upgrade costs (per tile):
+
+Tier 0 → Tier 1:
+
+10 wood + 6 stone + 4 fiber + 50 credits
+
+Tier 1 → Tier 2:
+
+20 wood + 12 stone + 8 fiber + 150 credits + 1 Rare Part
+Rare part depends on terrain type:
+
+Forest: Resin Catalyst
+
+Rocky: Hardener Compound
+
+Wetland: Bio Vial
+
+Meadow: Weave Spindle
+
+Ore: Precision Bearing
+
+Waterfront: Aqua Seal
+
+Unlock rules:
+
+Tier 1 upgrading unlocks at Town Hall Level 2
+
+Tier 2 upgrading unlocks at Town Hall Level 6
+
+5) District bonus (tile logic that is NOT trivial)
+
+Buildings gain output bonus based on clustered nearby upgraded tiles, not “the tile under the building.”
+
+5.1 District radius
+
+Default radius = 2 hex steps for all district-based buildings (configurable per building type).
+
+5.2 District bonus formula
+
+Only count tiles within radius matching the building’s required terrain type.
+
+EffectiveTiles = sum(weights of matching terrain tiles within radius)
+
+DistrictBonus = min(EffectiveTiles * 0.05, 0.40)
+
+Meaning:
+
++5% per effective tile, capped at +40%.
+
+Examples:
+
+8 Tier-1 matching tiles nearby → +40% (cap)
+
+4 Tier-2 matching tiles nearby → +40% (cap)
+
+5.3 Implementation requirement
+
+When selecting/placing a building, show overlay:
+
+district radius ring
+
+highlight matching tiles
+
+display EffectiveTiles and computed % bonus
+
+6) Production system (tick-based, warehouse-limited)
+6.1 Tick cadence
+
+Production tick every 60 seconds.
+
+All production routes through a single ProductionService.
+
+6.2 Active vs Dormant buildings
+
+Only Active buildings produce at full rate.
+
+Dormant buildings produce 0 (simple, readable).
+
+6.3 Warehouse capacity
+
+Warehouse stores all produced resources.
+
+If warehouse is full, production pauses (no overflow).
+
+Warehouse capacities by level:
+
+L1: 200
+
+L2: 450
+
+L3: 800
+
+L4: 1,400
+
+L5: 2,300
+
+L6: 3,600
+
+L7: 5,400
+
+6.4 Output calculation
+
+For each Active building each tick:
+
+Output = BaseRate * (1 + DistrictBonus + LandmarkLocalBonus)
+
+BaseRate is per building type (see section 10).
+
+DistrictBonus uses formula above.
+
+LandmarkLocalBonus comes from nearby landmarks (see section 7).
+
+7) Landmark Projects (player-built, scarce, capability unlocks)
+7.1 Landmark placement rules
+
+A landmark is a special project placed on a tile.
+
+Requirements:
+
+Tile must be Tier 2 (Pristine)
+
+Tile terrain type must match landmark type
+
+Support district requirement:
+
+within radius 2, must have at least EffectiveTiles ≥ 6 of that terrain
+
+Landmark consumes 1 Admin Slot (Town Hall gating)
+
+7.2 Landmark costs
+
+Each landmark costs:
+
+500 credits
+
+4 Rare Parts (terrain-appropriate; can allow mix if desired)
+
+1 Blueprint Fragment (from museum rep, boss fish, or quest)
+
+7.3 Landmark effects
+
+Each landmark provides:
+
+Unlocks 1–2 recipes / capabilities (primary value)
+
+Local production bonus: +15% output to matching producer buildings within radius 3
+
+Landmark examples:
+
+Old-Growth Grove (Forest): unlock Hardwood/Resin recipes; +15% to Lumber Camps nearby
+
+Stone Outcrop (Rocky): unlock Sharpening Compound; +15% to Quarries nearby
+
+Bog Pool (Wetland): unlock Legendary Bait Base; +15% to Bog Trappers nearby
+
+7.4 Landmark limits
+
+Landmarks are scarce via:
+
+Admin Slots (Town Hall)
+
+Optional per-type cap (recommended: 1 each)
+
+8) Town Hall (capacity gate + landmark admin gate)
+
+Town Hall levels define:
+
+Active Slots
+
+Admin Slots
+
+Tier unlocks (Tier 1 at L2; Tier 2 at L6)
+
+Town Hall Level	Active Slots	Admin Slots	Unlocks
+1	2	0	Start
+2	3	0	Terrain Tier 1 upgrades
+3	4	1	Landmark Projects
+4	5	1	—
+5	6	2	—
+6	7	2	Terrain Tier 2 upgrades
+7	8	3	—
+8	9	3	—
+9	10	4	—
+10	12	5	Late scaling
+9) Museum reputation + minimum village size gating
+
+There is a museum reputation system (rep) and ranks. Certain ranks require the village to be at minimum size.
+
+Rank thresholds (example tuning):
+
+Bronze: 100 rep + minimum r3 (37 tiles placed)
+
+Silver: 300 rep + minimum r4 (61)
+
+Gold: 700 rep + minimum r5 (91)
+
+Platinum: 1400 rep + minimum r6 (127)
+
+Rep sources (examples):
+
+donate new species: +5
+
+donate rare: +20
+
+museum contracts: +15–40
+
+gear milestone: +25
+
+Rationale:
+
+Players can be “ahead of curve” by farming deeds/rep, but output still bounded.
+
+10) Buildings (MVP set + rates)
+10.1 MVP buildings (implement first)
+
+Infrastructure:
+
+Town Hall (defines slots, unlocks)
+
+Warehouse (capacity)
+
+Raw producers (tick-based outputs, per 60 seconds, active only):
+
+Lumber Camp: +6 wood
+
+Quarry: +4 stone
+
+Forager Hut: +3 fiber
+
+Bog Trapper: +3 bait ingredients
+
+All of these apply district/landmark bonuses.
+
+10.2 Optional v1.5 processors (ready for next phase)
+
+Sawmill: converts 6 wood → 3 planks per tick
+
+Bait Kitchen: converts 3 bait ingredients + 1 fiber → 1 bait pack per tick
+
+Workshop: converts 2 planks + 1 stone → 1 basic rod part per tick
+
+Processors should also require Active Slots (and compete with producers for activity).
+
+11) Deeds + shards (pacing + ahead-of-curve farming)
+11.1 Guaranteed deeds (first-time milestones)
+
+Day 1:
+
+Catch 10 fish: +1 deed
+
+Donate 5 unique species: +1 deed (or 10 shards if slower desired)
+
+Week 1:
+
+First rare fish: +1 deed
+
+Reach Bronze: +1 deed
+
+Month 1:
+
+First boss fish: +2 deeds
+
+Reach Silver: +2 deeds
+
+11.2 Farmable deed shards
+
+10 shards = 1 deed
+
+Shard sources (examples):
+
+daily museum contract: 4–6 shards
+
+weekly contract: 10–15 shards
+
+minigame win/high score: 1–3 shards
+
+first catch of day: 1 shard
+
+Soft cap (recommended):
+
+first 10 shards/day at full rate
+
+after that, drops reduced (e.g., 50%)
+
+12) UI/UX requirements (must-have)
+
+Build Mode:
+
+place building, move building, remove building
+
+show Active/Dormant state; toggle active if slots available
+
+Paint Mode:
+
+select terrain type brush
+
+click tile to repaint
+
+Tier Upgrade Mode:
+
+click tile → upgrade tier (shows cost)
+
+show tier overlay (0/1/2)
+
+District Overlay:
+
+when building selected: draw radius 2
+
+highlight matching tiles, show EffectiveTiles and resulting % bonus
+
+Frontier Expansion UI:
+
+shows locked ring status (needs deeds)
+
+lets player buy tiles inside unlocked rings (credits per tile)
+
+Town Hall UI:
+
+shows Active Slots used/total
+
+shows Admin Slots used/total
+
+Warehouse UI:
+
+capacity meter, current stored
+
+“production paused: warehouse full” indicator
+
+Landmark UI:
+
+“place landmark” menu
+
+show requirements (Tier 2, support district, admin slot)
+
+show costs + effects
+
+13) Data model (authoritative)
+13.1 Tile data
+
+AxialCoord (q, r)
+
+IsUnlockedByRing (bool) — ring permission
+
+IsPurchased (bool) — tile placed/claimed with credits (for rings beyond start)
+
+TerrainType (enum)
+
+TerrainTier (0/1/2)
+
+OccupantBuildingId (nullable)
+
+LandmarkType (nullable)
+
+13.2 Village state
+
+UnlockedMaxRadius (int) — ring unlock via deeds
+
+PurchasedTilesSet (coords)
+
+StartTiles (r3 set is purchased by default)
+
+Credits (from main game)
+
+WarehouseInventory (resource -> amount)
+
+TownHallLevel
+
+MuseumRep + MuseumRank
+
+Deeds + DeedShards
+
+13.3 Building instance data
+
+BuildingId
+
+BuildingType
+
+Level (future-proof; even if unused in MVP)
+
+IsActive (bool)
+
+Coord
+
+OptionalSpecialization (future)
+
+OptionalMods (future)
+
+13.4 Configuration data (ScriptableObjects recommended)
+
+Terrain tier costs
+
+Building base rates + district requirements
+
+Town Hall slot curves
+
+Warehouse capacities
+
+Ring deed unlock costs
+
+Ring per-tile credit costs
+
+Landmark definitions (costs, radius, unlocks, local bonuses)
+
+Deed milestone list
+
+Shard sources & soft cap rules
+
+Museum rank thresholds and size requirements
+
+14) System architecture (services)
+
+Implement as modular services with clear responsibilities:
+
+HexGridService
+
+axial coord helpers
+
+radius/ring enumeration
+
+distance function
+
+“tiles within radius” queries
+
+VillageExpansionService
+
+ring unlocks (spend deeds)
+
+tile purchasing (spend credits)
+
+validation: must be within UnlockedMaxRadius
+
+TilePaintService
+
+repaint terrain type (free)
+
+validate tile purchased/unlocked
+
+TerrainUpgradeService
+
+upgrade tier
+
+cost checks + resource deduction
+
+tier gating by Town Hall level
+
+BuildingPlacementService
+
+place/move/remove building on tile
+
+validate occupancy rules (1 building per tile)
+
+optional: enforce building can only be placed on purchased tiles
+
+CapacityService
+
+computes Active Slots + Admin Slots from TownHallLevel
+
+enforces activation toggles
+
+tracks “active buildings count” and “active landmarks count”
+
+DistrictBonusService
+
+given building coord + required terrain type:
+
+counts matching tiles in radius 2
+
+sums tier weights
+
+computes DistrictBonus capped at 0.40
+
+LandmarkService
+
+validate placement requirements (Tier 2, support effective tiles, admin slot)
+
+apply unlocks + local bonus radius 3 computations
+
+ProductionService
+
+60s tick
+
+iterates active buildings
+
+calculates output with district + landmark
+
+writes to warehouse inventory
+
+pauses when full
+
+SaveLoadService
+
+serialize all state deterministically
+
+versioning for future changes
+
+MuseumReputationService
+
+rep changes
+
+rank evaluation based on rep + min placed tiles requirement
+
+15) MVP implementation order (production plan)
+
+Phase 1 (MVP “fun + stable”):
+
+Hex map with r3 start area (37 purchased tiles)
+
+Painting terrain types (free)
+
+Town Hall + Active Slots
+
+Warehouse capacity + pause-on-full
+
+Place buildings + toggle active
+
+Production tick for 4 producers
+
+District bonus overlay + calculation (tier weights exist but tier upgrades can be disabled initially)
+
+Expansion ring unlock (deeds) + per-tile credit purchase
+
+Phase 2 (“depth”):
+9) Terrain Tier 1 upgrades unlock at Town Hall L2
+10) District bonuses become meaningful via Tier 1 weighting
+11) Museum rep/rank and minimum village size gating
+12) Deed shard farm system
+
+Phase 3 (“wow”):
+13) Tier 2 unlock at Town Hall L6
+14) Landmark Projects + Admin Slots + recipe unlock hooks
+15) Optional processors (Sawmill, Workshop, Bait Kitchen)
+
+16) Balancing notes + rescaling formula
+
+The credit costs assume early-game fishing ~ 3,500 credits/hour.
+
+If actual early fishing income is E:
+
+NewCreditCost = OldCreditCost × (E / 3500)
+
+Do NOT rescale deeds/shards with this formula (they pace progression).
+
+17) Acceptance criteria (must pass)
+
+Player starts with enough tiles to design aesthetically (r3 = 37) immediately.
+
+Player can paint terrain freely; no RNG reveal exists.
+
+With large land, player cannot generate unlimited resources quickly because:
+
+Active Slots cap production early
+
+Warehouse cap stops AFK overflow
+
+Tier upgrades gate district power
+
+District bonus is computed exactly as specified and is visible in UI.
+
+Expansion requires both:
+
+ring unlock (deeds)
+
+tile purchase (credits)
+
+Landmarks require Tier 2 + support district + admin slot, and unlock at Town Hall L3+.
+
+System saves/loads without losing tile/building states.
+
+18) “Coding AI” instructions (how to implement cleanly)
+
+Put all tunables into configuration assets (ScriptableObjects or JSON).
+
+Keep systems deterministic and testable:
+
+district bonus results should be unit-tested against known maps
+
+ring counts and purchases should be testable without UI
+
+Avoid expensive per-frame work:
+
+district and landmark calculations can be cached and invalidated when:
+
+a tile’s terrain/tier changes
+
+a building moves
+
+a landmark is added/removed
+
+UI should query services; services must not depend on UI.
+
+Use events for updates:
+
+OnTileChanged, OnBuildingChanged, OnInventoryChanged, OnCapacityChanged, OnRankChanged"

@@ -18,3 +18,4 @@ MonoBehaviour:
   materials:
   - {fileID: 2100000, guid: 2f10e84f2d8708341bbe862d4e483c9b, type: 2}
   cost: 0
+  terrainType: 3

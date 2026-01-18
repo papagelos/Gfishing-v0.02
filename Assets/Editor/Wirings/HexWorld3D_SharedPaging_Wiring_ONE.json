@@ -1,0 +1,120 @@
+{
+  "recipeName": "HexWorld3D Shared Paging Router (correct hierarchy)",
+  "ops": [
+    {
+      "op": "ensure_component",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter"
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "sharedPrevButton",
+      "refPath": "UI_Root/Canvas/TileBar/Btn_PageLeft_Tiles",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "sharedNextButton",
+      "refPath": "UI_Root/Canvas/TileBar/Btn_PageRight_Tiles",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "sharedPageLabel"
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "tilePager",
+      "refPath": "UI_Root/Canvas/TileBar/SlotsContainer",
+      "refComponentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "buildingPager",
+      "refPath": "UI_Root/Canvas/TileBar/BuildingBar",
+      "refComponentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI"
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "tilesTabButton",
+      "refPath": "UI_Root/Canvas/TileBar/PaletteTabs/Btn_Tiles",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "buildingsTabButton",
+      "refPath": "UI_Root/Canvas/TileBar/PaletteTabs/Btn_Buildings",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "tilesPanelRoot",
+      "refPath": "UI_Root/Canvas/TileBar/SlotsContainer"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "UI_Root/Canvas/TileBar/PaletteTabsController",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldSharedPagingButtonsRouter",
+      "fieldName": "buildingsPanelRoot",
+      "refPath": "UI_Root/Canvas/TileBar/BuildingBar"
+    },
+
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "prevPageButton"
+    },
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "nextPageButton"
+    },
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "pageLabel"
+    },
+
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "prevPageButton"
+    },
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "nextPageButton"
+    },
+    {
+      "op": "clear_object_ref",
+      "path": "UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "pageLabel"
+    }
+  ]
+}

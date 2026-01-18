@@ -14,6 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingDefinition
   displayName: New Building
   icon: {fileID: -989487521171790309, guid: 240f4ed4c8255d94bb85a03ab95dbf89, type: 3}
-  prefab: {fileID: 0}
+  prefab: {fileID: 8689533182396043018, guid: 187e4e5c3057c1746a90c9f3099ed8c2, type: 3}
   localOffset: {x: 0, y: 0.02, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
+  kind: 0
+  consumesActiveSlot: 1
+  defaultActive: 1
+  preferredTerrainType: 0

@@ -1,0 +1,11 @@
+{
+  "ops": [
+    {
+      "op": "set_int",
+      "path": "",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorld3DController",
+      "fieldName": "townHallLevel",
+      "intValue": 2
+    }
+  ]
+}

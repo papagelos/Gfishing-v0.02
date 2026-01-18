@@ -66,5 +66,7 @@
     "explorer.fileNesting.patterns": {
         "*.sln": "*.csproj",
     },
-    "dotnet.defaultSolution": "Gfishing v0.02.sln"
+    "dotnet.defaultSolution": "Gfishing v0.02.sln",
+    "local-history.saveDelay": 10,
+    "local-history.path": "f:\\coding"
 }

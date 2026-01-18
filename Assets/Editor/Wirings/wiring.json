@@ -1,0 +1,97 @@
+{
+  "ops": [
+    {
+      "op": "ensure_tmp_button",
+      "parentPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar",
+      "name": "Btn_PageLeft",
+      "label": "<",
+      "anchorMinX": 0, "anchorMinY": 0.5,
+      "anchorMaxX": 0, "anchorMaxY": 0.5,
+      "pivotX": 0.5, "pivotY": 0.5,
+      "posX": 40, "posY": 0,
+      "sizeX": 60, "sizeY": 60
+    },
+    {
+      "op": "ensure_tmp_button",
+      "parentPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar",
+      "name": "Btn_PageRight",
+      "label": ">",
+      "anchorMinX": 1, "anchorMinY": 0.5,
+      "anchorMaxX": 1, "anchorMaxY": 0.5,
+      "pivotX": 0.5, "pivotY": 0.5,
+      "posX": -40, "posY": 0,
+      "sizeX": 60, "sizeY": 60
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "prevPageButton",
+      "refPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/Btn_PageLeft",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "nextPageButton",
+      "refPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/Btn_PageRight",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_int",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/SlotsContainer",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldTileBarSlotsUI",
+      "fieldName": "pageSize",
+      "intValue": 6
+    },
+
+    {
+      "op": "ensure_tmp_button",
+      "parentPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar",
+      "name": "Btn_PageLeft",
+      "label": "<",
+      "anchorMinX": 0, "anchorMinY": 0.5,
+      "anchorMaxX": 0, "anchorMaxY": 0.5,
+      "pivotX": 0.5, "pivotY": 0.5,
+      "posX": 40, "posY": 0,
+      "sizeX": 60, "sizeY": 60
+    },
+    {
+      "op": "ensure_tmp_button",
+      "parentPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar",
+      "name": "Btn_PageRight",
+      "label": ">",
+      "anchorMinX": 1, "anchorMinY": 0.5,
+      "anchorMaxX": 1, "anchorMaxY": 0.5,
+      "pivotX": 0.5, "pivotY": 0.5,
+      "posX": -40, "posY": 0,
+      "sizeX": 60, "sizeY": 60
+    },
+
+    {
+      "op": "set_object_ref",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "prevPageButton",
+      "refPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar/Btn_PageLeft",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_object_ref",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "nextPageButton",
+      "refPath": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar/Btn_PageRight",
+      "refComponentType": "UnityEngine.UI.Button"
+    },
+    {
+      "op": "set_int",
+      "path": "Prefab_HexWorld3D_Core/UI_Root/Canvas/TileBar/BuildingBar",
+      "componentType": "GalacticFishing.Minigames.HexWorld.HexWorldBuildingBarSlotsUI",
+      "fieldName": "pageSize",
+      "intValue": 5
+    }
+  ]
+}
