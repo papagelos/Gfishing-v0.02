@@ -38,6 +38,8 @@ namespace GalacticFishing.Minigames.HexWorld
         [Header("Formatting")]
         [SerializeField] private string nameSuffix = ":";         // e.g. "Wood:"
         [SerializeField] private string valueFormat = "{0}";      // e.g. "{0}" or "{0:N0}"
+        [SerializeField] private bool useAbbreviation = true;
+        [SerializeField] private double abbreviateStart = 100000d;
 
         [Header("Binding / Robustness")]
         [SerializeField, Min(0.05f)] private float retrySeconds = 0.25f;
@@ -361,6 +363,9 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (!warehouse) return;
 
+            // Build max quality map from all producer buildings
+            var maxQuality = BuildMaxQualityByResource();
+
             foreach (var kv in _rows)
             {
                 var id = kv.Key;
@@ -372,8 +377,13 @@ namespace GalacticFishing.Minigames.HexWorld
                 if (row.root) row.root.gameObject.SetActive(show);
                 if (!show) continue;
 
-                string name = id.ToString() + nameSuffix;
-                string value = string.Format(valueFormat, amount);
+                string resourceName = id.ToString();
+                int maxQ = maxQuality.TryGetValue(id, out int q) ? q : 1;
+                string name = $"{resourceName} (Q{maxQ}){nameSuffix}";
+
+                string value = useAbbreviation && amount >= abbreviateStart
+                    ? GFNumberFormatter.Abbreviate(amount, 1, true)
+                    : string.Format(valueFormat, amount);
 
                 // Preferred: separate name/value
                 if (row.nameText && row.valueText)
@@ -393,6 +403,36 @@ namespace GalacticFishing.Minigames.HexWorld
                     // Nothing to render into (shouldn't happen, but safe)
                 }
             }
+        }
+
+        private static Dictionary<HexWorldResourceId, int> BuildMaxQualityByResource()
+        {
+            var result = new Dictionary<HexWorldResourceId, int>();
+
+            var buildings = FindObjectsOfType<HexWorldBuildingInstance>(true);
+            for (int i = 0; i < buildings.Length; i++)
+            {
+                var building = buildings[i];
+                if (!building) continue;
+
+                var profile = building.GetComponent<HexWorldBuildingProductionProfile>();
+                if (!profile || profile.baseOutputPerTick == null) continue;
+
+                int q = Mathf.Max(1, building.ProductQuality);
+
+                for (int j = 0; j < profile.baseOutputPerTick.Count; j++)
+                {
+                    var stack = profile.baseOutputPerTick[j];
+                    if (stack.id == HexWorldResourceId.None) continue;
+
+                    if (result.TryGetValue(stack.id, out int existing))
+                        result[stack.id] = Mathf.Max(existing, q);
+                    else
+                        result[stack.id] = q;
+                }
+            }
+
+            return result;
         }
     }
 }

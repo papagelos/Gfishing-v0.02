@@ -6,7 +6,7 @@ namespace GalacticFishing.Minigames.HexWorld
 {
     /// <summary>
     /// UI button component that triggers Town Hall upgrades.
-    /// Shows the upgrade cost and handles the upgrade action.
+    /// TICKET 003: Shows Land Deed + World milestone requirements.
     /// </summary>
     public sealed class HexWorldTownHallUpgradeButton : MonoBehaviour
     {
@@ -14,9 +14,15 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private Button button;
         [SerializeField] private TMP_Text buttonLabel;
 
-        [Header("Optional Cost Display")]
-        [SerializeField] private TMP_Text costLabel;
-        [SerializeField] private bool showCostInButton = true;
+        [Header("Requirements Display")]
+        [SerializeField] private TMP_Text requirementsLabel;
+        [SerializeField] private bool showRequirementsInButton = true;
+
+        [Header("Refresh Rate")]
+        [Tooltip("Update interval in seconds. 0 = update every frame (expensive).")]
+        [SerializeField] private float updateInterval = 0.5f;
+
+        private float _lastUpdateTime;
 
         private void Awake()
         {
@@ -40,7 +46,18 @@ namespace GalacticFishing.Minigames.HexWorld
             controller.TownHallLevelChanged += OnTownHallLevelChanged;
 
             // Initial update
-            UpdateButtonDisplay(controller.TownHallLevel);
+            UpdateButtonDisplay();
+        }
+
+        private void Update()
+        {
+            // Periodic refresh to check world progression changes
+            // (World progression might change externally)
+            if (updateInterval <= 0f || Time.unscaledTime - _lastUpdateTime >= updateInterval)
+            {
+                _lastUpdateTime = Time.unscaledTime;
+                UpdateButtonDisplay();
+            }
         }
 
         private void OnDestroy()
@@ -59,56 +76,92 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void OnTownHallLevelChanged(int newLevel)
         {
-            UpdateButtonDisplay(newLevel);
+            UpdateButtonDisplay();
         }
 
-        private void UpdateButtonDisplay(int currentLevel)
+        private void UpdateButtonDisplay()
         {
+            if (!controller)
+            {
+                enabled = false;
+                return;
+            }
+
+            int currentLevel = controller.TownHallLevel;
+
             if (currentLevel >= 10)
             {
                 // Max level reached
                 if (buttonLabel) buttonLabel.text = "Town Hall MAX";
                 if (button) button.interactable = false;
-                if (costLabel) costLabel.text = "";
+                if (requirementsLabel) requirementsLabel.text = "";
                 return;
             }
 
             int nextLevel = currentLevel + 1;
 
-            if (showCostInButton && buttonLabel)
+            // Check requirements
+            bool hasLandDeed = CheckLandDeed();
+            bool hasWorldAccess = CheckWorldProgression(nextLevel);
+            bool canUpgrade = hasLandDeed && hasWorldAccess;
+
+            // Update button text
+            if (buttonLabel)
             {
-                string costText = GetUpgradeCostText(nextLevel);
-                buttonLabel.text = $"Upgrade TH → L{nextLevel}\n{costText}";
-            }
-            else if (buttonLabel)
-            {
-                buttonLabel.text = $"Upgrade Town Hall → L{nextLevel}";
+                if (showRequirementsInButton)
+                {
+                    string reqText = GetRequirementsText(nextLevel, hasLandDeed, hasWorldAccess);
+                    buttonLabel.text = $"Upgrade TH → L{nextLevel}\n{reqText}";
+                }
+                else
+                {
+                    buttonLabel.text = $"Upgrade Town Hall → L{nextLevel}";
+                }
             }
 
-            if (costLabel)
+            // Update requirements label if separate
+            if (requirementsLabel)
             {
-                costLabel.text = GetUpgradeCostText(nextLevel);
+                requirementsLabel.text = GetRequirementsText(nextLevel, hasLandDeed, hasWorldAccess);
             }
 
-            if (button) button.interactable = true;
+            // Button interactable only if both requirements are met
+            if (button) button.interactable = canUpgrade;
         }
 
-        private string GetUpgradeCostText(int nextLevel)
+        private bool CheckLandDeed()
         {
-            // Match the costs defined in HexWorld3DController.TryUpgradeTownHall()
-            switch (nextLevel)
+            // Placeholder: Always returns true for now
+            // Will be wired to external Land Deed system later
+            return true;
+        }
+
+        private bool CheckWorldProgression(int requiredWorldNumber)
+        {
+            if (!controller) return false;
+
+            // Access the controller's world progression (it handles the fallback)
+            // We need to use reflection or make it public - for now, assume we can check
+            // The controller will handle validation in TryUpgradeTownHall anyway
+            // This is just for UI feedback
+
+            // For now, we'll do a simple approach: try to find the world progression provider
+            var wp = FindObjectOfType<MockWorldProgression>();
+            if (wp != null && wp is GalacticFishing.IWorldProgression worldProg)
             {
-                case 2: return "20W 15S 10F 100c";
-                case 3: return "40W 30S 20F 200c";
-                case 4: return "60W 45S 30F 300c";
-                case 5: return "80W 60S 40F 400c";
-                case 6: return "100W 75S 50F 500c";
-                case 7: return "120W 90S 60F 600c";
-                case 8: return "140W 105S 70F 700c";
-                case 9: return "160W 120S 80F 800c";
-                case 10: return "200W 150S 100F 1000c";
-                default: return "";
+                return worldProg.HighestUnlockedWorldNumber >= requiredWorldNumber;
             }
+
+            // Fallback: assume level 1 unlocked
+            return requiredWorldNumber <= 1;
+        }
+
+        private string GetRequirementsText(int nextLevel, bool hasLandDeed, bool hasWorldAccess)
+        {
+            string landDeedText = hasLandDeed ? "Land Deed: 1/1" : "Land Deed: 0/1";
+            string worldText = hasWorldAccess ? $"Reached World {nextLevel}: YES" : $"Reached World {nextLevel}: NO";
+
+            return $"{landDeedText}\n{worldText}";
         }
     }
 }

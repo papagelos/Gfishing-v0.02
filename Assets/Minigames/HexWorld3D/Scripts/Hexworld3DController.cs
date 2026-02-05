@@ -2,15 +2,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
+using GalacticFishing.Progress;
 
 namespace GalacticFishing.Minigames.HexWorld
 {
     public sealed class HexWorld3DController : MonoBehaviour
     {
-        private const int CurrentSaveVersion = 2;
+        private const int CurrentSaveVersion = 3;
         [Header("Refs")]
         [SerializeField] private Transform cursorGhostParent;
         [SerializeField] private Camera mainCamera;
@@ -78,7 +81,7 @@ namespace GalacticFishing.Minigames.HexWorld
         // ============================
         // Buildings (NEW)
         // ============================
-        public enum PaletteMode { Tiles, Buildings, TileUpgrade }
+        public enum PaletteMode { Tiles, Buildings, TileUpgrade, Delete }
 
         [Header("Buildings")]
         [Tooltip("Catalog used to resolve saved building names back to assets.")]
@@ -87,8 +90,16 @@ namespace GalacticFishing.Minigames.HexWorld
         [Tooltip("Optional parent for spawned buildings. If empty, creates/uses child named 'Buildings' under this controller.")]
         [SerializeField] private Transform buildingsParent;
 
-        [Tooltip("Allow placing a building to replace an existing building on the same tile.")]
-        [SerializeField] private bool allowReplaceBuilding = true;
+        [Header("Building Context Menu (TICKET 1)")]
+        [Tooltip("Context menu UI that appears when clicking a building.")]
+        [SerializeField] private HexWorldBuildingContextMenu buildingContextMenu;
+
+        [Header("Exit Mode UI")]
+        [Tooltip("Button to exit paint/build mode. Shows when a style or building is selected.")]
+        [SerializeField] private Button exitModeButton;
+
+        [Tooltip("Text label on the exit mode button.")]
+        [SerializeField] private TMP_Text exitModeText;
 
         [Header("Town Hall / Slots (Design Doc)")]
         [Tooltip("Town Hall level controls Active Slots (Design Doc Section 8). For now this is a simple integer; later it can be driven by a TownHall building upgrade.")]
@@ -97,6 +108,17 @@ namespace GalacticFishing.Minigames.HexWorld
         [Header("Warehouse (Design Doc)")]
         [Tooltip("Warehouse inventory component. If left empty, the controller will create one on this GameObject.")]
         [SerializeField] private HexWorldWarehouseInventory warehouse;
+
+        [Header("Town Hall Upgrade Gating (TICKET 003)")]
+        [Tooltip("World progression provider for gating Town Hall upgrades. If null, uses a mock provider.")]
+        [SerializeField] private MonoBehaviour worldProgressionProvider;
+
+        [Header("Starting Village (TICKET 004)")]
+        [Tooltip("Tile style for the core tile at (0,0) when starting a new game (no autosave).")]
+        [SerializeField] private HexWorldTileStyle townHallStartingStyle;
+
+        [Tooltip("Town Hall building definition placed on (0,0) when starting a new game (no autosave).")]
+        [SerializeField] private HexWorldBuildingDefinition townHallBuildingDef;
 
         [Header("Village Save/Load")]
         [Tooltip("If ON, load autosave when entering the village.")]
@@ -136,9 +158,54 @@ namespace GalacticFishing.Minigames.HexWorld
         public int ActiveSlotsTotal => HexWorldCapacityService.GetActiveSlots(townHallLevel);
         public int ActiveBuildingsUsed => _activeBuildingsUsed;
         public int TileCapacityMax => HexWorldCapacityService.GetTileCapacity(townHallLevel);
+        public int BuildingsPlaced => _buildings.Count;
 
         // Public accessor for district bonus calculations
         public Dictionary<HexCoord, HexWorld3DTile> OwnedTiles => _owned;
+
+        // Public accessor for style catalog (used by TileBar sync)
+        public HexWorldTileStyle[] GetStyleCatalog() => styleCatalog;
+
+        // Public accessor for building catalog (used by UI Toolkit HUD)
+        public HexWorldBuildingDefinition[] GetBuildingCatalog() => buildingCatalog;
+
+        // ============================
+        // Town Hall Upgrade Gating (TICKET 003)
+        // ============================
+
+        /// <summary>
+        /// Returns the world progression provider interface.
+        /// Falls back to a mock implementation if not set.
+        /// </summary>
+        private GalacticFishing.IWorldProgression WorldProgression
+        {
+            get
+            {
+                if (worldProgressionProvider != null && worldProgressionProvider is GalacticFishing.IWorldProgression wp)
+                    return wp;
+
+                // Mock fallback: return level 1
+                return new MockWorldProgressionFallback();
+            }
+        }
+
+        /// <summary>
+        /// Placeholder for external Land Deed check.
+        /// Currently returns true. Will be wired to external system later.
+        /// </summary>
+        private bool HasExternalLandDeed()
+        {
+            // TODO: Wire to external Land Deed system
+            return true;
+        }
+
+        /// <summary>
+        /// Fallback implementation when no world progression provider is set.
+        /// </summary>
+        private class MockWorldProgressionFallback : GalacticFishing.IWorldProgression
+        {
+            public int HighestUnlockedWorldNumber => 1;
+        }
 
         private PaletteMode _paletteMode = PaletteMode.Tiles;
 
@@ -155,6 +222,10 @@ namespace GalacticFishing.Minigames.HexWorld
         private int _credits;
 
         private int _activeBuildingsUsed;
+
+        // Road connectivity (TICKET 8)
+        private readonly HashSet<HexCoord> _townHallRoadComponent = new();
+        private const string RoadTag = "road";
 
         // Tile budget state
         private int _tilesLeftToPlace;
@@ -187,6 +258,10 @@ namespace GalacticFishing.Minigames.HexWorld
                 hexSize = AutoDetectHexSizeOrFallback(0.5f);
 
             EnsureWarehouse();
+
+            // Exit Mode button setup
+            if (exitModeButton)
+                exitModeButton.onClick.AddListener(OnExitModeClicked);
         }
 
         private void Start()
@@ -218,16 +293,20 @@ namespace GalacticFishing.Minigames.HexWorld
                     }
                     else
                     {
-                        RequestToast($"New village: {_tilesLeftToPlace} tiles available (TH L{townHallLevel})");
+                        // TICKET 004: No autosave found - initialize starting village
+                        InitializeStartingVillage(capacityForLevel);
                     }
                 }
                 else
                 {
-                    RequestToast($"New village: {_tilesLeftToPlace} tiles available (TH L{townHallLevel})");
+                    // TICKET 004: Auto-load disabled - initialize starting village
+                    InitializeStartingVillage(capacityForLevel);
                 }
 
                 RecomputeActiveSlotsAndNotify();
                 TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+
+                // Tutorial triggering is now handled by AIStorySceneMonitor (decoupled)
 
                 return;
             }
@@ -236,6 +315,64 @@ namespace GalacticFishing.Minigames.HexWorld
             AddOwned(new HexCoord(0, 0), startingStyle);
             RefreshFrontier();
             SetSelectedStyle(null);
+
+            // Tutorial triggering is now handled by AIStorySceneMonitor (decoupled)
+        }
+
+        /// <summary>
+        /// TICKET 004: Initializes a new village with core tile at (0,0) and Town Hall building.
+        /// Called when no autosave is found.
+        /// </summary>
+        private void InitializeStartingVillage(int capacityForLevel)
+        {
+            Debug.Log("InitializeStartingVillage: Creating new village with core tile and Town Hall");
+
+            // 1. Place the starting tile at (0,0)
+            HexCoord coreCoord = new HexCoord(0, 0);
+            HexWorldTileStyle coreStyle = townHallStartingStyle ? townHallStartingStyle : startingStyle;
+
+            if (coreStyle)
+            {
+                AddOwned(coreCoord, coreStyle);
+                Debug.Log($"InitializeStartingVillage: Placed core tile at (0,0) with style {coreStyle.name}");
+            }
+            else
+            {
+                Debug.LogWarning("InitializeStartingVillage: No townHallStartingStyle or startingStyle set. Core tile will use prefab materials.");
+                AddOwned(coreCoord, null);
+            }
+
+            // 2. Update tiles-left budget (1 tile already placed)
+            _tilesLeftToPlace = capacityForLevel - 1;
+            TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+            Debug.Log($"InitializeStartingVillage: Tiles left to place: {_tilesLeftToPlace} (capacity {capacityForLevel} - 1 core tile)");
+
+            // 3. Place Town Hall building on (0,0)
+            if (townHallBuildingDef && townHallBuildingDef.prefab)
+            {
+                // Temporarily set selected building
+                var previousSelection = SelectedBuilding;
+                SetSelectedBuilding(townHallBuildingDef);
+
+                // Place the building using existing logic
+                TryPlaceBuildingAtCoord(coreCoord);
+
+                // Restore selection (null = no building attached to cursor)
+                SetSelectedBuilding(previousSelection);
+
+                Debug.Log($"InitializeStartingVillage: Placed Town Hall on core tile at (0,0)");
+            }
+            else
+            {
+                Debug.LogWarning("InitializeStartingVillage: townHallBuildingDef or its prefab is missing. Town Hall not placed.");
+            }
+
+            // 4. Save autosave so this starting village persists
+            SaveAutosave();
+            Debug.Log("InitializeStartingVillage: Autosave created with starting village");
+
+            // Show toast to player
+            RequestToast($"New village: 1 tile placed, {_tilesLeftToPlace} tiles left (TH L{townHallLevel})");
         }
 
         private void OnDisable()
@@ -290,9 +427,65 @@ namespace GalacticFishing.Minigames.HexWorld
             if (Mouse.current == null)
                 return;
 
+            // Update Exit Mode button visibility
+            UpdateExitModeButton();
+
+            // TICKET 1: Close context menu on Escape
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                if (buildingContextMenu && buildingContextMenu.IsVisible)
+                {
+                    buildingContextMenu.Hide();
+                    return;
+                }
+            }
+
             if (enableTileBudgetPlacement)
             {
-                // Ghost only in tile mode.
+                // UNIFIED BUILDING INTERACTION:
+                // If nothing is selected (SelectedStyle == null AND SelectedBuilding == null),
+                // left-click always attempts building interaction regardless of PaletteMode.
+                bool nothingSelected = (SelectedStyle == null && SelectedBuilding == null);
+
+                // Handle left-click input
+                if (Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    if (!(EventSystem.current && EventSystem.current.IsPointerOverGameObject()))
+                    {
+                        // PRIORITY: If nothing selected, always try building interaction (tile-driven)
+                        if (nothingSelected && _paletteMode != PaletteMode.Delete)
+                        {
+                            TryInteractWithBuildingUnderMouse();
+                        }
+                        else if (_paletteMode == PaletteMode.Delete)
+                        {
+                            // Delete mode: LMB click deletes building or tile under mouse
+                            TryRemoveBuildingOrTileUnderMouse();
+                        }
+                        else if (_paletteMode == PaletteMode.Tiles && SelectedStyle != null)
+                        {
+                            // Placing/painting tiles - handled by drag paint below
+                        }
+                        else if (_paletteMode == PaletteMode.Buildings && SelectedBuilding != null)
+                        {
+                            // Placing a building - use coord-based placement
+                            if (TryGetCursorCoord(out var coord))
+                            {
+                                TryPlaceBuildingAtCoord(coord);
+                            }
+                        }
+                        else if (_paletteMode == PaletteMode.TileUpgrade)
+                        {
+                            // Tile Upgrade mode: click to upgrade a tile's tier
+                            if (TryGetCursorCoord(out var coord))
+                            {
+                                TryUpgradeTileTier(coord);
+                            }
+                        }
+                    }
+                }
+
+                // Ghost visibility and drag paint (Tiles mode only)
                 if (_paletteMode == PaletteMode.Tiles)
                 {
                     UpdateCursorGhost();
@@ -303,19 +496,27 @@ namespace GalacticFishing.Minigames.HexWorld
                         _cursorGhost.SetActive(SelectedStyle != null && !rmbHeld);
                     }
 
-                    // Drag paint / place tiles
-                    if (enableDragPaint && Mouse.current.leftButton.isPressed)
+                    // Drag paint / place tiles (only when SelectedStyle is set)
+                    if (enableDragPaint && SelectedStyle != null && Mouse.current.leftButton.isPressed)
                     {
                         if (!(EventSystem.current && EventSystem.current.IsPointerOverGameObject()))
                         {
-                            if (SelectedStyle && TryGetCursorCoord(out var coord))
+                            if (TryGetCursorCoord(out var coord))
                             {
                                 if (!_dragHasLast || coord.q != _dragLastCoord.q || coord.r != _dragLastCoord.r)
                                 {
                                     _dragHasLast = true;
                                     _dragLastCoord = coord;
 
-                                    TryPlaceOrPaintAtCoord(coord);
+                                    // MODE GATING: Block painting on tiles with buildings
+                                    if (_buildings.ContainsKey(coord))
+                                    {
+                                        RequestToast("Exit painting mode to interact with buildings.");
+                                    }
+                                    else
+                                    {
+                                        TryPlaceOrPaintAtCoord(coord);
+                                    }
                                 }
                             }
                         }
@@ -324,52 +525,36 @@ namespace GalacticFishing.Minigames.HexWorld
                     if (Mouse.current.leftButton.wasReleasedThisFrame)
                         _dragHasLast = false;
                 }
-                else if (_paletteMode == PaletteMode.Buildings)
+                else if (_paletteMode == PaletteMode.Delete)
                 {
-                    // Buildings mode: no tile ghost
+                    // Delete mode: no ghost, allow drag delete
                     if (_cursorGhost) _cursorGhost.SetActive(false);
-                    _dragHasLast = false;
 
-                    // Place building on click
-                    if (Mouse.current.leftButton.wasPressedThisFrame)
+                    // Drag delete (LMB held removes buildings/tiles under cursor)
+                    if (Mouse.current.leftButton.isPressed)
                     {
                         if (!(EventSystem.current && EventSystem.current.IsPointerOverGameObject()))
                         {
                             if (TryGetCursorCoord(out var coord))
                             {
-                                if (SelectedBuilding)
-                                    TryPlaceBuildingAtCoord(coord);
-                                else
-                                    TryToggleBuildingActiveAtCoord(coord);
+                                if (!_dragHasLast || coord.q != _dragLastCoord.q || coord.r != _dragLastCoord.r)
+                                {
+                                    _dragHasLast = true;
+                                    _dragLastCoord = coord;
+                                    TryRemoveBuildingOrTileAtCoord(coord);
+                                }
                             }
                         }
                     }
+
+                    if (Mouse.current.leftButton.wasReleasedThisFrame)
+                        _dragHasLast = false;
                 }
-                else if (_paletteMode == PaletteMode.TileUpgrade)
+                else
                 {
-                    // Tile Upgrade mode: click to upgrade a tile's tier
+                    // Non-tile modes: no ghost, no drag
                     if (_cursorGhost) _cursorGhost.SetActive(false);
                     _dragHasLast = false;
-
-                    if (Mouse.current.leftButton.wasPressedThisFrame)
-                    {
-                        if (!(EventSystem.current && EventSystem.current.IsPointerOverGameObject()))
-                        {
-                            if (TryGetCursorCoord(out var coord))
-                            {
-                                TryUpgradeTileTier(coord);
-                            }
-                        }
-                    }
-                }
-
-                // RMB delete (priority: building first, else tile)
-                if (enableRightClickRemove && Mouse.current.rightButton.wasPressedThisFrame)
-                {
-                    if (EventSystem.current && EventSystem.current.IsPointerOverGameObject())
-                        return;
-
-                    TryRemoveBuildingOrTileUnderMouse();
                 }
 
                 return;
@@ -394,8 +579,18 @@ namespace GalacticFishing.Minigames.HexWorld
             _paletteMode = PaletteMode.Tiles;
             PaletteModeChanged?.Invoke(_paletteMode);
 
+            // Clear stale building selection when switching to Tiles mode
+            if (SelectedBuilding != null)
+            {
+                SelectedBuilding = null;
+                SelectedBuildingChanged?.Invoke(null);
+            }
+
             EnsureCursorGhost();
             UpdateCursorGhostVisibility();
+
+            // TICKET 1: Close context menu when switching modes
+            if (buildingContextMenu) buildingContextMenu.Hide();
         }
 
         public void SetPaletteModeBuildings()
@@ -404,7 +599,17 @@ namespace GalacticFishing.Minigames.HexWorld
             _paletteMode = PaletteMode.Buildings;
             PaletteModeChanged?.Invoke(_paletteMode);
 
+            // Clear stale tile style selection when switching to Buildings mode
+            if (SelectedStyle != null)
+            {
+                SelectedStyle = null;
+                SelectedStyleChanged?.Invoke(null);
+            }
+
             if (_cursorGhost) _cursorGhost.SetActive(false);
+
+            // TICKET 1: Close context menu when switching modes
+            if (buildingContextMenu) buildingContextMenu.Hide();
         }
 
         public void SetPaletteModeTileUpgrade()
@@ -414,6 +619,35 @@ namespace GalacticFishing.Minigames.HexWorld
             PaletteModeChanged?.Invoke(_paletteMode);
 
             if (_cursorGhost) _cursorGhost.SetActive(false);
+
+            // TICKET 1: Close context menu when switching modes
+            if (buildingContextMenu) buildingContextMenu.Hide();
+        }
+
+        public void SetPaletteModeDelete()
+        {
+            if (_paletteMode == PaletteMode.Delete) return;
+            _paletteMode = PaletteMode.Delete;
+
+            // Clear any active placement selections silently (direct field access)
+            // to prevent mode-switching loops from SetSelectedStyle/SetSelectedBuilding.
+            if (SelectedStyle != null)
+            {
+                SelectedStyle = null;
+                SelectedStyleChanged?.Invoke(null);
+            }
+            if (SelectedBuilding != null)
+            {
+                SelectedBuilding = null;
+                SelectedBuildingChanged?.Invoke(null);
+            }
+
+            PaletteModeChanged?.Invoke(_paletteMode);
+
+            if (_cursorGhost) _cursorGhost.SetActive(false);
+
+            // Close context menu when switching modes
+            if (buildingContextMenu) buildingContextMenu.Hide();
         }
 
         public void SetSelectedStyle(HexWorldTileStyle style)
@@ -422,11 +656,19 @@ namespace GalacticFishing.Minigames.HexWorld
             if (SelectedStyle == style)
                 style = null;
 
+            // MUTUAL EXCLUSIVITY: Clear building selection when selecting a tile style
+            if (style != null && SelectedBuilding != null)
+            {
+                SelectedBuilding = null;
+                SelectedBuildingChanged?.Invoke(null);
+            }
+
             SelectedStyle = style;
             SelectedStyleChanged?.Invoke(SelectedStyle);
 
-            // If player selects a tile style, it's natural to be in tile mode.
-            if (enableTileBudgetPlacement)
+            // If player selects a tile style (not deselecting), switch to tile mode.
+            // Only switch mode if style is not null to avoid overwriting Delete mode.
+            if (enableTileBudgetPlacement && style != null)
             {
                 SetPaletteModeTiles();
                 EnsureCursorGhost();
@@ -441,11 +683,68 @@ namespace GalacticFishing.Minigames.HexWorld
             if (SelectedBuilding == def)
                 def = null;
 
+            // MUTUAL EXCLUSIVITY: Clear tile style selection when selecting a building
+            if (def != null && SelectedStyle != null)
+            {
+                SelectedStyle = null;
+                SelectedStyleChanged?.Invoke(null);
+            }
+
             SelectedBuilding = def;
             SelectedBuildingChanged?.Invoke(SelectedBuilding);
 
-            if (enableTileBudgetPlacement)
+            // Only switch mode if def is not null to avoid overwriting Delete mode.
+            if (enableTileBudgetPlacement && def != null)
+            {
                 SetPaletteModeBuildings();
+                // Close context menu when entering placement mode (building selected)
+                if (buildingContextMenu)
+                    buildingContextMenu.Hide();
+            }
+        }
+
+        // ============================
+        // Exit Mode helpers
+        // ============================
+        public void ExitPaintMode() => SetSelectedStyle(null);
+        public void ExitBuildMode() => SetSelectedBuilding(null);
+
+        private void OnExitModeClicked()
+        {
+            if (_paletteMode == PaletteMode.Delete)
+            {
+                // Exit delete mode by switching to Tiles mode (neutral state)
+                SetPaletteModeTiles();
+            }
+            else if (SelectedStyle != null)
+                SetSelectedStyle(null);
+            else if (SelectedBuilding != null)
+                SetSelectedBuilding(null);
+        }
+
+        private void UpdateExitModeButton()
+        {
+            if (!exitModeButton) return;
+
+            if (_paletteMode == PaletteMode.Delete)
+            {
+                exitModeButton.gameObject.SetActive(true);
+                if (exitModeText) exitModeText.text = "EXIT DELETE MODE";
+            }
+            else if (SelectedStyle != null)
+            {
+                exitModeButton.gameObject.SetActive(true);
+                if (exitModeText) exitModeText.text = "EXIT PAINT MODE";
+            }
+            else if (SelectedBuilding != null)
+            {
+                exitModeButton.gameObject.SetActive(true);
+                if (exitModeText) exitModeText.text = "EXIT BUILD MODE";
+            }
+            else
+            {
+                exitModeButton.gameObject.SetActive(false);
+            }
         }
 
         private void RequestToast(string msg)
@@ -465,12 +764,71 @@ namespace GalacticFishing.Minigames.HexWorld
             {
                 if (allowRepaintOnOwnedClick)
                 {
+                    // Get existing tile style to determine cost rules
+                    _ownedStyleName.TryGetValue(coord, out var oldStyleName);
+                    var oldStyle = ResolveStyleByName(oldStyleName);
+                    var newStyle = SelectedStyle;
+
+                    // Determine categories (default to Cosmetic if style is null)
+                    var oldCategory = oldStyle != null ? oldStyle.category : TileCategory.Cosmetic;
+                    var newCategory = newStyle != null ? newStyle.category : TileCategory.Cosmetic;
+
+                    // Calculate costs based on repaint rules
+                    int demolitionFee = 0;
+                    var paintCosts = new List<HexWorldResourceStack>();
+
+                    if (oldCategory == TileCategory.Cosmetic && newCategory == TileCategory.Cosmetic)
+                    {
+                        // Cosmetic → Cosmetic: Free
+                    }
+                    else if (oldCategory == TileCategory.Cosmetic && newCategory == TileCategory.Gameplay)
+                    {
+                        // Cosmetic → Gameplay: Pay paint cost
+                        if (newStyle != null && newStyle.paintCost != null)
+                            paintCosts.AddRange(newStyle.paintCost);
+                    }
+                    else if (oldCategory == TileCategory.Gameplay && newCategory == TileCategory.Cosmetic)
+                    {
+                        // Gameplay → Cosmetic: Pay demolition fee
+                        demolitionFee = CalculateDemolitionFee(oldStyle);
+                    }
+                    else if (oldCategory == TileCategory.Gameplay && newCategory == TileCategory.Gameplay)
+                    {
+                        // Gameplay → Gameplay: Pay demolition fee + paint cost
+                        demolitionFee = CalculateDemolitionFee(oldStyle);
+                        if (newStyle != null && newStyle.paintCost != null)
+                            paintCosts.AddRange(newStyle.paintCost);
+                    }
+
+                    // Validate affordability
+                    if (!CanAffordRepaint(demolitionFee, paintCosts))
+                        return;
+
+                    // Deduct costs
+                    DeductRepaintCosts(demolitionFee, paintCosts);
+
+                    // Award IP only for Gameplay paint purchases
+                    if (newCategory == TileCategory.Gameplay && oldCategory != newCategory)
+                    {
+                        int ipAmount = CalculatePaintIP(newStyle);
+                        if (ipAmount > 0)
+                            PlayerProgressManager.Instance?.AddIP(ipAmount);
+                    }
+
+                    // Apply the new style
                     ApplyStyleToTile(existing.gameObject, SelectedStyle);
                     _ownedStyleName[coord] = SelectedStyle ? SelectedStyle.name : "";
 
                     // Update terrain type when repainting
                     if (SelectedStyle != null)
                         existing.SetTerrainType(SelectedStyle.terrainType);
+
+                    // Clear old decorations and spawn new ones for the new style
+                    ClearDecorationsAtTile(coord);
+                    SpawnDecorations(coord, SelectedStyle);
+
+                    // Recompute road network if tile might affect connectivity
+                    RecomputeRoadNetwork();
                 }
                 return;
             }
@@ -502,6 +860,131 @@ namespace GalacticFishing.Minigames.HexWorld
             _tilesLeftToPlace--;
             TilesLeftChanged?.Invoke(_tilesLeftToPlace);
             TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+
+            // Recompute road network for new tile
+            RecomputeRoadNetwork();
+        }
+
+        /// <summary>
+        /// Calculates the demolition fee for a gameplay tile (default 30% of original paint cost).
+        /// Returns the total credit cost for demolition.
+        /// </summary>
+        private int CalculateDemolitionFee(HexWorldTileStyle style)
+        {
+            if (style == null || style.paintCost == null || style.paintCost.Count == 0)
+                return 0;
+
+            // Sum all paint costs and apply demolition factor
+            int totalOriginalCost = 0;
+            foreach (var cost in style.paintCost)
+            {
+                if (cost.id == HexWorldResourceId.Credits)
+                    totalOriginalCost += cost.amount;
+                else if (cost.amount > 0)
+                    totalOriginalCost += cost.amount * 5; // Convert resources to credit equivalent (5 credits per resource unit)
+            }
+
+            return Mathf.RoundToInt(totalOriginalCost * style.demolitionFeeFactor);
+        }
+
+        /// <summary>
+        /// Checks if the player can afford the demolition fee and paint costs.
+        /// </summary>
+        private bool CanAffordRepaint(int demolitionFee, List<HexWorldResourceStack> paintCosts)
+        {
+            EnsureWarehouse();
+
+            // Calculate total credit cost (demolition fee + any credit costs in paintCosts)
+            int totalCreditsNeeded = demolitionFee;
+            foreach (var cost in paintCosts)
+            {
+                if (cost.id == HexWorldResourceId.Credits)
+                    totalCreditsNeeded += cost.amount;
+            }
+
+            // Check credits
+            if (totalCreditsNeeded > 0 && _credits < totalCreditsNeeded)
+            {
+                RequestToast($"Not enough credits. Need {totalCreditsNeeded}, have {_credits}.");
+                return false;
+            }
+
+            // Check warehouse resources
+            foreach (var cost in paintCosts)
+            {
+                if (cost.id == HexWorldResourceId.None || cost.id == HexWorldResourceId.Credits)
+                    continue;
+                if (cost.amount <= 0)
+                    continue;
+
+                int have = warehouse != null ? warehouse.Get(cost.id) : 0;
+                if (have < cost.amount)
+                {
+                    RequestToast($"Not enough {cost.id}. Need {cost.amount}, have {have}.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Deducts the demolition fee and paint costs from player resources.
+        /// </summary>
+        private void DeductRepaintCosts(int demolitionFee, List<HexWorldResourceStack> paintCosts)
+        {
+            EnsureWarehouse();
+
+            // Calculate total credit cost
+            int totalCreditsToDeduct = demolitionFee;
+            foreach (var cost in paintCosts)
+            {
+                if (cost.id == HexWorldResourceId.Credits)
+                    totalCreditsToDeduct += cost.amount;
+            }
+
+            // Deduct credits
+            if (totalCreditsToDeduct > 0)
+            {
+                _credits -= totalCreditsToDeduct;
+                CreditsChanged?.Invoke(_credits);
+            }
+
+            // Deduct warehouse resources
+            foreach (var cost in paintCosts)
+            {
+                if (cost.id == HexWorldResourceId.None || cost.id == HexWorldResourceId.Credits)
+                    continue;
+                if (cost.amount <= 0)
+                    continue;
+
+                warehouse?.TryRemove(cost.id, cost.amount);
+            }
+        }
+
+        /// <summary>
+        /// Calculates Infrastructure Points awarded for placing a gameplay tile.
+        /// Returns IP amount (2-5 based on tile cost).
+        /// </summary>
+        private int CalculatePaintIP(HexWorldTileStyle style)
+        {
+            if (style == null || style.category != TileCategory.Gameplay)
+                return 0;
+
+            // Base IP of 2, plus 1 for each 20 credits worth of cost (max 5)
+            int totalCost = 0;
+            if (style.paintCost != null)
+            {
+                foreach (var cost in style.paintCost)
+                {
+                    if (cost.id == HexWorldResourceId.Credits)
+                        totalCost += cost.amount;
+                    else if (cost.amount > 0)
+                        totalCost += cost.amount * 5;
+                }
+            }
+
+            return Mathf.Clamp(2 + (totalCost / 20), 2, 5);
         }
 
         /// <summary>
@@ -575,9 +1058,104 @@ namespace GalacticFishing.Minigames.HexWorld
             CreditsChanged?.Invoke(_credits);
 
             // Upgrade tier
-            tile.SetTerrainTier(currentTier + 1);
+            int newTier = currentTier + 1;
+            tile.SetTerrainTier(newTier);
+
+            // Award IP based on new tier (5/10/20)
+            int ipAmount = newTier switch
+            {
+                1 => 5,
+                2 => 10,
+                _ => 20
+            };
+            PlayerProgressManager.Instance?.AddIP(ipAmount);
 
             RequestToast($"Tile upgraded to Tier {tile.TerrainTier}!");
+            return true;
+        }
+
+        /// <summary>
+        /// Purchases a building upgrade by validating and deducting credits + warehouse resources.
+        /// TICKET: purchase only (no effect application yet).
+        /// </summary>
+        public bool TryPurchaseBuildingUpgrade(HexCoord coord, HexWorldUpgradeDefinition upgrade)
+        {
+            if (upgrade == null)
+            {
+                RequestToast("Upgrade not found.");
+                return false;
+            }
+
+            // Optional safety: ensure there's a building at this coord (prevents weird clicks / stale UI)
+            if (!_buildings.TryGetValue(coord, out var inst) || !inst)
+            {
+                RequestToast("Building not found.");
+                return false;
+            }
+
+            EnsureWarehouse();
+            if (!warehouse)
+            {
+                RequestToast("Warehouse missing.");
+                return false;
+            }
+
+            int creditCost = Mathf.Max(0, upgrade.creditCost);
+
+            // 1) Validate warehouse resources
+            if (upgrade.resourceCosts != null)
+            {
+                for (int i = 0; i < upgrade.resourceCosts.Count; i++)
+                {
+                    var cost = upgrade.resourceCosts[i];
+                    if (cost.id == HexWorldResourceId.None) continue;
+                    if (cost.amount <= 0) continue;
+
+                    int have = warehouse.Get(cost.id);
+                    if (have < cost.amount)
+                    {
+                        RequestToast($"Not enough {cost.id}. Need {cost.amount}, have {have}.");
+                        return false;
+                    }
+                }
+            }
+
+            // 2) Validate credits
+            if (creditCost > 0 && _credits < creditCost)
+            {
+                RequestToast($"Not enough credits. Need {creditCost}, have {_credits}.");
+                return false;
+            }
+
+            // 3) Deduct resources
+            if (upgrade.resourceCosts != null)
+            {
+                for (int i = 0; i < upgrade.resourceCosts.Count; i++)
+                {
+                    var cost = upgrade.resourceCosts[i];
+                    if (cost.id == HexWorldResourceId.None) continue;
+                    if (cost.amount <= 0) continue;
+
+                    if (!warehouse.TryRemove(cost.id, cost.amount))
+                    {
+                        RequestToast($"Failed to deduct {cost.id}.");
+                        return false;
+                    }
+                }
+            }
+
+            // 4) Deduct credits
+            if (creditCost > 0)
+            {
+                _credits -= creditCost;
+                CreditsChanged?.Invoke(_credits);
+            }
+
+            // Award IP scaled by upgrade level (5 base + 5 per level, capped at 25)
+            int ipAmount = Mathf.Clamp(5 + (inst.Level * 5), 5, 25);
+            PlayerProgressManager.Instance?.AddIP(ipAmount);
+
+            RequestToast("Upgrade purchased.");
             return true;
         }
 
@@ -693,16 +1271,9 @@ namespace GalacticFishing.Minigames.HexWorld
 
         /// <summary>
         /// Attempts to upgrade the Town Hall to the next level.
+        /// TICKET 003: Gated by Land Deed + World progression milestone.
+        /// No longer uses warehouse resources or credits.
         /// Upgrading grants additional tile capacity and active building slots.
-        /// L1->L2: 20 wood, 15 stone, 10 fiber, 100 credits
-        /// L2->L3: 40 wood, 30 stone, 20 fiber, 200 credits
-        /// L3->L4: 60 wood, 45 stone, 30 fiber, 300 credits
-        /// L4->L5: 80 wood, 60 stone, 40 fiber, 400 credits
-        /// L5->L6: 100 wood, 75 stone, 50 fiber, 500 credits
-        /// L6->L7: 120 wood, 90 stone, 60 fiber, 600 credits
-        /// L7->L8: 140 wood, 105 stone, 70 fiber, 700 credits
-        /// L8->L9: 160 wood, 120 stone, 80 fiber, 800 credits
-        /// L9->L10: 200 wood, 150 stone, 100 fiber, 1000 credits
         /// </summary>
         public bool TryUpgradeTownHall()
         {
@@ -714,134 +1285,37 @@ namespace GalacticFishing.Minigames.HexWorld
 
             int nextLevel = townHallLevel + 1;
 
-            // Define upgrade costs based on next level
-            HexWorldResourceStack[] costs;
-            int creditCost;
-
-            switch (nextLevel)
+            // Check Land Deed (external system placeholder)
+            if (!HasExternalLandDeed())
             {
-                case 2:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 20),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 15),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 10)
-                    };
-                    creditCost = 100;
-                    break;
-                case 3:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 40),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 30),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 20)
-                    };
-                    creditCost = 200;
-                    break;
-                case 4:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 60),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 45),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 30)
-                    };
-                    creditCost = 300;
-                    break;
-                case 5:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 80),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 60),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 40)
-                    };
-                    creditCost = 400;
-                    break;
-                case 6:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 100),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 75),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 50)
-                    };
-                    creditCost = 500;
-                    break;
-                case 7:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 120),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 90),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 60)
-                    };
-                    creditCost = 600;
-                    break;
-                case 8:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 140),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 105),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 70)
-                    };
-                    creditCost = 700;
-                    break;
-                case 9:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 160),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 120),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 80)
-                    };
-                    creditCost = 800;
-                    break;
-                case 10:
-                    costs = new[]
-                    {
-                        new HexWorldResourceStack(HexWorldResourceId.Wood, 200),
-                        new HexWorldResourceStack(HexWorldResourceId.Stone, 150),
-                        new HexWorldResourceStack(HexWorldResourceId.Fiber, 100)
-                    };
-                    creditCost = 1000;
-                    break;
-                default:
-                    RequestToast("Invalid Town Hall upgrade level.");
-                    return false;
-            }
-
-            // Check warehouse for resources
-            EnsureWarehouse();
-            foreach (var cost in costs)
-            {
-                if (warehouse.Get(cost.id) < cost.amount)
-                {
-                    RequestToast($"Not enough {cost.id}. Need {cost.amount}, have {warehouse.Get(cost.id)}.");
-                    return false;
-                }
-            }
-
-            // Check credits
-            if (_credits < creditCost)
-            {
-                RequestToast($"Not enough credits. Need {creditCost}, have {_credits}.");
+                RequestToast("Missing Land Deed. Complete required tasks to unlock.");
                 return false;
             }
 
-            // Deduct resources
-            foreach (var cost in costs)
+            // Check world progression milestone
+            var wp = WorldProgression;
+            if (wp.HighestUnlockedWorldNumber < nextLevel)
             {
-                if (!warehouse.TryRemove(cost.id, cost.amount))
-                {
-                    RequestToast($"Failed to deduct {cost.id}.");
-                    return false;
-                }
+                RequestToast($"Reach World {nextLevel} to unlock Town Hall L{nextLevel}.");
+                return false;
             }
 
-            // Deduct credits
-            _credits -= creditCost;
-            CreditsChanged?.Invoke(_credits);
+            // Check IP threshold (scales with level: L2=50, L3=100, L4=200, L5=350, etc.)
+            long requiredIP = GetIPRequirementForTownHallLevel(nextLevel);
+            long currentIP = PlayerProgressManager.Instance?.InfrastructurePoints ?? 0;
+            if (currentIP < requiredIP)
+            {
+                RequestToast($"Not enough IP. Need {requiredIP}, have {currentIP}.");
+                return false;
+            }
 
-            // Calculate tile capacity increase
+            // Calculate capacity increases
             int oldCapacity = HexWorldCapacityService.GetTileCapacity(townHallLevel);
             int newCapacity = HexWorldCapacityService.GetTileCapacity(nextLevel);
             int tilesGranted = newCapacity - oldCapacity;
+
+            int oldActiveSlots = HexWorldCapacityService.GetActiveSlots(townHallLevel);
+            int newActiveSlots = HexWorldCapacityService.GetActiveSlots(nextLevel);
 
             // Upgrade Town Hall
             townHallLevel = nextLevel;
@@ -857,8 +1331,21 @@ namespace GalacticFishing.Minigames.HexWorld
             // Notify tiles placed (capacity changed)
             TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
 
-            RequestToast($"Town Hall upgraded to Level {townHallLevel}! Granted {tilesGranted} new tiles.");
+            RequestToast($"Town Hall upgraded to L{townHallLevel}! +{tilesGranted} tiles, {newActiveSlots} active slots.");
+            Debug.Log($"TH upgraded: L{townHallLevel-1}→L{townHallLevel}, Tiles: {oldCapacity}→{newCapacity}, Active Slots: {oldActiveSlots}→{newActiveSlots}");
             return true;
+        }
+
+        /// <summary>
+        /// Returns the IP requirement for upgrading to the specified Town Hall level.
+        /// Scaling: L2=50, L3=100, L4=200, L5=350, L6=550, L7=800, L8=1100, L9=1450, L10=1850
+        /// Formula: 25 * level * (level - 1) for levels 2-10
+        /// </summary>
+        private static long GetIPRequirementForTownHallLevel(int targetLevel)
+        {
+            if (targetLevel <= 1) return 0;
+            // Quadratic scaling: 25 * n * (n-1) where n = targetLevel
+            return 25L * targetLevel * (targetLevel - 1);
         }
 
         // ============================
@@ -881,17 +1368,11 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
+            // Block placement on occupied tiles - must delete old building first
             if (_buildings.TryGetValue(coord, out var existing) && existing)
             {
-                if (!allowReplaceBuilding)
-                {
-                    RequestToast("Tile already has a building.");
-                    return;
-                }
-
-                Destroy(existing.gameObject);
-                _buildings.Remove(coord);
-                _buildingNameByCoord.Remove(coord);
+                RequestToast("Delete the old building first.");
+                return;
             }
 
             if (!SelectedBuilding.prefab)
@@ -900,12 +1381,18 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
+            // Clear decorations before placing building
+            ClearDecorationsAtTile(coord);
+
             // Spawn as child of the tile (so if tile is destroyed, building goes too)
             var go = Instantiate(SelectedBuilding.prefab, tile.transform);
             go.name = $"B_{(string.IsNullOrWhiteSpace(SelectedBuilding.displayName) ? SelectedBuilding.name : SelectedBuilding.displayName)}";
 
             go.transform.localPosition = SelectedBuilding.localOffset;
             go.transform.localRotation = Quaternion.Euler(SelectedBuilding.localEuler);
+            go.transform.localScale = SelectedBuilding.localScale;
+
+            Debug.Log($"TryPlaceBuildingAtCoord: Applied scale {SelectedBuilding.localScale} from definition {SelectedBuilding.name}");
 
             var inst = go.GetComponent<HexWorldBuildingInstance>();
             if (!inst) inst = go.AddComponent<HexWorldBuildingInstance>();
@@ -924,9 +1411,14 @@ namespace GalacticFishing.Minigames.HexWorld
                 RequestToast("No Active Slots available. Building placed Dormant.");
 
             RecomputeActiveSlotsAndNotify();
+
+            // Award IP for building placement (TICKET 19)
+            int ipAmount = SelectedBuilding.ipReward;
+            if (ipAmount > 0)
+                PlayerProgressManager.Instance?.AddIP(ipAmount);
         }
 
-        private void TryToggleBuildingActiveAtCoord(HexCoord coord)
+        public void TryToggleBuildingActiveAtCoord(HexCoord coord)
         {
             if (!_buildings.TryGetValue(coord, out var inst) || !inst)
                 return;
@@ -953,7 +1445,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Try activate
             if (_activeBuildingsUsed >= ActiveSlotsTotal)
             {
-                RequestToast("No Active Slots available.");
+                RequestToast("No Active Slots available. Upgrade Town Hall!");
                 return;
             }
 
@@ -962,11 +1454,11 @@ namespace GalacticFishing.Minigames.HexWorld
             RecomputeActiveSlotsAndNotify();
         }
 
-        // RMB delete priority logic:
-        // - if hit building -> remove building
-        // - else if hit owned tile:
-        //      - if has building -> remove building
-        //      - else remove tile
+        // RMB delete priority logic (TILE-DRIVEN):
+        // - Always raycast for tile first
+        // - Resolve building via _buildings dictionary lookup
+        // - If building exists at coord -> remove building
+        // - Else remove tile
         private void TryRemoveBuildingOrTileUnderMouse()
         {
             if (!mainCamera) return;
@@ -976,28 +1468,38 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!Physics.Raycast(ray, out RaycastHit hit, 5000f))
                 return;
 
-            // 1) If we clicked a building collider, delete that building
-            var buildingHit = hit.collider.GetComponentInParent<HexWorldBuildingInstance>();
-            if (buildingHit)
-            {
-                var c = buildingHit.Coord;
-                Destroy(buildingHit.gameObject);
-                _buildings.Remove(c);
-                _buildingNameByCoord.Remove(c);
-                RecomputeActiveSlotsAndNotify();
-                return;
-            }
-
-            // 2) Else, we clicked a tile (or something under tile)
+            // TILE-FIRST: Always resolve via HexWorld3DTile
             var tile = hit.collider.GetComponentInParent<HexWorld3DTile>();
             if (!tile || tile.IsFrontier)
                 return;
 
             var coord = tile.Coord;
 
+            // ABSOLUTE ORIGIN PROTECTION: Block all deletion at (0,0) immediately
+            if (coord.q == 0 && coord.r == 0)
+            {
+                RequestToast("The Town Hall and its foundation cannot be removed.");
+                return;
+            }
+
             // If tile has a building, remove building first
             if (_buildings.TryGetValue(coord, out var b) && b)
             {
+                // Check if this building is a Town Hall by definition
+                var buildingDef = ResolveBuildingByName(b.buildingName);
+                if (buildingDef != null && buildingDef.kind == HexWorldBuildingDefinition.BuildingKind.TownHall)
+                {
+                    RequestToast("This building is a Town Hall and cannot be removed.");
+                    return;
+                }
+
+                // Fallback name protection: check against townHallBuildingDef name
+                if (townHallBuildingDef != null && b.buildingName == townHallBuildingDef.name)
+                {
+                    RequestToast("This building is a Town Hall and cannot be removed.");
+                    return;
+                }
+
                 Destroy(b.gameObject);
                 _buildings.Remove(coord);
                 _buildingNameByCoord.Remove(coord);
@@ -1005,16 +1507,14 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            // Otherwise remove tile
+            // Otherwise remove tile (only if no building exists)
             if (_owned.TryGetValue(coord, out var ownedTile) && ownedTile)
             {
-                // safety: if something went out of sync
+                // Double-check: block tile removal if building exists (sync safety)
                 if (_buildings.TryGetValue(coord, out var b2) && b2)
                 {
-                    Destroy(b2.gameObject);
-                    _buildings.Remove(coord);
-                    _buildingNameByCoord.Remove(coord);
-                    RecomputeActiveSlotsAndNotify();
+                    RequestToast("Remove the building first before removing the tile.");
+                    return;
                 }
 
                 Destroy(ownedTile.gameObject);
@@ -1028,6 +1528,124 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
 
                 TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+            }
+        }
+
+        /// <summary>
+        /// Removes building or tile at the specified coordinate (used for drag delete).
+        /// </summary>
+        private void TryRemoveBuildingOrTileAtCoord(HexCoord coord)
+        {
+            // ABSOLUTE ORIGIN PROTECTION: Block all deletion at (0,0) immediately
+            if (coord.q == 0 && coord.r == 0)
+            {
+                RequestToast("The Town Hall and its foundation cannot be removed.");
+                return;
+            }
+
+            // If tile has a building, remove building first
+            if (_buildings.TryGetValue(coord, out var b) && b)
+            {
+                // Check if this building is a Town Hall by definition
+                var buildingDef = ResolveBuildingByName(b.buildingName);
+                if (buildingDef != null && buildingDef.kind == HexWorldBuildingDefinition.BuildingKind.TownHall)
+                {
+                    RequestToast("This building is a Town Hall and cannot be removed.");
+                    return;
+                }
+
+                // Fallback name protection: check against townHallBuildingDef name
+                if (townHallBuildingDef != null && b.buildingName == townHallBuildingDef.name)
+                {
+                    RequestToast("This building is a Town Hall and cannot be removed.");
+                    return;
+                }
+
+                Destroy(b.gameObject);
+                _buildings.Remove(coord);
+                _buildingNameByCoord.Remove(coord);
+                RecomputeActiveSlotsAndNotify();
+                return;
+            }
+
+            // Otherwise remove tile (only if no building exists)
+            if (_owned.TryGetValue(coord, out var ownedTile) && ownedTile)
+            {
+                // Double-check: block tile removal if building exists (sync safety)
+                if (_buildings.TryGetValue(coord, out var b2) && b2)
+                {
+                    RequestToast("Remove the building first before removing the tile.");
+                    return;
+                }
+
+                Destroy(ownedTile.gameObject);
+                _owned.Remove(coord);
+                _ownedStyleName.Remove(coord);
+
+                if (refundOnRemove)
+                {
+                    _tilesLeftToPlace++;
+                    TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+                }
+
+                TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+
+                // Recompute road network after tile removal
+                RecomputeRoadNetwork();
+            }
+        }
+
+        /// <summary>
+        /// TILE-DRIVEN: Tries to interact with a building at the clicked tile.
+        /// Opens the context menu if a building exists at the tile's coord.
+        /// </summary>
+        private void TryInteractWithBuildingUnderMouse()
+        {
+            if (!mainCamera) return;
+
+            Ray ray = mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+
+            if (!Physics.Raycast(ray, out RaycastHit hit, 5000f))
+            {
+                // Clicked on nothing - close context menu
+                if (buildingContextMenu) buildingContextMenu.Hide();
+                return;
+            }
+
+            // TILE-FIRST: Always resolve via HexWorld3DTile
+            var tile = hit.collider.GetComponentInParent<HexWorld3DTile>();
+            if (!tile || tile.IsFrontier)
+            {
+                // Clicked on frontier or non-tile object - close context menu
+                if (buildingContextMenu) buildingContextMenu.Hide();
+                return;
+            }
+
+            var coord = tile.Coord;
+
+            // Resolve tile style from _ownedStyleName dictionary
+            _ownedStyleName.TryGetValue(coord, out var styleName);
+            var tileStyle = ResolveStyleByName(styleName);
+
+            // Resolve building via dictionary lookup (not mesh raycast)
+            if (_buildings.TryGetValue(coord, out var buildingInstance) && buildingInstance)
+            {
+                // Open context menu for this building (with tile style for toggle)
+                if (buildingContextMenu)
+                {
+                    buildingContextMenu.Show(buildingInstance, tileStyle);
+                }
+                else
+                {
+                    Debug.LogWarning("TryInteractWithBuildingUnderMouse: buildingContextMenu is not assigned.");
+                }
+                return;
+            }
+
+            // Clicked on a tile with no building - show tile stats using resolved style
+            if (buildingContextMenu)
+            {
+                buildingContextMenu.ShowTile(tileStyle);
             }
         }
 
@@ -1062,7 +1680,7 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_owned.ContainsKey(coord))
                 return;
 
-            int tileCost = (style != null && style.cost > 0) ? style.cost : costPerTile;
+            int tileCost = costPerTile;
 
             if (_credits < tileCost)
             {
@@ -1104,6 +1722,97 @@ namespace GalacticFishing.Minigames.HexWorld
             _ownedStyleName[coord] = style ? style.name : "";
 
             Debug.Log($"AddOwned: Tile placed at {coord.q},{coord.r}. Total tiles: {_owned.Count}. Parent: {tilesParent.name}");
+
+            // Spawn decorations for this tile
+            SpawnDecorations(coord, style);
+        }
+
+        // ============================
+        // Tile Decorations
+        // ============================
+
+        private const string DecorRootName = "DecorRoot";
+
+        /// <summary>
+        /// Gets or creates the DecorRoot container under a tile for safe decoration management.
+        /// </summary>
+        private Transform GetOrCreateDecorRoot(Transform tileTransform)
+        {
+            var existing = tileTransform.Find(DecorRootName);
+            if (existing) return existing;
+
+            var go = new GameObject(DecorRootName);
+            go.transform.SetParent(tileTransform, false);
+            go.transform.localPosition = Vector3.zero;
+            go.transform.localRotation = Quaternion.identity;
+            go.transform.localScale = Vector3.one;
+            return go.transform;
+        }
+
+        /// <summary>
+        /// Spawns random decorations on a tile based on the style's decoration settings.
+        /// </summary>
+        private void SpawnDecorations(HexCoord coord, HexWorldTileStyle style)
+        {
+            if (style == null) return;
+            if (style.decorations == null || style.decorations.Count == 0) return;
+
+            if (!_owned.TryGetValue(coord, out var tile) || !tile) return;
+
+            int spawnCount = UnityEngine.Random.Range(style.minCount, style.maxCount + 1);
+            if (spawnCount <= 0) return;
+
+            // Get or create the decoration container
+            Transform decorRoot = GetOrCreateDecorRoot(tile.transform);
+
+            // If not picking randomly per instance, select one entry for all props on this tile
+            int fixedIndex = -1;
+            if (!style.pickRandomlyPerInstance)
+            {
+                fixedIndex = UnityEngine.Random.Range(0, style.decorations.Count);
+            }
+
+            for (int i = 0; i < spawnCount; i++)
+            {
+                // Select decoration entry
+                int entryIndex = style.pickRandomlyPerInstance
+                    ? UnityEngine.Random.Range(0, style.decorations.Count)
+                    : fixedIndex;
+
+                var entry = style.decorations[entryIndex];
+                if (entry == null || entry.prefab == null) continue;
+
+                // Calculate random position within hex bounds
+                Vector2 randomOffset = UnityEngine.Random.insideUnitCircle * 0.4f;
+                Vector3 localPos = new Vector3(randomOffset.x, 0f, randomOffset.y);
+
+                // Calculate scale with random variance
+                float rolled = UnityEngine.Random.Range(entry.randomScaleRange.x, entry.randomScaleRange.y);
+                float finalScale = entry.scale * (1f + rolled / 100f);
+
+                // Spawn decoration under DecorRoot
+                var deco = Instantiate(entry.prefab, decorRoot);
+                deco.transform.localPosition = localPos;
+                deco.transform.localScale = Vector3.one * finalScale;
+                deco.name = $"Deco_{entry.prefab.name}_{i}";
+            }
+        }
+
+        /// <summary>
+        /// Clears all decorations from a tile by destroying the DecorRoot container's children.
+        /// </summary>
+        private void ClearDecorationsAtTile(HexCoord coord)
+        {
+            if (!_owned.TryGetValue(coord, out var tile) || !tile) return;
+
+            var decorRoot = tile.transform.Find(DecorRootName);
+            if (!decorRoot) return;
+
+            // Destroy all children under DecorRoot
+            for (int i = decorRoot.childCount - 1; i >= 0; i--)
+            {
+                Destroy(decorRoot.GetChild(i).gameObject);
+            }
         }
 
         private void AddFrontier(HexCoord coord)
@@ -1314,6 +2023,9 @@ namespace GalacticFishing.Minigames.HexWorld
             // Save v2+
             public bool isActive;
             public int level;
+
+            // Save v3+: minigame state persistence
+            public string state;
         }
 
         [Serializable]
@@ -1397,13 +2109,17 @@ namespace GalacticFishing.Minigames.HexWorld
                     var inst = kv.Value;
                     if (!inst) continue;
 
+                    // Gather minigame state from building (if any)
+                    string buildingState = inst.GatherSerializedState();
+
                     save.buildings.Add(new BuildingSave
                     {
                         q = c.q,
                         r = c.r,
                         buildingName = inst.buildingName,
                         isActive = inst.IsActive,
-                        level = inst.Level
+                        level = inst.Level,
+                        state = buildingState
                     });
                 }
 
@@ -1481,6 +2197,9 @@ namespace GalacticFishing.Minigames.HexWorld
                 // Notify tiles placed
                 TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
 
+                // Recompute road network after loading
+                RecomputeRoadNetwork();
+
                 return true;
             }
             catch (Exception e)
@@ -1495,21 +2214,32 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!def || !def.prefab) return;
             if (!_owned.TryGetValue(coord, out var tile) || !tile) return;
 
+            // Clear decorations before placing building
+            ClearDecorationsAtTile(coord);
+
             var go = Instantiate(def.prefab, tile.transform);
             go.name = $"B_{(string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName)}";
 
             go.transform.localPosition = def.localOffset;
             go.transform.localRotation = Quaternion.Euler(def.localEuler);
+            go.transform.localScale = def.localScale;
 
             var inst = go.GetComponent<HexWorldBuildingInstance>();
             if (!inst) inst = go.AddComponent<HexWorldBuildingInstance>();
 
             // Back-compat:
             // - saveVersion <= 1 (or missing) means buildings did not store active/level; default to Active and Level 1.
+            // - saveVersion <= 2 means buildings did not store minigame state.
             bool consumes = def.consumesActiveSlot;
             bool isActive = (saveVersion <= 1) ? def.defaultActive : save.isActive;
             int lvl = (saveVersion <= 1 || save.level <= 0) ? 1 : save.level;
             inst.Set(coord, def.name, consumesActiveSlot: consumes, isActive: isActive, level: lvl);
+
+            // Restore minigame state (v3+)
+            if (saveVersion >= 3 && !string.IsNullOrEmpty(save.state))
+            {
+                inst.RestoreSerializedState(save.state);
+            }
 
             _buildings[coord] = inst;
             _buildingNameByCoord[coord] = def.name;
@@ -1577,6 +2307,198 @@ namespace GalacticFishing.Minigames.HexWorld
                     used++;
             _activeBuildingsUsed = used;
         }
+
+        // ============================
+        // Road Connectivity (TICKET 8)
+        // ============================
+
+        /// <summary>
+        /// Recomputes the road network using BFS from Town Hall at (0,0).
+        /// Only tiles with the "road" gameplay tag are traversable.
+        /// Call this when tiles are painted or removed.
+        /// </summary>
+        public void RecomputeRoadNetwork()
+        {
+            _townHallRoadComponent.Clear();
+
+            var townHallCoord = new HexCoord(0, 0);
+
+            // Check if Town Hall tile exists and is a road (or always include it as the source)
+            if (!_owned.ContainsKey(townHallCoord))
+            {
+                Debug.Log("[RoadNetwork] Town Hall tile not found at (0,0). Road network empty.");
+                return;
+            }
+
+            // BFS from Town Hall
+            var visited = new HashSet<HexCoord>();
+            var queue = new Queue<HexCoord>();
+
+            // Always start from Town Hall regardless of its tag
+            queue.Enqueue(townHallCoord);
+            visited.Add(townHallCoord);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+
+                // Check if current tile is a road (or is the Town Hall)
+                bool isRoad = IsRoadTile(current);
+                bool isTownHall = current == townHallCoord;
+
+                if (isRoad || isTownHall)
+                {
+                    _townHallRoadComponent.Add(current);
+
+                    // Explore neighbors
+                    for (int i = 0; i < HexCoord.NeighborDirs.Length; i++)
+                    {
+                        var neighbor = current.Neighbor(i);
+
+                        if (visited.Contains(neighbor))
+                            continue;
+
+                        if (!_owned.ContainsKey(neighbor))
+                            continue;
+
+                        visited.Add(neighbor);
+
+                        // Only queue if it's a road tile (to continue the path)
+                        if (IsRoadTile(neighbor))
+                            queue.Enqueue(neighbor);
+                    }
+                }
+            }
+
+            Debug.Log($"[RoadNetwork] Recomputed: {_townHallRoadComponent.Count} tiles connected to Town Hall via roads.");
+        }
+
+        /// <summary>
+        /// Checks if a tile at the given coordinate has the "road" gameplay tag.
+        /// </summary>
+        private bool IsRoadTile(HexCoord coord)
+        {
+            if (!_ownedStyleName.TryGetValue(coord, out var styleName))
+                return false;
+
+            var style = ResolveStyleByName(styleName);
+            if (style == null)
+                return false;
+
+            return style.HasTag(RoadTag);
+        }
+
+        /// <summary>
+        /// Returns true if the given coordinate is connected to Town Hall via roads.
+        /// Buildings can use this to apply the +10% connectivity bonus.
+        /// </summary>
+        public bool IsConnectedToTownHall(HexCoord coord)
+        {
+            // Town Hall itself is always "connected"
+            if (coord.q == 0 && coord.r == 0)
+                return true;
+
+            // Check if coord is adjacent to any tile in the road component
+            for (int i = 0; i < HexCoord.NeighborDirs.Length; i++)
+            {
+                var neighbor = coord.Neighbor(i);
+                if (_townHallRoadComponent.Contains(neighbor))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Returns the set of all road tiles connected to the Town Hall.
+        /// Useful for debug visualization or UI.
+        /// </summary>
+        public IReadOnlyCollection<HexCoord> GetTownHallRoadComponent() => _townHallRoadComponent;
+
+        /// <summary>
+        /// Returns true if the given coordinate is adjacent to any road tile.
+        /// Used for the RoadAdjacent synergy bonus.
+        /// </summary>
+        public bool IsAdjacentToRoad(HexCoord coord)
+        {
+            for (int i = 0; i < HexCoord.NeighborDirs.Length; i++)
+            {
+                var neighbor = coord.Neighbor(i);
+                if (IsRoadTile(neighbor))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Counts how many adjacent tiles have a specific gameplay tag.
+        /// Used for AdjacentTileTag synergy stacking.
+        /// </summary>
+        public int CountAdjacentTilesWithTag(HexCoord coord, string tag)
+        {
+            if (string.IsNullOrEmpty(tag)) return 0;
+
+            int count = 0;
+            for (int i = 0; i < HexCoord.NeighborDirs.Length; i++)
+            {
+                var neighbor = coord.Neighbor(i);
+                if (!_ownedStyleName.TryGetValue(neighbor, out var styleName))
+                    continue;
+
+                var style = ResolveStyleByName(styleName);
+                if (style != null && style.HasTag(tag))
+                    count++;
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Counts buildings of a specific type within a radius of the given coordinate.
+        /// Used for WithinRadiusBuildingType synergy.
+        /// </summary>
+        public int CountBuildingsWithinRadius(HexCoord center, string buildingId, int radius)
+        {
+            if (string.IsNullOrEmpty(buildingId) || radius <= 0) return 0;
+
+            int count = 0;
+            foreach (var kv in _buildings)
+            {
+                if (kv.Value == null) continue;
+                if (center.DistanceTo(kv.Key) > radius) continue;
+                if (center == kv.Key) continue; // Don't count self
+
+                if (kv.Value.buildingName == buildingId)
+                    count++;
+            }
+            return count;
+        }
+
+#if UNITY_EDITOR
+        [Header("Debug (Editor Only)")]
+        [SerializeField] private bool debugDrawRoadNetwork = true;
+        [SerializeField] private Color debugRoadColor = new Color(0.2f, 0.8f, 0.2f, 0.5f);
+
+        private void OnDrawGizmos()
+        {
+            if (!debugDrawRoadNetwork) return;
+            if (_townHallRoadComponent == null || _townHallRoadComponent.Count == 0) return;
+
+            Gizmos.color = debugRoadColor;
+
+            foreach (var coord in _townHallRoadComponent)
+            {
+                var worldPos = AxialToWorld(coord);
+                worldPos.y += 0.5f; // Lift above tile
+                Gizmos.DrawWireSphere(worldPos, 0.3f);
+            }
+
+            // Draw Town Hall marker in different color
+            Gizmos.color = Color.yellow;
+            var thPos = AxialToWorld(new HexCoord(0, 0));
+            thPos.y += 0.5f;
+            Gizmos.DrawSphere(thPos, 0.4f);
+        }
+#endif
 
         private HexWorldTileStyle ResolveStyleByName(string styleName)
         {

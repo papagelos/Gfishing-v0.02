@@ -13,11 +13,17 @@ MonoBehaviour:
   m_Name: Building_ lumberMill
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingDefinition
   displayName: Lumber Yard
-  icon: {fileID: 2227013682443029248, guid: 550903b546a54d94fa032462bf0a5180, type: 3}
+  icon: {fileID: 21300000, guid: 550903b546a54d94fa032462bf0a5180, type: 3}
   prefab: {fileID: 8689533182396043018, guid: 25537bebb5231cc418b60b5e22ab84a0, type: 3}
-  localOffset: {x: 0, y: 0.36, z: 0}
+  localOffset: {x: 0, y: -0.15, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
+  localScale: {x: 1, y: 1, z: 1}
   kind: 0
   consumesActiveSlot: 1
   defaultActive: 1
   preferredTerrainType: 1
+  availableUpgrades:
+  - {fileID: 11400000, guid: 23df1191d7fcc5a479c3d0e1d768c9df, type: 2}
+  properties:
+  - label: Property in Stats Display
+    value: 1

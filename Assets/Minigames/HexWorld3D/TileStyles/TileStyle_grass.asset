@@ -18,4 +18,11 @@ MonoBehaviour:
   materials:
   - {fileID: 2100000, guid: 4d80e67299edbc04a90b97e8ca3781fd, type: 2}
   - {fileID: 2100000, guid: 4d80e67299edbc04a90b97e8ca3781fd, type: 2}
-  cost: 0
+  decorations: []
+  pickRandomlyPerInstance: 1
+  minCount: 3
+  maxCount: 5
+  terrainType: 0
+  properties:
+  - label: Grass Quality
+    value: 1

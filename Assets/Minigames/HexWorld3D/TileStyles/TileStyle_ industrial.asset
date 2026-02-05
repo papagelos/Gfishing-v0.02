@@ -17,4 +17,9 @@ MonoBehaviour:
   thumbnail: {fileID: -7145581459837537530, guid: 92150c9c0fcdd9a41beae303deb8ca83, type: 3}
   materials:
   - {fileID: 2100000, guid: 43b09fe44f133e548b3de6caab25d253, type: 2}
-  cost: 0
+  decorationPrefabs:
+  - {fileID: 0}
+  pickRandomlyPerInstance: 1
+  minCount: 3
+  maxCount: 5
+  terrainType: 0

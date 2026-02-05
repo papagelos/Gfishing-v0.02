@@ -1,0 +1,145 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Panels/Quality_Lab.uss?fileID=7433441132597879392&amp;guid=51778f2cb0559374ab5230d3d51c88a6&amp;type=3#Quality_Lab" />
+    <ui:VisualElement name="QualityLabRoot" class="ql-overlay">
+        <ui:VisualElement name="QualityLabBackdrop" class="ql-backdrop" style="-unity-text-outline-color: rgb(0, 0, 0); background-color: rgb(0, 0, 0);" />
+        <ui:VisualElement name="QualityLabPanel" class="ql-panel">
+            <ui:VisualElement name="Header" class="ql-header">
+                <ui:VisualElement class="ql-header-left">
+                    <ui:Label name="TitleLabel" text="QUALITY LAB" class="ql-title" />
+                    <ui:Label name="SubtitleLabel" text="Improve global material quality &amp; manage refinement limits" class="ql-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="ql-header-right">
+                    <ui:Button name="CloseButton" text="X" class="ql-close" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Body" class="ql-body">
+                <ui:VisualElement name="LeftColumn" class="ql-col ql-col-left">
+                    <ui:VisualElement class="ql-section-header">
+                        <ui:Label text="RESOURCES" class="ql-section-title" />
+                        <ui:Label name="SelectedResourceHint" text="Select a resource to improve" class="ql-section-hint" />
+                    </ui:VisualElement>
+                    <ui:TextField name="ResourceSearchField" label="Search" class="ql-search" />
+                    <ui:ScrollView name="ResourceList" class="ql-list">
+                        <ui:Button name="ResBtn_Wood" text="Wood" class="ql-list-item is-selected" />
+                        <ui:Button name="ResBtn_Stone" text="Stone" class="ql-list-item" />
+                        <ui:Button name="ResBtn_Clay" text="Clay" class="ql-list-item" />
+                        <ui:Button name="ResBtn_Herbs" text="Herbs" class="ql-list-item" />
+                        <ui:Button name="ResBtn_Metal" text="Metal" class="ql-list-item" />
+                    </ui:ScrollView>
+                    <ui:VisualElement class="ql-card ql-mini-card">
+                        <ui:Label text="TODAY&apos;S LIMITS" class="ql-card-title" />
+                        <ui:Label name="DailyCapSummaryLabel" text="Wood 2/6 | Stone 1/6 | Clay 0/6" class="ql-small" />
+                        <ui:Label name="TokenSummaryLabel" text="Refinement Tokens: 14" class="ql-small" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="CenterColumn" class="ql-col ql-col-center">
+                    <ui:VisualElement class="ql-card">
+                        <ui:Label text="SELECTED RESOURCE" class="ql-card-title" />
+                        <ui:VisualElement class="ql-row">
+                            <ui:Label name="SelectedResourceLabel" text="Wood" class="ql-h2" />
+                            <ui:Label name="SelectedResourceQLabel" text="Q 11" class="ql-qpill" />
+                        </ui:VisualElement>
+                        <ui:Label name="SelectedResourceDesc" text="Global quality affects outputs and crafting." class="ql-small" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ql-card">
+                        <ui:Label text="IMPROVE QUALITY" class="ql-card-title" />
+                        <ui:VisualElement class="ql-row ql-row-split">
+                            <ui:VisualElement class="ql-stat">
+                                <ui:Label text="Current" class="ql-stat-label" />
+                                <ui:Label name="CurrentQLabel" text="Q 11" class="ql-stat-value" />
+                            </ui:VisualElement>
+                            <ui:Label text="-&gt;" class="ql-arrow" />
+                            <ui:VisualElement class="ql-stat">
+                                <ui:Label text="Target" class="ql-stat-label" />
+                                <ui:Label name="TargetQLabel" text="Q 12" class="ql-stat-value" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ql-chance">
+                                <ui:Label text="Success chance" class="ql-stat-label" />
+                                <ui:Label name="ChanceLabel" text="18%" class="ql-chance-value" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ql-subsection">
+                            <ui:Label text="COST" class="ql-subtitle2" />
+                            <ui:VisualElement name="CostSlots" class="ql-cost-grid">
+                                <ui:VisualElement class="ql-cost-slot">
+                                    <ui:Label text="Refinement Token" class="ql-small" />
+                                    <ui:Label name="CostTokenLabel" text="1" class="ql-cost-value" />
+                                </ui:VisualElement>
+                                <ui:VisualElement class="ql-cost-slot">
+                                    <ui:Label text="Credits" class="ql-small" />
+                                    <ui:Label name="CostCreditsLabel" text="250" class="ql-cost-value" />
+                                </ui:VisualElement>
+                                <ui:VisualElement class="ql-cost-slot">
+                                    <ui:Label text="Common Mats" class="ql-small" />
+                                    <ui:Label name="CostMatsLabel" text="10" class="ql-cost-value" />
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ql-subsection">
+                            <ui:VisualElement class="ql-row ql-row-split">
+                                <ui:Label text="BOOSTERS" class="ql-subtitle2" />
+                                <ui:Label name="BoosterSlotsHint" text="Unlock more slots via Town Hall / Reputation" class="ql-small-muted" />
+                            </ui:VisualElement>
+                            <ui:VisualElement name="BoosterSlots" class="ql-booster-row">
+                                <ui:Button name="BoosterSlot1" text="+ Add Booster" class="ql-booster-slot" />
+                                <ui:Button name="BoosterSlot2" text="Locked" class="ql-booster-slot is-locked" />
+                                <ui:Button name="BoosterSlot3" text="Locked" class="ql-booster-slot is-locked" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="ql-row ql-actions">
+                            <ui:Button name="Btn_ImproveOnce" text="Improve (1x)" class="ql-primary" />
+                            <ui:Button name="Btn_ImproveMax" text="Improve (Max Today)" class="ql-secondary" />
+                            <ui:Button name="Btn_ViewRelatedBuildings" text="Related Buildings" class="ql-ghost" />
+                        </ui:VisualElement>
+                        <ui:Label name="ResultLine" class="ql-result" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ql-card">
+                        <ui:Label text="RECENT RESULTS" class="ql-card-title" />
+                        <ui:ScrollView name="RecentResultsList" class="ql-log">
+                            <ui:Label text="Success: Wood Q11 -&gt; Q12 (Chance 18%)" class="ql-log-row is-success" />
+                            <ui:Label text="Fail: Wood Q10 -&gt; Q11 (Chance 22%)" class="ql-log-row is-fail" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="RightColumn" class="ql-col ql-col-right">
+                    <ui:VisualElement class="ql-card">
+                        <ui:Label text="CHANCE BREAKDOWN" class="ql-card-title" />
+                        <ui:ScrollView name="ChanceBreakdownList" class="ql-breakdown">
+                            <ui:VisualElement class="ql-break-row">
+                                <ui:Label text="Base chance" class="ql-break-name" />
+                                <ui:Label name="Break_BaseChance" text="25%" class="ql-break-value" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ql-break-row">
+                                <ui:Label text="Late-game penalty" class="ql-break-name" />
+                                <ui:Label name="Break_LatePenalty" text="-8%" class="ql-break-value is-negative" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ql-break-row">
+                                <ui:Label text="Buildings bonus" class="ql-break-name" />
+                                <ui:Label name="Break_BuildingsBonus" text="+3%" class="ql-break-value is-positive" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ql-break-row">
+                                <ui:Label text="Reputation bonus" class="ql-break-name" />
+                                <ui:Label name="Break_RepBonus" text="+0%" class="ql-break-value" />
+                            </ui:VisualElement>
+                        </ui:ScrollView>
+                        <ui:VisualElement class="ql-divider" />
+                        <ui:Label text="ACTIVE BONUSES" class="ql-card-title" />
+                        <ui:ScrollView name="ActiveBonusesList" class="ql-bonuses">
+                            <ui:Label text="Nursery Lab L2: +2% Wood improve chance" class="ql-small" />
+                            <ui:Label text="Town Hall: +1 daily attempt (Wood)" class="ql-small" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="ql-card">
+                        <ui:Label text="QUICK LINKS" class="ql-card-title" />
+                        <ui:Button name="Btn_OpenTownHall" text="Open Town Hall" class="ql-ghost" />
+                        <ui:Button name="Btn_OpenWarehouse" text="Open Warehouse" class="ql-ghost" />
+                        <ui:Button name="Btn_OpenDungeon" text="Go to Dungeon (Tokens)" class="ql-ghost" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Footer" class="ql-footer">
+                <ui:Label name="FooterStatusLabel" class="ql-footer-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

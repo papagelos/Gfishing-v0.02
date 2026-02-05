@@ -14,9 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Water
   edgeTint: {r: 0, g: 0.8078432, b: 0.8196079, a: 1}
-  thumbnail: {fileID: 0}
+  thumbnail: {fileID: -6728009185561095339, guid: 9f380d16de6eccc468d13f378da78754, type: 3}
   materials:
   - {fileID: 2100000, guid: 109ff1656c7b6484a899be4031567610, type: 2}
   - {fileID: 2100000, guid: 109ff1656c7b6484a899be4031567610, type: 2}
-  cost: 0
+  decorations: []
+  pickRandomlyPerInstance: 1
+  minCount: 3
+  maxCount: 5
   terrainType: 4

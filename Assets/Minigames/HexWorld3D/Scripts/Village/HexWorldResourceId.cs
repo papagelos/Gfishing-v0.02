@@ -21,5 +21,27 @@ namespace GalacticFishing.Minigames.HexWorld
         Stone = 11,
         Fiber = 12,
         BaitIngredients = 13,
+
+        // Fish/resources used for upgrade costs (add as needed)
+        Anglerfish = 14,
+
+        // Mining resources (Quarry Strata Drill)
+        Coal = 20,
+        Copper = 21,
+        Iron = 22,
+        Gold = 23,
+
+        // Refined/Processed resources (TICKET 20)
+        Planks = 30,
+        StoneBlocks = 31,
+        Cloth = 32,
+        Leather = 33,
+        MetalIngots = 34,
+
+        // Tools (TICKET 23)
+        Tool_Saw = 50,
+        Tool_Chisel = 51,
+        Tool_Hammer = 52,
+        Tool_FurnaceCore = 53,
     }
 }

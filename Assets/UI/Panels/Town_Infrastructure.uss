@@ -1,0 +1,469 @@
+/* =========================
+   Fullscreen overlay panel
+   ========================= */
+
+.ti-overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+
+    /* IMPORTANT:
+       Keep visible in UI Builder. Hide/show in code at runtime:
+       root.style.display = DisplayStyle.None / Flex */
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    /* FIX: allow children to shrink properly */
+    min-width: 0;
+}
+
+.ti-backdrop {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.62);
+}
+
+.ti-panel {
+    width: 1280px;
+    height: 760px;
+    background-color: rgba(18, 20, 30, 0.97);
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgba(110, 200, 255, 0.35);
+    padding: 14px;
+    flex-direction: column;
+
+    /* FIX */
+    min-width: 0;
+}
+
+/* Header */
+.ti-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-header-left { flex-direction: column; min-width: 0; }
+.ti-header-right { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+
+.ti-title {
+    font-size: 26px;
+    unity-font-style: bold;
+    color: rgba(210, 240, 255, 1.0);
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-subtitle {
+    font-size: 12px;
+    color: rgba(185, 205, 220, 0.92);
+    margin-top: 2px;
+
+    /* FIX */
+    min-width: 0;
+    white-space: normal;
+}
+
+.ti-close {
+    width: 38px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(230, 240, 255, 0.95);
+}
+
+/* Body columns */
+.ti-body {
+    flex-grow: 1;
+    flex-direction: row;
+    gap: 12px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-col {
+    flex-direction: column;
+    gap: 12px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-col-left { width: 320px; }
+.ti-col-center { flex-grow: 1; min-width: 0; }  /* FIX */
+.ti-col-right { width: 360px; }
+
+/* Cards / sections */
+.ti-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(120, 200, 255, 0.20);
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-mini-card { padding: 10px; }
+
+.ti-card-title {
+    font-size: 12px;
+    unity-font-style: bold;
+    color: rgba(200, 230, 255, 0.95);
+    letter-spacing: 0.5px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+/* FIX: default wrapping inside cards (prevents “leak outside”) */
+.ti-card Label {
+    white-space: normal;
+    min-width: 0;
+}
+
+.ti-section-header { flex-direction: column; gap: 2px; min-width: 0; }
+.ti-section-title { font-size: 12px; unity-font-style: bold; color: rgba(200, 230, 255, 0.95); min-width: 0; }
+.ti-section-hint { font-size: 11px; color: rgba(185, 200, 215, 0.85); min-width: 0; white-space: normal; }
+
+/* Typography */
+.ti-h1 {
+    font-size: 22px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+    min-width: 0;
+}
+
+.ti-h2 {
+    font-size: 18px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+    min-width: 0;
+}
+
+.ti-small {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.9);
+    min-width: 0;
+    white-space: normal;
+}
+
+.ti-small-muted {
+    font-size: 11px;
+    color: rgba(170, 185, 200, 0.75);
+    min-width: 0;
+    white-space: normal;
+}
+
+.ti-pill {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(110, 200, 255, 0.16);
+    color: rgba(220, 245, 255, 0.98);
+    unity-text-align: middle-center;
+
+    /* FIX: don’t let pills shrink or wrap weirdly */
+    flex-shrink: 0;
+}
+
+.ti-tag {
+    padding-left: 8px;
+    padding-right: 8px;
+    height: 20px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(215, 230, 245, 0.92);
+    unity-text-align: middle-center;
+    font-size: 11px;
+
+    /* FIX */
+    flex-shrink: 0;
+}
+
+/* Rows */
+.ti-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-row-split {
+    justify-content: space-between;
+
+    /* FIX: allow long left text + right pill to behave */
+    min-width: 0;
+}
+
+/* FIX: the common “left label in split row” shrink rule */
+.ti-row-split > Label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+}
+
+/* Progress */
+.ti-progress { margin-top: 4px; min-width: 0; }
+
+/* Search + lists */
+.ti-search { margin-top: 4px; min-width: 0; }
+
+.ti-list {
+    flex-grow: 1; /* makes the list take remaining height and scroll */
+    background-color: rgba(0, 0, 0, 0.14);
+    border-radius: 10px;
+    padding: 6px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-list-item {
+    height: 34px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(235, 245, 255, 0.95);
+    unity-text-align: middle-left;
+    padding-left: 10px;
+}
+
+.ti-list-item.is-selected {
+    background-color: rgba(110, 200, 255, 0.18);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.35);
+}
+
+/* Stats blocks */
+.ti-stat { flex-direction: column; gap: 2px; min-width: 120px; }
+.ti-stat-label { font-size: 10px; color: rgba(185, 200, 215, 0.85); }
+.ti-stat-value { font-size: 18px; unity-font-style: bold; color: rgba(235, 245, 255, 0.98); }
+
+.is-pos { color: rgba(120, 255, 180, 0.95); }
+.is-neg { color: rgba(255, 150, 150, 0.95); }
+
+/* Breakdown / reqs / buffs / unlocks scroll areas */
+.ti-breakdown,
+.ti-reqs,
+.ti-buffs,
+.ti-unlocks {
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 8px;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-breakdown { height: 190px; }
+.ti-reqs { height: 140px; }
+.ti-buffs { height: 160px; }
+.ti-unlocks { height: 110px; }
+
+.ti-break-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-break-name { font-size: 11px; color: rgba(210, 220, 235, 0.9); min-width: 0; white-space: normal; }
+.ti-break-value { font-size: 11px; unity-font-style: bold; color: rgba(235, 245, 255, 0.95); flex-shrink: 0; }
+
+/* Dividers */
+.ti-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+.ti-subtitle2 {
+    font-size: 11px;
+    unity-font-style: bold;
+    color: rgba(200, 230, 255, 0.95);
+}
+
+/* Actions */
+.ti-actions { justify-content: flex-end; margin-top: 6px; min-width: 0; }
+
+.ti-primary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.22);
+    color: rgba(235, 245, 255, 0.98);
+    unity-font-style: bold;
+}
+
+.ti-secondary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.14);
+    color: rgba(235, 245, 255, 0.98);
+}
+
+.ti-ghost {
+    height: 34px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.03);
+    color: rgba(235, 245, 255, 0.92);
+}
+
+/* Footer */
+.ti-footer {
+    padding-top: 10px;
+    align-items: flex-end;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-footer-text {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.85);
+    min-width: 0;
+    white-space: normal;
+}
+
+/* =========================
+   Placement hover card
+   ========================= */
+
+.ti-hover {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: none;          /* show in placement mode */
+    width: 320px;
+    max-height: 260px;
+    padding: 10px;
+    border-radius: 12px;
+    background-color: rgba(12, 14, 22, 0.94);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.28);
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-hover-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-hover-title {
+    font-size: 14px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+
+    /* FIX */
+    min-width: 0;
+    white-space: normal;
+}
+
+.ti-hover-delta {
+    height: 20px;
+    padding-left: 8px;
+    padding-right: 8px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.04);
+    unity-text-align: middle-center;
+    font-size: 11px;
+    unity-font-style: bold;
+
+    /* FIX */
+    flex-shrink: 0;
+}
+
+.ti-hover-list {
+    background-color: rgba(0, 0, 0, 0.10);
+    border-radius: 10px;
+    padding: 6px;
+    flex-grow: 1;
+
+    /* FIX */
+    min-width: 0;
+}
+
+.ti-hover-footer {
+    font-size: 10px;
+    color: rgba(175, 190, 205, 0.85);
+    unity-text-align: middle-right;
+
+    /* FIX */
+    min-width: 0;
+    white-space: normal;
+}
+
+/* =========================
+   Targeted fix for your screenshot label
+   ========================= */
+
+/* If your label is named TownHallRequirementHint (as in your inspector),
+   this guarantees it wraps instead of leaking. */
+#TownHallRequirementHint {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+}
+/* =========================
+   Next Tier progress bar (green)
+   ========================= */
+
+/* Give the ProgressBar this class in UXML: class="ti-next-tier-bar" */
+.ti-next-tier-bar {
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* Background track */
+.ti-next-tier-bar .unity-progress-bar__background {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.20);
+    border-radius: 10px;
+}
+
+/* Fill */
+.ti-next-tier-bar .unity-progress-bar__progress {
+    background-color: rgba(120, 255, 180, 0.60); /* green */
+    border-radius: 10px;
+}
+
+/* Text inside the bar */
+.ti-next-tier-bar .unity-progress-bar__title {
+    color: rgba(235, 245, 255, 0.95);
+    unity-font-style: bold;
+    font-size: 11px;
+}

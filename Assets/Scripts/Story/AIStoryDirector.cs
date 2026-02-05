@@ -2,14 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using GalacticFishing.UI;
+using GalacticFishing.Story;
 
 public class AIStoryDirector : MonoBehaviour
 {
     public static AIStoryDirector Instance { get; private set; }
 
     // Allows other systems to know when a story popup is currently visible.
-public bool IsOpen => screen != null && screen.IsOpen;
-
+    public bool IsOpen => screen != null && screen.IsOpen;
 
     [Header("Wiring")]
     [SerializeField] private AIStoryBook book;
@@ -35,14 +35,11 @@ public bool IsOpen => screen != null && screen.IsOpen;
     private float _prevTimeScale = 1f;
     private AIStoryBook.Entry _current;
 
-
-
-
-
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
 
         _byId.Clear();
         if (book != null)
@@ -54,10 +51,42 @@ public bool IsOpen => screen != null && screen.IsOpen;
                     _byId.Add(e.id, e);
             }
         }
+
+        // Subscribe to StoryEvents bus for decoupled triggering
+        StoryEvents.OnRaised += OnStoryEventRaised;
+    }
+
+    private void OnDestroy()
+    {
+        StoryEvents.OnRaised -= OnStoryEventRaised;
+
+        if (Instance == this)
+            Instance = null;
+    }
+
+    private void OnStoryEventRaised(StoryEvents.StoryEvent evt)
+    {
+        if (string.IsNullOrWhiteSpace(evt.id)) return;
+        Trigger(evt.id);
     }
 
     private void Update()
     {
+        // Safety: if we have queued messages but we're not actually showing anything,
+        // try to show the next one. This prevents "stuck pending" states.
+        if (_current == null && screen != null && _queue.Count > 0)
+        {
+            // If the screen claims it's open but nothing is current, force-hide then show.
+            if (screen.IsOpen)
+            {
+                if (debugLogs) Debug.Log("[AIStory] Screen reported open but _current is null; forcing HideImmediate to unstick.");
+                screen.HideImmediate();
+            }
+
+            ShowNextIfAny();
+            // Don't early-return; allow close logic if it immediately opened.
+        }
+
         if (screen == null || !screen.IsOpen) return;
 
         bool escapePressed =
@@ -117,8 +146,9 @@ public bool IsOpen => screen != null && screen.IsOpen;
 
         if (debugLogs) Debug.Log($"[AIStory] Trigger accepted: {id} (queue={_queue.Count})");
 
-        // if nothing open, show immediately
-        if (screen != null && !screen.IsOpen)
+        // IMPORTANT: show immediately if we are not currently showing a message.
+        // Do not rely solely on screen.IsOpen, since UI state can desync across scenes.
+        if (screen != null && _current == null)
             ShowNextIfAny();
     }
 
@@ -139,10 +169,10 @@ public bool IsOpen => screen != null && screen.IsOpen;
             Time.timeScale = 0f;
         }
 
-        // Mirror to log
         AIMessageLogService.Instance?.AddImportant(NormalizeForLog(_current.text));
 
-        screen.Show(_current.text);
+        if (screen != null)
+            screen.Show(_current.text);
     }
 
     private void CloseCurrentAndContinue()
@@ -158,7 +188,6 @@ public bool IsOpen => screen != null && screen.IsOpen;
         if (screen != null)
             screen.HideImmediate();
 
-        // show next message if queued
         ShowNextIfAny();
     }
 

@@ -1,0 +1,90 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Quarry_Drill_Panel.uss?fileID=7433441132597879392&amp;guid=908dc18b75fb7074f9832ddffd47c1de&amp;type=3#Quarry_Drill_Panel" />
+    <ui:VisualElement name="QuarryMinigameRoot" class="qd-overlay">
+        <ui:VisualElement name="QuarryMinigameBackdrop" class="qd-backdrop" />
+        <ui:VisualElement name="QuarryMinigamePanel" class="qd-panel">
+            <ui:VisualElement name="Header" class="qd-header">
+                <ui:VisualElement class="qd-header-left">
+                    <ui:Label name="TitleLabel" text="QUARRY RIG" class="qd-title" />
+                    <ui:Label name="SubtitleLabel" text="Strata Drill • Push the drill to unlock ores" class="qd-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="qd-header-right">
+                    <ui:Button name="Btn_Close" text="X" class="qd-close" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Body" class="qd-body">
+                <ui:VisualElement name="LeftColumn" class="qd-col qd-col-left">
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="DEPTH" class="qd-card-title" />
+                        <ui:Label name="DrillDepthLabel" text="0m" class="qd-big-number" />
+                        <ui:VisualElement class="qd-row qd-row-split">
+                            <ui:Label name="NextStratumLabel" text="Next: Coal" class="qd-small" />
+                            <ui:Label name="NextStratumDepthLabel" text="25m" class="qd-pill" />
+                        </ui:VisualElement>
+                        <ui:ProgressBar name="DrillProgressBar" title="Progress to Next Stratum" low-value="0" high-value="100" value="0" class="qd-progress" />
+                        <ui:Label name="DepthHintLabel" text="Depth unlocks new resources at fixed strata." class="qd-small-muted" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="DRILL ENERGY" class="qd-card-title" />
+                        <ui:ProgressBar name="EnergyProgressBar" title="Energy" low-value="0" high-value="100" value="100" class="qd-energy" />
+                        <ui:Label name="EnergyHintLabel" text="Energy regenerates over time. Drilling costs energy." class="qd-small-muted" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="qd-card qd-mini-card">
+                        <ui:VisualElement class="qd-section-header">
+                            <ui:Label text="STRATA UNLOCKS" class="qd-section-title" />
+                            <ui:Label name="StrataHintLabel" text="Reach depth thresholds to unlock ores." class="qd-section-hint" />
+                        </ui:VisualElement>
+                        <ui:ScrollView name="StrataUnlockList" mode="Vertical" class="qd-list">
+                            <ui:Label text="✓ Stone (0m)" class="qd-list-row is-ok" />
+                            <ui:Label text="✗ Coal (25m)" class="qd-list-row is-locked" />
+                            <ui:Label text="✗ Copper (100m)" class="qd-list-row is-locked" />
+                            <ui:Label text="✗ Iron (200m)" class="qd-list-row is-locked" />
+                            <ui:Label text="✗ Gold (400m)" class="qd-list-row is-locked" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="CenterColumn" class="qd-col qd-col-center">
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="DRILL CONTROL" class="qd-card-title" />
+                        <ui:Label name="DrillModeHintLabel" text="Push the drill to spend energy and gain depth. Unlocks are permanent." class="qd-small" />
+                        <ui:VisualElement class="qd-row qd-action-row">
+                            <ui:Button name="Btn_PushDrill" text="PUSH DRILL" class="qd-primary" />
+                            <ui:Button name="Btn_PushDrill10" text="x10" class="qd-secondary" />
+                            <ui:Button name="Btn_PushDrillMax" text="MAX" class="qd-ghost" />
+                        </ui:VisualElement>
+                        <ui:Label name="DrillResultLabel" class="qd-result" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="CURRENT OUTPUT" class="qd-card-title" />
+                        <ui:VisualElement class="qd-row qd-row-split">
+                            <ui:Label name="OutputSummaryLabel" text="Stone" class="qd-h2" />
+                            <ui:Label name="OutputNoteLabel" text="Auto-updates" class="qd-tag" />
+                        </ui:VisualElement>
+                        <ui:Label name="OutputHintLabel" text="Unlocked ores join the Quarry output pool for normal production ticks." class="qd-small-muted" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="TIPS" class="qd-card-title" />
+                        <ui:Label name="TipsLabel" text="Tip: Town Hall tiers can increase Quarry caps and unlock better drill upgrades." class="qd-small" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="RightColumn" class="qd-col qd-col-right">
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="UPGRADE HOOKS" class="qd-card-title" />
+                        <ui:Label name="UpgradeHintLabel" text="Upgrades are purchased in the normal building upgrade flow; this panel only shows status." class="qd-small-muted" />
+                        <ui:VisualElement class="qd-divider" />
+                        <ui:Label text="QUICK LINKS" class="qd-subtitle2" />
+                        <ui:Button name="Btn_OpenTownHall" text="Open Town Hall" class="qd-ghost" />
+                        <ui:Button name="Btn_OpenQualityLab" text="Material Quality" class="qd-ghost" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="qd-card">
+                        <ui:Label text="MILESTONES" class="qd-card-title" />
+                        <ui:ScrollView name="MilestoneList" mode="Vertical" class="qd-list">
+                            <ui:Label text="• Reach 100m depth" class="qd-small" />
+                            <ui:Label text="• Unlock Iron" class="qd-small" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

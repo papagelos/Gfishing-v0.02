@@ -37,13 +37,24 @@ MonoBehaviour:
     pauseGame: 0
   - id: Tutorial_ReactionBar_StopInGreen
     text: a bar will show up. hit the green area (story)
-    showOnce: 1
+    showOnce: 0
     pauseGame: 1
   - id: Tutorial_Beep_WaitForBeep
     text: ok now sound will be heard. x1 (story)
-    showOnce: 1
+    showOnce: 0
     pauseGame: 1
   - id: Tutorial_Bullseye_Reaction
     text: This is story bullseye reaction
+    showOnce: 0
+    pauseGame: 1
+  - id: Scene_Start_HexWorld_Village
+    text: this is your very own village, existing in your very own transdimensional
+      reality. You start with 4 tiles - Grass, forest, mountain, water and are given
+      37 tile spaces. You can place and remove basic tiles with no cost. Go ahead
+      and build you village terrain
+    showOnce: 0
+    pauseGame: 1
+  - id: Scene_Start_MainGame
+    text: Main Game Scene Start
     showOnce: 0
     pauseGame: 1

@@ -13,9 +13,16 @@ MonoBehaviour:
   m_Name: TileStyle_ forest
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Forest
-  edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 0}
+  edgeTint: {r: 0.5960785, g: 0.9843138, b: 0.5960785, a: 1}
+  thumbnail: {fileID: -855298285791758126, guid: 4a2571d39f431a04c8cad8aa4f9711f0, type: 3}
   materials:
   - {fileID: 2100000, guid: 912f92de9231a874bb960e0a9327723d, type: 2}
-  cost: 0
+  decorations:
+  - prefab: {fileID: 4463885650309427618, guid: 31b4d047334058a4b94a9d53c5442af1, type: 3}
+    scale: 3.16
+    randomScaleRange: {x: -30, y: 40}
+  pickRandomlyPerInstance: 1
+  minCount: 2
+  maxCount: 4
   terrainType: 1
+  properties: []

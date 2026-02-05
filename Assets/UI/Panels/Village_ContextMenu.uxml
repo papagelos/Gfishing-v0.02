@@ -1,0 +1,161 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         editor-extension-mode="False">
+
+    <Style src="project://database/Assets/UI/Panels/Village_ContextMenu.uss?fileID=7433441132597879392&amp;guid=e7dc127068410344597c8aae1a422cee&amp;type=3#Village_ContextMenu" />
+
+    <!-- Full-screen container (used only to host the anchored panel). -->
+    <ui:VisualElement name="ScreenRoot" picking-mode="Ignore" class="cm-screen">
+        <ui:VisualElement name="ContextMenuRoot" class="cm-root">
+
+            <!-- Header -->
+            <ui:VisualElement class="cm-header">
+                <ui:VisualElement class="cm-header-left">
+                    <ui:Label name="TitleLabel" text="CONTEXT" class="cm-title" />
+                    <ui:Label name="SubtitleLabel" text="" class="cm-subtitle" />
+                </ui:VisualElement>
+
+                <ui:Button name="CloseButton" text="X" class="cm-close" />
+            </ui:VisualElement>
+
+            <!-- Tabs (script shows/hides BuildingView / TileView) -->
+            <ui:VisualElement class="cm-tabs">
+                <ui:Button name="Tab_Building" text="Building" class="cm-tab is-active" />
+                <ui:Button name="Tab_Tile" text="Tile" class="cm-tab" />
+            </ui:VisualElement>
+
+            <!-- Scrollable content -->
+            <ui:ScrollView name="ContentScroll" class="cm-scroll">
+
+                <!-- BUILDING VIEW -->
+                <ui:VisualElement name="BuildingView" class="cm-view">
+
+                    <!-- At a glance -->
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header">
+                            <ui:Label text="AT A GLANCE" class="cm-card-title" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Production / tick" class="cm-k" />
+                            <ui:Label name="Glance_ProdPerTick" text="+0" class="cm-v" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Total bonus" class="cm-k" />
+                            <ui:Label name="Glance_TotalBonus" text="+0%" class="cm-v" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Storage" class="cm-k" />
+                            <ui:Label name="Glance_Storage" text="0 / 0" class="cm-v" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Output quality" class="cm-k" />
+                            <ui:Label name="Glance_OutputQuality" text="Q 0" class="cm-v" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Live bonuses -->
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header cm-row-split">
+                            <ui:Label text="LIVE BONUSES" class="cm-card-title" />
+                            <ui:Label name="LiveBonusesTotalPill" text="+0% TOTAL" class="cm-pill" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="LiveBonusesList" class="cm-list">
+                            <!-- Sample row (for UI Builder preview). -->
+                            <ui:VisualElement class="cm-list-row">
+                                <ui:Label text="✓" class="cm-ico is-ok" />
+                                <ui:Label text="Road adjacent" class="cm-row-label" />
+                                <ui:Label text="+5%" class="cm-row-value is-pos" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Synergy checklist -->
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header">
+                            <ui:Label text="SYNERGY CHECKLIST" class="cm-card-title" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="SynergyChecklistList" class="cm-list">
+                            <ui:VisualElement class="cm-list-row">
+                                <ui:Label text="✕" class="cm-ico is-bad" />
+                                <ui:Label text="Connected to Workshop" class="cm-row-label" />
+                                <ui:Label text="+0%" class="cm-row-value is-zero" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+
+                        <ui:Label name="SynergyHint" text="Tip: Hover other buildings to see what counts as “connected”." class="cm-hint" />
+                    </ui:VisualElement>
+
+                    <!-- Tile influences on this building -->
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header">
+                            <ui:Label text="TILE INFLUENCES" class="cm-card-title" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="TileInfluencesList" class="cm-list">
+                            <ui:VisualElement class="cm-list-row">
+                                <ui:Label text="✓" class="cm-ico is-ok" />
+                                <ui:Label text="Adjacent Forest tiles" class="cm-row-label" />
+                                <ui:Label text="+6" class="cm-row-value is-pos" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+                <!-- TILE VIEW -->
+                <ui:VisualElement name="TileView" class="cm-view cm-hidden">
+
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header">
+                            <ui:Label text="TILE INFO" class="cm-card-title" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Terrain" class="cm-k" />
+                            <ui:Label name="Tile_Terrain" text="Meadow" class="cm-v" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement class="cm-kv">
+                            <ui:Label text="Tier" class="cm-k" />
+                            <ui:Label name="Tile_Tier" text="Starter" class="cm-v" />
+                        </ui:VisualElement>
+
+                        <ui:Label name="Tile_Description" text="" class="cm-hint" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="cm-card">
+                        <ui:VisualElement class="cm-card-header">
+                            <ui:Label text="TILE EFFECTS" class="cm-card-title" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="TileEffectsList" class="cm-list">
+                            <ui:VisualElement class="cm-list-row">
+                                <ui:Label text="✓" class="cm-ico is-ok" />
+                                <ui:Label text="Forest extraction bonus" class="cm-row-label" />
+                                <ui:Label text="+10%" class="cm-row-value is-pos" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+            </ui:ScrollView>
+
+            <!-- Actions (always visible) -->
+            <ui:VisualElement class="cm-actions">
+                <ui:Toggle name="Tgl_Active" text="Active" class="cm-toggle" />
+                <ui:Button name="Btn_Collect" text="Collect" class="cm-btn cm-primary" />
+                <ui:Button name="Btn_Upgrade" text="Upgrade" class="cm-btn" />
+                <ui:Button name="Btn_Move" text="Move" class="cm-btn" />
+                <ui:Button name="Btn_Remove" text="Remove" class="cm-btn cm-danger" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

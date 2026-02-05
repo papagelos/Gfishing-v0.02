@@ -16,6 +16,9 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private HexWorldTileSlotUI slotPrefab;
 
         [Header("Tile styles (order = UI order)")]
+        [Tooltip("If true, uses controller.GetStyleCatalog() instead of local styles array.")]
+        [SerializeField] private bool syncWithControllerCatalog = true;
+
         [SerializeField] private HexWorldTileStyle[] styles;
 
         [Header("Unlocking (future-proof)")]
@@ -189,7 +192,16 @@ public void RefreshPaging() => ApplyPaging();
             _slots.Clear();
             _orderedSlots.Clear();
 
-            if (styles == null) return;
+            // Determine styles source
+            HexWorldTileStyle[] stylesToUse = styles;
+            if (syncWithControllerCatalog && controller != null)
+            {
+                var catalog = controller.GetStyleCatalog();
+                if (catalog != null && catalog.Length > 0)
+                    stylesToUse = catalog;
+            }
+
+            if (stylesToUse == null || stylesToUse.Length == 0) return;
 
             var unlockedSet = new HashSet<HexWorldTileStyle>();
             if (!startAllUnlocked && initiallyUnlocked != null)
@@ -198,7 +210,7 @@ public void RefreshPaging() => ApplyPaging();
                     if (s) unlockedSet.Add(s);
             }
 
-            foreach (var style in styles)
+            foreach (var style in stylesToUse)
             {
                 if (!style) continue;
 

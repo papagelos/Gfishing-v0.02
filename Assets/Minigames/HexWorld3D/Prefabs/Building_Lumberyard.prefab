@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5357598431521104900}
   - component: {fileID: 3843024632647779096}
   - component: {fileID: -15484462137437945}
+  - component: {fileID: 9133860960549741106}
   m_Layer: 0
   m_Name: Building_Lumberyard
   m_TagString: Untagged
@@ -20,21 +21,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5495178779735729939
-Transform:
+--- !u!224 &5495178779735729939
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8689533182396043018}
-  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.36, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.09, y: 0.09, z: 0.09}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0.36}
+  m_SizeDelta: {x: 10.14, y: 9.87}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!212 &314741702006749111
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -82,17 +87,17 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -8337281393119725202, guid: 41cbe599b935397428da4922d9ee2cf2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 41cbe599b935397428da4922d9ee2cf2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 10.14, y: 9.87}
+  m_Size: {x: 9.43, y: 9.87}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
-  m_SpriteSortPoint: 0
+  m_SpriteSortPoint: 1
 --- !u!114 &5357598431521104900
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -107,6 +112,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
+  spriteRenderer: {fileID: 0}
+  forcePivotSortPoint: 1
+  driveSortingOrder: 1
+  sortingOrderScale: 50
+  sortingOrderBias: 0
+  depthOffset: 0
 --- !u!114 &3843024632647779096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,6 +135,8 @@ MonoBehaviour:
   buildingName: 
   Level: 1
   IsActive: 1
+  extractorState: 
+  productQuality: 1
   ConsumesActiveSlot: 1
 --- !u!114 &-15484462137437945
 MonoBehaviour:
@@ -140,6 +153,26 @@ MonoBehaviour:
   consumesActiveSlot: 1
   baseOutputPerTick:
   - id: 10
-    amount: 11
-  - id: 1
-    amount: 11
+    amount: 1
+--- !u!114 &9133860960549741106
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8689533182396043018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8dd9bd4ba4ebbe43abfea5b662654ec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.ForestryMinigameController
+  plots: []
+  startingPlots: 3
+  maxPlots: 6
+  baseGrowthPerTick: 0.1
+  forestAdjacencyBonus: 0.02
+  forestTileTag: forest
+  woodPerHarvest: 3
+  fiberPerHarvest: 1
+  autoReplant: 1
+  productionProfile: {fileID: -15484462137437945}

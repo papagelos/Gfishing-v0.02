@@ -607,8 +607,9 @@ MonoBehaviour:
   controller: {fileID: 1390062119592650455}
   button: {fileID: 4932953802185426452}
   buttonLabel: {fileID: 0}
-  costLabel: {fileID: 0}
-  showCostInButton: 1
+  requirementsLabel: {fileID: 0}
+  showRequirementsInButton: 1
+  updateInterval: 0.5
 --- !u!1 &4214413701553026326
 GameObject:
   m_ObjectHideFlags: 0
@@ -1712,7 +1713,7 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: bcf49588a2a41c14ca51ac6a51873361, type: 2}
     - target: {fileID: 5748590224200386753, guid: 6245fa71209c9f14eacd5eaba24dde54, type: 3}
       propertyPath: townHallLevel
-      value: 10
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 5748590224200386753, guid: 6245fa71209c9f14eacd5eaba24dde54, type: 3}
       propertyPath: refundOnRemove

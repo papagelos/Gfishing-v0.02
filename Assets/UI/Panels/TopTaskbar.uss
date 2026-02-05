@@ -1,0 +1,188 @@
+/* TopTaskbar.uss (FULL FILE REPLACEMENT) */
+
+VisualElement {}
+
+/* Root */
+.screen-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 220px;
+}
+
+/* Hover trigger area */
+.hover-zone {
+    height: 40px;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+/* Main container */
+.taskbar {
+    width: 100%;
+    flex-direction: column;
+
+    /* stop children from stretching full width */
+    align-items: flex-start;
+
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 10px;
+}
+
+/* Top strip */
+.main-strip {
+    width: 100%;
+    height: 48px;
+    flex-direction: row;
+    align-items: center;
+
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.55);
+
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 10px;
+}
+
+.main-label {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.7);
+}
+
+.spacer { flex-grow: 1; }
+
+/* Base button style (Stats/Warehouse + also applies to Quality Lab) */
+.strip-btn {
+    height: 32px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-radius: 10px;
+
+    background-color: rgba(0, 0, 0, 0.55);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+
+    color: rgba(255, 255, 255, 0.95);
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.55);
+}
+
+/* Nice feedback on normal buttons */
+.strip-btn:hover {
+    background-color: rgba(0, 0, 0, 0.62);
+    border-color: rgba(255, 255, 255, 0.20);
+}
+
+.strip-btn:active {
+    background-color: rgba(0, 0, 0, 0.70);
+    border-color: rgba(255, 255, 255, 0.26);
+}
+
+/* NEW: Bigger “Quality Lab” button (premium) */
+.strip-btn--big {
+    height: 40px;           /* taller */
+    padding-left: 18px;     /* wider */
+    padding-right: 18px;
+    min-width: 160px;       /* prevents it looking “short” */
+    border-radius: 12px;
+
+    /* same palette, slightly brighter */
+    background-color: rgba(0, 0, 0, 0.62);
+    border-width: 2px;
+    border-color: rgba(110, 200, 255, 0.38);
+
+    /* subtle glow */
+    box-shadow: 0 0 10px rgba(110, 200, 255, 0.18);
+
+    /* text pops a bit more */
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.35);
+}
+
+/* Premium hover/press */
+.strip-btn--big:hover {
+    border-color: rgba(110, 200, 255, 0.55);
+    box-shadow: 0 0 14px rgba(110, 200, 255, 0.26);
+    background-color: rgba(0, 0, 0, 0.68);
+}
+
+.strip-btn--big:active {
+    border-color: rgba(110, 200, 255, 0.70);
+    box-shadow: 0 0 8px rgba(110, 200, 255, 0.18);
+    background-color: rgba(0, 0, 0, 0.74);
+}
+
+.pin-toggle {
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* Dropdown host: do NOT be full width */
+.dropdowns {
+    position: relative;
+
+    /* content-sized host */
+    width: auto;
+    flex-grow: 0;
+    flex-shrink: 0;
+    align-self: flex-start;
+
+    /* do not stretch children */
+    align-items: flex-start;
+
+    padding-top: 10px;
+}
+
+/* Dropdown panels: content-sized */
+.dropdown-panel {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+
+    align-self: flex-start;
+    flex-grow: 0;
+    flex-shrink: 0;
+
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.55);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+
+    padding: 12px 14px;
+}
+
+/* Stats: shrink tight to text */
+#StatsPanel .dropdown-row {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+/* Resources: compact 2-column layout */
+#ResourcesPanel .resource-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    justify-content: flex-start;
+    align-items: flex-start;
+    align-content: flex-start;
+
+    column-gap: 16px;
+    row-gap: 10px;
+}
+
+#ResourcesPanel .resource-entry {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    white-space: nowrap;
+
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 120px;
+}

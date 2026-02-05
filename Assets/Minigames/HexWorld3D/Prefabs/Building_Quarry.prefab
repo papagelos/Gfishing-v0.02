@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5357598431521104900}
   - component: {fileID: 3843024632647779096}
   - component: {fileID: -5294082561936725374}
+  - component: {fileID: 3326405430598749867}
   m_Layer: 0
   m_Name: Building_Quarry
   m_TagString: Untagged
@@ -90,7 +91,7 @@ SpriteRenderer:
   m_Size: {x: 10.14, y: 9.87}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &5357598431521104900
@@ -107,6 +108,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
+  spriteRenderer: {fileID: 0}
+  forcePivotSortPoint: 1
+  driveSortingOrder: 1
+  sortingOrderScale: 50
+  sortingOrderBias: 0
+  depthOffset: 0
 --- !u!114 &3843024632647779096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,6 +131,8 @@ MonoBehaviour:
   buildingName: 
   Level: 1
   IsActive: 1
+  extractorState: 
+  productQuality: 1
   ConsumesActiveSlot: 1
 --- !u!114 &-5294082561936725374
 MonoBehaviour:
@@ -141,3 +150,31 @@ MonoBehaviour:
   baseOutputPerTick:
   - id: 11
     amount: 11
+--- !u!114 &3326405430598749867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8689533182396043018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5bb418986bdab5d42b0ea9357775288f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.QuarryMinigameController
+  drillDepth: 0
+  drillEnergy: 100
+  maxDrillEnergy: 100
+  energyPerMeter: 1
+  depthPerDrill: 10
+  energyRegenPerSecond: 0.5
+  coalDepth: 0
+  copperDepth: 100
+  ironDepth: 300
+  goldDepth: 600
+  stonePerTick: 5
+  coalPerTick: 2
+  copperPerTick: 2
+  ironPerTick: 1
+  goldPerTick: 1
+  productionProfile: {fileID: 0}

@@ -41,6 +41,244 @@ namespace GalacticFishing.Progress
             return Data.currency.credits;
         }
 
+        /// <summary>
+        /// Public API to read the player's current Infrastructure Points.
+        /// </summary>
+        public long InfrastructurePoints
+        {
+            get
+            {
+                if (Data?.currency == null)
+                    return 0;
+                return Data.currency.infrastructurePoints;
+            }
+        }
+
+        /// <summary>
+        /// Add Infrastructure Points and save immediately.
+        /// </summary>
+        public void AddIP(int amount)
+        {
+            if (amount <= 0) return;
+
+            if (Data?.currency != null)
+            {
+                Data.currency.infrastructurePoints += amount;
+                Debug.Log($"[PlayerProgress] Added {amount} IP. New total: {Data.currency.infrastructurePoints}");
+                Save();
+                IPChanged?.Invoke(Data.currency.infrastructurePoints);
+            }
+            else
+            {
+                Debug.LogWarning("[PlayerProgress] Attempted to add IP but Data is unavailable.");
+            }
+        }
+
+        /// <summary>
+        /// Subtract Infrastructure Points and save immediately.
+        /// Returns true if successful, false if insufficient IP.
+        /// </summary>
+        public bool SubtractIP(long amount)
+        {
+            if (amount <= 0) return true;
+
+            if (Data?.currency != null)
+            {
+                if (Data.currency.infrastructurePoints < amount)
+                {
+                    Debug.LogWarning($"[PlayerProgress] Insufficient IP. Have {Data.currency.infrastructurePoints}, need {amount}.");
+                    return false;
+                }
+
+                Data.currency.infrastructurePoints -= amount;
+                Debug.Log($"[PlayerProgress] Subtracted {amount} IP. New total: {Data.currency.infrastructurePoints}");
+                Save();
+                IPChanged?.Invoke(Data.currency.infrastructurePoints);
+                return true;
+            }
+
+            Debug.LogWarning("[PlayerProgress] Attempted to subtract IP but Data is unavailable.");
+            return false;
+        }
+
+        /// <summary>
+        /// Public API to read the player's current unspent Quality Points.
+        /// </summary>
+        public long UnspentQP
+        {
+            get
+            {
+                if (Data?.currency == null)
+                    return 0;
+                return Data.currency.unspentQP;
+            }
+        }
+
+        /// <summary>
+        /// Add Quality Points and save immediately.
+        /// </summary>
+        public void AddQP(long amount)
+        {
+            if (amount <= 0) return;
+
+            if (Data?.currency != null)
+            {
+                Data.currency.unspentQP += amount;
+                Debug.Log($"[PlayerProgress] Added {amount} QP. New total: {Data.currency.unspentQP}");
+                Save();
+                QPChanged?.Invoke(Data.currency.unspentQP);
+            }
+            else
+            {
+                Debug.LogWarning("[PlayerProgress] Attempted to add QP but Data is unavailable.");
+            }
+        }
+
+        /// <summary>
+        /// Subtract Quality Points and save immediately.
+        /// Returns true if successful, false if insufficient QP.
+        /// </summary>
+        public bool SubtractQP(long amount)
+        {
+            if (amount <= 0) return true;
+
+            if (Data?.currency != null)
+            {
+                if (Data.currency.unspentQP < amount)
+                {
+                    Debug.LogWarning($"[PlayerProgress] Insufficient QP. Have {Data.currency.unspentQP}, need {amount}.");
+                    return false;
+                }
+
+                Data.currency.unspentQP -= amount;
+                Debug.Log($"[PlayerProgress] Subtracted {amount} QP. New total: {Data.currency.unspentQP}");
+                Save();
+                QPChanged?.Invoke(Data.currency.unspentQP);
+                return true;
+            }
+
+            Debug.LogWarning("[PlayerProgress] Attempted to subtract QP but Data is unavailable.");
+            return false;
+        }
+
+        #region Material Quality API
+
+        /// <summary>
+        /// Get the current quality level for a material.
+        /// Returns 0 if no record exists.
+        /// </summary>
+        public int GetMaterialQuality(string materialId)
+        {
+            if (string.IsNullOrWhiteSpace(materialId)) return 0;
+            var record = FindMaterialRecord(materialId);
+            return record?.currentQuality ?? 0;
+        }
+
+        /// <summary>
+        /// Get the current progress (0..1) toward the next quality level.
+        /// </summary>
+        public float GetMaterialProgress(string materialId)
+        {
+            if (string.IsNullOrWhiteSpace(materialId)) return 0f;
+            var record = FindMaterialRecord(materialId);
+            return record?.currentProgress ?? 0f;
+        }
+
+        /// <summary>
+        /// Set material quality and progress directly. Saves immediately.
+        /// </summary>
+        public void SetMaterialQuality(string materialId, int quality, float progress)
+        {
+            if (string.IsNullOrWhiteSpace(materialId)) return;
+            if (Data?.currency?.materialQualityRecords == null) return;
+
+            quality = Mathf.Max(0, quality);
+            progress = Mathf.Clamp01(progress);
+
+            var record = FindOrCreateMaterialRecord(materialId);
+            record.currentQuality = quality;
+            record.currentProgress = progress;
+
+            Debug.Log($"[PlayerProgress] Set {materialId} to Q{quality} ({progress:P0} progress)");
+            Save();
+        }
+
+        /// <summary>
+        /// Add progress to a material. Returns the number of quality levels gained.
+        /// Progress is normalized: 1.0 = one full level worth at current quality bracket.
+        /// </summary>
+        public int AddMaterialProgress(string materialId, float progressAmount, int mqCap = int.MaxValue)
+        {
+            if (string.IsNullOrWhiteSpace(materialId) || progressAmount <= 0f) return 0;
+            if (Data?.currency?.materialQualityRecords == null) return 0;
+
+            var record = FindOrCreateMaterialRecord(materialId);
+            int levelsGained = 0;
+
+            record.currentProgress += progressAmount;
+
+            // Roll over progress into quality gains
+            while (record.currentProgress >= 1f && record.currentQuality < mqCap)
+            {
+                record.currentProgress -= 1f;
+                record.currentQuality++;
+                levelsGained++;
+            }
+
+            // Clamp progress if at cap
+            if (record.currentQuality >= mqCap)
+            {
+                record.currentProgress = 0f;
+            }
+
+            if (levelsGained > 0)
+            {
+                Debug.Log($"[PlayerProgress] {materialId} gained {levelsGained} quality! Now Q{record.currentQuality}");
+            }
+
+            Save();
+            return levelsGained;
+        }
+
+        /// <summary>
+        /// Get all material quality records (read-only snapshot).
+        /// </summary>
+        public IReadOnlyList<MaterialQualityRecord> GetAllMaterialRecords()
+        {
+            if (Data?.currency?.materialQualityRecords == null)
+                return System.Array.Empty<MaterialQualityRecord>();
+            return Data.currency.materialQualityRecords;
+        }
+
+        private MaterialQualityRecord FindMaterialRecord(string materialId)
+        {
+            if (Data?.currency?.materialQualityRecords == null) return null;
+
+            foreach (var r in Data.currency.materialQualityRecords)
+            {
+                if (r != null && string.Equals(r.materialId, materialId, StringComparison.Ordinal))
+                    return r;
+            }
+            return null;
+        }
+
+        private MaterialQualityRecord FindOrCreateMaterialRecord(string materialId)
+        {
+            var existing = FindMaterialRecord(materialId);
+            if (existing != null) return existing;
+
+            var newRecord = new MaterialQualityRecord
+            {
+                materialId = materialId,
+                currentQuality = 0,
+                currentProgress = 0f
+            };
+            Data.currency.materialQualityRecords.Add(newRecord);
+            return newRecord;
+        }
+
+        #endregion
+
         private const string SaveFileName = "player_progress.json";
 
         public static PlayerProgressManager Instance { get; private set; }
@@ -77,6 +315,16 @@ namespace GalacticFishing.Progress
         /// </summary>
         public event Action RodPowerChanged;
 
+        /// <summary>
+        /// Fired when Infrastructure Points (IP) change.
+        /// </summary>
+        public event Action<long> IPChanged;
+
+        /// <summary>
+        /// Fired when Quality Points (QP) change.
+        /// </summary>
+        public event Action<long> QPChanged;
+
         private void Awake()
         {
             if (Instance != null && Instance != this)
@@ -111,6 +359,8 @@ namespace GalacticFishing.Progress
             if (Data.gear == null) Data.gear = new PlayerGearData();
             if (Data.stats == null) Data.stats = new PlayerStatsData();
             if (Data.currency == null) Data.currency = new PlayerCurrencyData();
+            if (Data.currency.materialQualityRecords == null)
+                Data.currency.materialQualityRecords = new List<MaterialQualityRecord>();
 
             if (Data.gear.ownedRodIds == null) Data.gear.ownedRodIds = new List<string>();
             if (Data.gear.ownedBoatIds == null) Data.gear.ownedBoatIds = new List<string>();

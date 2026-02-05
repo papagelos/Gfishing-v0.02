@@ -1,0 +1,312 @@
+/* Quality_Lab.uss (FULL FILE REPLACEMENT) */
+
+/* Fullscreen overlay */
+.ql-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;              /* turn on/off in code */
+    justify-content: center;
+    align-items: center;
+}
+
+.ql-backdrop {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+/* Main panel */
+.ql-panel {
+    width: 1180px;
+    height: 720px;
+    background-color: rgba(25, 28, 40, 0.95);
+    border-radius: 14px;
+    border-width: 2px;
+    border-color: rgba(110, 200, 255, 0.35);
+    padding: 14px;
+    z-index: 10;
+    flex-direction: column;
+
+    /* IMPORTANT: allow nested ScrollViews to scroll correctly inside flex layouts */
+    min-height: 0;
+}
+
+/* Header */
+.ql-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.ql-header-left { flex-direction: column; }
+.ql-header-right { flex-direction: row; align-items: center; gap: 10px; }
+
+.ql-title {
+    font-size: 26px;
+    unity-font-style: bold;
+    color: rgba(210, 240, 255, 1.0);
+}
+
+.ql-subtitle {
+    font-size: 12px;
+    color: rgba(190, 205, 220, 0.9);
+    margin-top: 2px;
+}
+
+.ql-close {
+    width: 38px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(230, 240, 255, 0.95);
+}
+
+/* Body columns */
+.ql-body {
+    flex-grow: 1;
+    flex-direction: row;
+    gap: 12px;
+
+    /* IMPORTANT: allow nested ScrollViews to scroll correctly */
+    min-height: 0;
+}
+
+.ql-col {
+    flex-direction: column;
+    gap: 12px;
+
+    /* IMPORTANT: allow children to shrink so ScrollViews can scroll */
+    min-height: 0;
+}
+
+.ql-col-left { width: 260px; }
+.ql-col-center { flex-grow: 1; }
+.ql-col-right { width: 320px; }
+
+/* Sections / cards */
+.ql-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(120, 200, 255, 0.20);
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ql-mini-card { padding: 10px; }
+
+.ql-card-title {
+    font-size: 12px;
+    unity-font-style: bold;
+    color: rgba(200, 230, 255, 0.95);
+    letter-spacing: 0.5px;
+}
+
+.ql-section-header { flex-direction: column; gap: 2px; }
+.ql-section-title { font-size: 12px; unity-font-style: bold; color: rgba(200, 230, 255, 0.95); }
+.ql-section-hint { font-size: 11px; color: rgba(185, 200, 215, 0.85); }
+
+/* Search + resource list */
+.ql-search { margin-top: 4px; }
+
+/* ScrollView: resources */
+.ql-list {
+    flex-grow: 1;
+    min-height: 0; /* IMPORTANT for scrolling */
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 6px;
+}
+
+.ql-list-item {
+    height: 34px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(235, 245, 255, 0.95);
+    unity-text-align: middle-left;
+    padding-left: 10px;
+}
+
+.ql-list-item.is-selected {
+    background-color: rgba(110, 200, 255, 0.18);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.35);
+}
+
+/* Typography helpers */
+.ql-h2 {
+    font-size: 18px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+}
+
+.ql-small {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.9);
+}
+
+.ql-small-muted {
+    font-size: 11px;
+    color: rgba(170, 185, 200, 0.75);
+}
+
+.ql-qpill {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(110, 200, 255, 0.18);
+    color: rgba(220, 245, 255, 0.98);
+    unity-text-align: middle-center;
+}
+
+/* Rows */
+.ql-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+}
+
+.ql-row-split { justify-content: space-between; }
+.ql-arrow { font-size: 20px; color: rgba(220, 240, 255, 0.7); }
+
+.ql-stat { flex-direction: column; gap: 2px; min-width: 110px; }
+.ql-stat-label { font-size: 10px; color: rgba(185, 200, 215, 0.85); }
+.ql-stat-value { font-size: 18px; unity-font-style: bold; color: rgba(235, 245, 255, 0.98); }
+
+.ql-chance { flex-direction: column; gap: 2px; align-items: flex-end; }
+.ql-chance-value { font-size: 22px; unity-font-style: bold; color: rgba(120, 255, 180, 0.95); }
+
+/* Cost / boosters */
+.ql-subsection { flex-direction: column; gap: 6px; margin-top: 6px; }
+.ql-subtitle2 { font-size: 11px; unity-font-style: bold; color: rgba(200, 230, 255, 0.95); }
+
+.ql-cost-grid { flex-direction: row; gap: 8px; }
+.ql-cost-slot {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.18);
+    border-radius: 10px;
+    padding: 8px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.06);
+    flex-direction: column;
+    gap: 4px;
+}
+.ql-cost-value { font-size: 16px; unity-font-style: bold; color: rgba(235, 245, 255, 0.98); }
+
+.ql-booster-row { flex-direction: row; gap: 8px; }
+.ql-booster-slot {
+    flex-grow: 1;
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(235, 245, 255, 0.95);
+}
+.ql-booster-slot.is-locked {
+    background-color: rgba(255, 255, 255, 0.02);
+    color: rgba(180, 190, 205, 0.55);
+}
+
+/* Actions */
+.ql-actions { margin-top: 6px; justify-content: flex-end; }
+
+.ql-primary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(120, 255, 180, 0.22);
+    color: rgba(235, 245, 255, 0.98);
+    unity-font-style: bold;
+}
+
+.ql-secondary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.16);
+    color: rgba(235, 245, 255, 0.98);
+}
+
+.ql-ghost {
+    height: 34px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.03);
+    color: rgba(235, 245, 255, 0.92);
+}
+
+/* Result line + logs */
+.ql-result {
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(235, 245, 255, 0.92);
+    min-height: 18px;
+}
+
+/* ScrollView: recent results */
+.ql-log {
+    height: 120px;
+    min-height: 0;
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 8px;
+}
+
+.ql-log-row { font-size: 11px; margin-bottom: 4px; }
+.ql-log-row.is-success { color: rgba(120, 255, 180, 0.92); }
+.ql-log-row.is-fail { color: rgba(255, 150, 150, 0.92); }
+
+/* ScrollView: breakdown */
+.ql-breakdown {
+    height: 180px;
+    min-height: 0;
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 8px;
+}
+
+.ql-break-row {
+    flex-direction: row;
+    justify-content: space-between;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.ql-break-name { font-size: 11px; color: rgba(210, 220, 235, 0.9); }
+.ql-break-value { font-size: 11px; unity-font-style: bold; color: rgba(235, 245, 255, 0.95); }
+.ql-break-value.is-negative { color: rgba(255, 150, 150, 0.95); }
+.ql-break-value.is-positive { color: rgba(120, 255, 180, 0.95); }
+
+.ql-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+/* ScrollView: active bonuses (future-proof) */
+.ql-bonuses {
+    min-height: 110px;
+    max-height: 220px; /* grows a bit, then scrolls */
+    height: auto;
+    min-height: 0;     /* safe for scroll in flex contexts */
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 8px;
+}
+
+/* Footer */
+.ql-footer {
+    padding-top: 10px;
+    align-items: flex-end;
+}
+
+.ql-footer-text {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.85);
+}

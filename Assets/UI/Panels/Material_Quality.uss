@@ -1,0 +1,388 @@
+/* =========================
+   Material Quality Panel
+   Black/Blue aesthetic, no outlines
+   ========================= */
+
+.mq-overlay {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+
+    /* keep visible in UI Builder; toggle at runtime in code */
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+
+    min-width: 0;
+    min-height: 0;
+}
+
+.mq-backdrop {
+    position: absolute;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.62);
+}
+
+.mq-panel {
+    width: 96%;
+    height: 94%;
+    max-width: 1280px;
+    max-height: 760px;
+
+    background-color: rgba(18, 20, 30, 0.97);
+    border-radius: 16px;
+    border-width: 2px;
+    border-color: rgba(110, 200, 255, 0.35);
+    padding: 14px;
+    flex-direction: column;
+
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Header */
+.mq-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 10px;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.mq-header-left { flex-direction: column; min-width: 0; }
+.mq-header-right { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+
+.mq-title {
+    font-size: 26px;
+    unity-font-style: bold;
+    color: rgba(210, 240, 255, 1.0);
+    min-width: 0;
+}
+
+.mq-subtitle {
+    font-size: 12px;
+    color: rgba(185, 205, 220, 0.92);
+    margin-top: 2px;
+    min-width: 0;
+    white-space: normal;
+}
+
+.mq-close {
+    width: 38px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(230, 240, 255, 0.95);
+}
+
+/* Body columns */
+.mq-body {
+    flex-grow: 1;
+    flex-direction: row;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+    align-items: stretch;
+}
+
+.mq-col { flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+.mq-col-left  { width: 330px; min-height: 0; flex-shrink: 0; }
+.mq-col-center { flex-grow: 1; min-width: 0; min-height: 0; }
+.mq-col-right { width: 360px; min-height: 0; flex-shrink: 0; }
+
+/* Cards */
+.mq-card {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(120, 200, 255, 0.20);
+    padding: 12px;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.mq-mini-card { padding: 10px; }
+
+.mq-card-title {
+    font-size: 12px;
+    unity-font-style: bold;
+    color: rgba(200, 230, 255, 0.95);
+    letter-spacing: 0.5px;
+    min-width: 0;
+}
+
+.mq-card Label {
+    white-space: normal;
+    min-width: 0;
+}
+
+/* NEW: materials block must be a bounded, growable area */
+.mq-materials-card {
+    flex-grow: 1;
+    min-height: 0; /* CRITICAL for ScrollView scrolling */
+}
+
+/* NEW: right-column cards that should share available space */
+.mq-grow-card {
+    flex-grow: 1;
+    min-height: 0; /* CRITICAL for ScrollView scrolling */
+}
+
+/* Section headers */
+.mq-section-header { flex-direction: column; gap: 2px; min-width: 0; }
+.mq-section-title { font-size: 12px; unity-font-style: bold; color: rgba(200, 230, 255, 0.95); min-width: 0; }
+.mq-section-hint { font-size: 11px; color: rgba(185, 200, 215, 0.85); min-width: 0; white-space: normal; }
+
+/* Typography */
+.mq-h2 {
+    font-size: 18px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+    min-width: 0;
+}
+
+.mq-small {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.9);
+    min-width: 0;
+    white-space: normal;
+}
+
+.mq-small-muted {
+    font-size: 11px;
+    color: rgba(170, 185, 200, 0.75);
+    min-width: 0;
+    white-space: normal;
+}
+
+.mq-big-number {
+    font-size: 26px;
+    unity-font-style: bold;
+    color: rgba(235, 245, 255, 0.98);
+    min-width: 0;
+}
+
+/* NEW: “grow” helper for long names next to pills */
+.mq-grow {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+}
+
+.mq-pill {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(110, 200, 255, 0.16);
+    color: rgba(220, 245, 255, 0.98);
+    unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.mq-qpill {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(110, 200, 255, 0.18);
+    color: rgba(220, 245, 255, 0.98);
+    unity-text-align: middle-center;
+    flex-shrink: 0;
+}
+
+.mq-tag {
+    padding-left: 8px;
+    padding-right: 8px;
+    height: 20px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(215, 230, 245, 0.92);
+    unity-text-align: middle-center;
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.mq-delta-pill {
+    padding-left: 10px;
+    padding-right: 10px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(220, 245, 255, 0.95);
+    unity-text-align: middle-center;
+    font-size: 11px;
+    unity-font-style: bold;
+    flex-shrink: 0;
+}
+
+/* Rows */
+.mq-row { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+.mq-row-split { justify-content: space-between; min-width: 0; }
+.mq-row-split > Label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: normal;
+}
+
+/* Search + list */
+.mq-search { margin-top: 4px; min-width: 0; }
+
+.mq-list {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.14);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 0;
+    min-height: 0; /* enables scrolling properly */
+}
+
+/* ensure the materials list always scrolls */
+.mq-materials-list {
+    flex-grow: 1;
+    min-height: 0;
+}
+
+/* ScrollView content padding so scrollbar doesn't overlap */
+.mq-list .unity-scroll-view__content-container,
+.mq-reqs .unity-scroll-view__content-container,
+.mq-log .unity-scroll-view__content-container {
+    padding-right: 6px;
+}
+
+.mq-list-item {
+    height: 34px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: rgba(235, 245, 255, 0.95);
+    unity-text-align: middle-left;
+    padding-left: 10px;
+}
+
+.mq-list-item.is-selected {
+    background-color: rgba(110, 200, 255, 0.18);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.35);
+}
+
+/* Divider */
+.mq-divider {
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.08);
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+/* Progress bar (green fill) */
+.mq-q-bar {
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.mq-q-bar .unity-progress-bar__background {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-width: 1px;
+    border-color: rgba(110, 200, 255, 0.20);
+    border-radius: 10px;
+}
+
+.mq-q-bar .unity-progress-bar__progress {
+    background-color: rgba(120, 255, 180, 0.60);
+    border-radius: 10px;
+}
+
+.mq-q-bar .unity-progress-bar__title {
+    color: rgba(235, 245, 255, 0.95);
+    unity-font-style: bold;
+    font-size: 11px;
+}
+
+/* Allocation controls */
+.mq-quick-add { margin-top: 2px; }
+.mq-chip {
+    height: 30px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.12);
+    color: rgba(235, 245, 255, 0.95);
+}
+
+.mq-custom-row { margin-top: 2px; }
+.mq-amount { min-width: 0; }
+
+/* Actions */
+.mq-actions { justify-content: flex-end; margin-top: 6px; min-width: 0; }
+
+.mq-primary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.22);
+    color: rgba(235, 245, 255, 0.98);
+    unity-font-style: bold;
+}
+
+.mq-secondary {
+    height: 38px;
+    border-radius: 10px;
+    background-color: rgba(110, 200, 255, 0.14);
+    color: rgba(235, 245, 255, 0.98);
+}
+
+.mq-ghost {
+    height: 34px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.03);
+    color: rgba(235, 245, 255, 0.92);
+}
+
+/* Requirements + logs */
+.mq-subtitle2 {
+    font-size: 11px;
+    unity-font-style: bold;
+    color: rgba(200, 230, 255, 0.95);
+}
+
+.mq-reqs,
+.mq-log {
+    background-color: rgba(0, 0, 0, 0.12);
+    border-radius: 10px;
+    padding: 8px;
+
+    /* FUTURE-PROOF: scroll areas should grow and shrink */
+    flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+}
+
+.mq-log-row { font-size: 11px; margin-bottom: 4px; color: rgba(200, 210, 225, 0.90); }
+.mq-log-row.is-success { color: rgba(120, 255, 180, 0.92); }
+
+/* Result line */
+.mq-result {
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(235, 245, 255, 0.92);
+    min-height: 18px;
+}
+
+/* Footer */
+.mq-footer {
+    padding-top: 10px;
+    align-items: flex-end;
+    min-width: 0;
+    flex-shrink: 0;
+}
+
+.mq-footer-text {
+    font-size: 11px;
+    color: rgba(200, 210, 225, 0.85);
+    min-width: 0;
+    white-space: normal;
+}

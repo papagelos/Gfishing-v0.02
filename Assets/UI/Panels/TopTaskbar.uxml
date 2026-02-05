@@ -1,0 +1,64 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         xmlns:uie="UnityEditor.UIElements"
+         noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+         editor-extension-mode="False">
+
+    <Style src="project://database/Assets/UI/Panels/TopTaskbar.uss?fileID=7433441132597879392&amp;guid=58fc50a7cfa65d846ae8815784e6b528&amp;type=3#TopTaskbar" />
+
+    <ui:VisualElement name="ScreenRoot" class="screen-root">
+        <ui:VisualElement name="HoverZone" class="hover-zone" />
+
+        <ui:VisualElement name="Taskbar" class="taskbar">
+
+            <ui:VisualElement name="MainStrip" class="main-strip">
+                <!-- Removed LakeNameLabel -->
+
+                <ui:Label name="CreditsLabel" text="Credits: —" class="main-label"
+                          style="-unity-text-outline-color: rgb(255, 255, 255);" />
+
+                <!-- Ticket 17 -->
+                <ui:Label name="LabelIP" text="IP: 0" class="main-label" />
+                <ui:Label name="LabelQP" text="QP: 0" class="main-label" />
+
+                <ui:VisualElement class="spacer" />
+
+                <ui:Button name="BtnStats" text="Stats" class="strip-btn"
+                           style="-unity-text-outline-color: rgb(255, 255, 255);" />
+
+                <ui:Button name="BtnWarehouse" text="Warehouse" class="strip-btn"
+                           style="-unity-text-outline-color: rgb(255, 255, 255);" />
+
+                <!-- Contract: BtnQualityLab now represents Town Hall -->
+                <ui:Button name="BtnQualityLab" text="Town Hall" parse-escape-sequences="true"
+                           class="strip-btn strip-btn--big"
+                           style="text-shadow: 0 0 0 rgb(255, 255, 255); -unity-text-outline-color: rgb(255, 255, 255);" />
+
+                <!-- NEW -->
+                <ui:Button name="BtnMaterialQuality" text="Quality" class="strip-btn"
+                           style="-unity-text-outline-color: rgb(255, 255, 255);" />
+
+                <ui:Toggle name="PinToggle" text="Pin" class="pin-toggle" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="Dropdowns" class="dropdowns">
+                <ui:VisualElement name="StatsPanel" class="dropdown-panel" style="display: none;">
+                    <ui:Label name="TilesValue" text="Tiles: 0/0" class="dropdown-row" />
+                    <ui:Label name="SlotsValue" text="Active: 0/0 (L1)" class="dropdown-row" />
+                    <ui:Label name="WarehouseTotalValue" text="Warehouse: 0/0" class="dropdown-row" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="ResourcesPanel" class="dropdown-panel" style="display: none;">
+                    <ui:VisualElement name="ResourceGrid" class="resource-grid">
+                        <ui:Label name="Res_Wood" text="Wood: 0" class="resource-entry" />
+                        <ui:Label name="Res_Stone" text="Stone: 0" class="resource-entry" />
+                        <ui:Label name="Res_Fiber" text="Fiber: 0" class="resource-entry" />
+                        <ui:Label name="Res_Bait" text="Bait: 0" class="resource-entry" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+</ui:UXML>

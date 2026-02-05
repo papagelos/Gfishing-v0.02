@@ -1,0 +1,25 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Panels/Town_Infrastructure.uss?fileID=7433441132597879392&amp;guid=c8272cadfefb0384b8add9013999afcb&amp;type=3#Town_Infrastructure" />
+    <ui:VisualElement name="PlacementHoverCard" picking-mode="Ignore" class="ti-hover">
+        <ui:VisualElement class="ti-hover-header">
+            <ui:Label name="HoverNameLabel" text="Lumber Mill" class="ti-hover-title" />
+            <ui:Label name="HoverDeltaLabel" text="+12 infra" class="ti-hover-delta is-pos" />
+        </ui:VisualElement>
+        <ui:Label name="HoverHintLabel" text="Projected placement bonus:" class="ti-small-muted" />
+        <ui:ScrollView name="HoverBreakdownList" class="ti-hover-list">
+            <ui:VisualElement class="ti-break-row">
+                <ui:Label text="Adjacent Forest tiles" class="ti-break-name" />
+                <ui:Label name="HoverBreak_Forest" text="+6" class="ti-break-value is-pos" />
+            </ui:VisualElement>
+            <ui:VisualElement class="ti-break-row">
+                <ui:Label text="Road access" class="ti-break-name" />
+                <ui:Label name="HoverBreak_Road" text="+4" class="ti-break-value is-pos" />
+            </ui:VisualElement>
+            <ui:VisualElement class="ti-break-row">
+                <ui:Label text="Adjacent Mountains" class="ti-break-name" />
+                <ui:Label name="HoverBreak_Mountain" text="-3" class="ti-break-value is-neg" />
+            </ui:VisualElement>
+        </ui:ScrollView>
+        <ui:Label name="HoverFooterLabel" text="LMB: Place   RMB: Cancel" class="ti-hover-footer" />
+    </ui:VisualElement>
+</ui:UXML>

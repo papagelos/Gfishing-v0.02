@@ -1,0 +1,121 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Panels/Material_Quality.uss?fileID=7433441132597879392&amp;guid=725279ccb783e0b4094e00c9d6a5fda7&amp;type=3#Material_Quality" />
+    <ui:VisualElement name="MaterialQualityRoot" class="mq-overlay">
+        <ui:VisualElement name="MaterialQualityBackdrop" class="mq-backdrop" />
+        <ui:VisualElement name="MaterialQualityPanel" class="mq-panel">
+            <ui:VisualElement name="Header" class="mq-header">
+                <ui:VisualElement class="mq-header-left">
+                    <ui:Label name="TitleLabel" text="MATERIAL QUALITY" class="mq-title" />
+                    <ui:Label name="SubtitleLabel" text="Spend Quality Points to raise material quality. Higher Town Hall tiers increase caps." class="mq-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="mq-header-right">
+                    <ui:Button name="Btn_Close" text="X" class="mq-close" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Body" class="mq-body">
+                <ui:VisualElement name="LeftColumn" class="mq-col mq-col-left">
+                    <ui:VisualElement class="mq-card mq-points-card">
+                        <ui:Label text="QUALITY POINTS" class="mq-card-title" />
+                        <ui:VisualElement class="mq-row mq-row-split">
+                            <ui:Label name="UnspentPointsLabel" text="120" class="mq-big-number" />
+                            <ui:Label name="TownTierPill" text="Town Tier 3" class="mq-pill" />
+                        </ui:VisualElement>
+                        <ui:Label name="UnspentPointsHint" text="Unspent points can be allocated to any unlocked material." class="mq-small" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card mq-materials-card">
+                        <ui:VisualElement class="mq-section-header">
+                            <ui:Label text="MATERIALS" class="mq-section-title" />
+                            <ui:Label name="MaterialsHintLabel" text="Pick a material to allocate points." class="mq-section-hint" />
+                        </ui:VisualElement>
+                        <ui:TextField name="MaterialSearchField" label="Search" class="mq-search" />
+                        <ui:ScrollView name="MaterialList" class="mq-list mq-materials-list">
+                            <ui:Button name="MatBtn_Wood" text="Wood" class="mq-list-item is-selected" />
+                            <ui:Button name="MatBtn_Stone" text="Stone" class="mq-list-item" />
+                            <ui:Button name="MatBtn_Clay" text="Clay" class="mq-list-item" />
+                            <ui:Button name="MatBtn_Herbs" text="Herbs" class="mq-list-item" />
+                            <ui:Button name="MatBtn_Metal" text="Metal" class="mq-list-item" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card mq-mini-card">
+                        <ui:Label text="CAPS" class="mq-card-title" />
+                        <ui:Label name="CapSummaryLabel" text="Current max caps depend on Town Hall tier." class="mq-small" />
+                        <ui:Label name="CapNextHintLabel" text="Tip: Raising Town Tier increases material quality caps." class="mq-small-muted" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="CenterColumn" class="mq-col mq-col-center">
+                    <ui:VisualElement class="mq-card">
+                        <ui:Label text="SELECTED MATERIAL" class="mq-card-title" />
+                        <ui:VisualElement class="mq-row">
+                            <ui:Label name="SelectedMaterialName" text="Wood" class="mq-h2 mq-grow" />
+                            <ui:Label name="SelectedMaterialQuality" text="Q 11" class="mq-qpill" />
+                            <ui:Label name="SelectedMaterialCap" text="Cap: Q 25" class="mq-tag" />
+                        </ui:VisualElement>
+                        <ui:Label name="SelectedMaterialDesc" text="Quality affects production and crafting outputs using this material." class="mq-small" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card">
+                        <ui:Label text="PROGRESS TO NEXT QUALITY" class="mq-card-title" />
+                        <ui:VisualElement class="mq-row mq-row-split">
+                            <ui:Label name="ProgressNumericLabel" text="62 / 100" class="mq-small" />
+                            <ui:Label name="NextQualityLabel" text="Next: Q 12" class="mq-small-muted" />
+                        </ui:VisualElement>
+                        <ui:ProgressBar name="SelectedMaterialProgressBar" title="Next Quality" value="62" class="mq-q-bar" />
+                        <ui:Label name="ProgressHintLabel" text="Allocate points to fill the bar. When full, quality increases by +1." class="mq-small" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card">
+                        <ui:Label text="ALLOCATE POINTS" class="mq-card-title" />
+                        <ui:VisualElement class="mq-row mq-row-split">
+                            <ui:Label name="AllocateModeHint" text="Spend points from your pool and apply to the selected material." class="mq-small" />
+                            <ui:Label name="AllocatePreviewDelta" text="+0 this action" class="mq-delta-pill" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="mq-row mq-quick-add">
+                            <ui:Button name="Btn_Add1" text="+1" class="mq-chip" />
+                            <ui:Button name="Btn_Add10" text="+10" class="mq-chip" />
+                            <ui:Button name="Btn_Add50" text="+50" class="mq-chip" />
+                            <ui:Button name="Btn_AddMax" text="MAX" class="mq-chip" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="mq-row mq-custom-row">
+                            <ui:TextField name="CustomAmountField" label="Amount" value="0" class="mq-amount" />
+                            <ui:Button name="Btn_ApplyCustom" text="Add" class="mq-secondary" />
+                            <ui:Button name="Btn_ClearPending" text="Clear" class="mq-ghost" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="mq-divider" />
+                        <ui:VisualElement class="mq-row mq-actions">
+                            <ui:Button name="Btn_ApplySpend" text="Apply Allocation" class="mq-primary" />
+                            <ui:Button name="Btn_UndoLast" text="Undo" class="mq-ghost" />
+                        </ui:VisualElement>
+                        <ui:Label name="AllocationResultLine" class="mq-result" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="RightColumn" class="mq-col mq-col-right">
+                    <ui:VisualElement class="mq-card mq-grow-card">
+                        <ui:Label text="CAP &amp; REQUIREMENTS" class="mq-card-title" />
+                        <ui:Label name="CapLockHintLabel" text="Some quality levels are capped until Town Tier increases or milestones are completed." class="mq-small" />
+                        <ui:VisualElement class="mq-divider" />
+                        <ui:Label text="NEXT CAP UNLOCK" class="mq-subtitle2" />
+                        <ui:ScrollView name="CapRequirementsList" class="mq-reqs">
+                            <ui:Label text="• Town Hall: Reach T4" class="mq-small" />
+                            <ui:Label text="• Dungeon: Defeat Floor 10 boss" class="mq-small" />
+                            <ui:Label text="• Fishing: Catch Boss Fish (Lake 3)" class="mq-small" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card mq-grow-card">
+                        <ui:Label text="RECENT QUALITY ACTIVITY" class="mq-card-title" />
+                        <ui:ScrollView name="RecentQualityLog" class="mq-log">
+                            <ui:Label text="• Spent 30 points on Wood" class="mq-log-row" />
+                            <ui:Label text="• Wood reached Q12" class="mq-log-row is-success" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+                    <ui:VisualElement class="mq-card">
+                        <ui:Label text="QUICK LINKS" class="mq-card-title" />
+                        <ui:Button name="Btn_OpenTownHall" text="Open Town Hall" class="mq-ghost" />
+                        <ui:Button name="Btn_OpenDungeon" text="Go to Dungeon" class="mq-ghost" />
+                        <ui:Button name="Btn_OpenFishing" text="Go Fishing" class="mq-ghost" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="Footer" class="mq-footer">
+                <ui:Label name="FooterStatusLabel" text="Tip: Focus one material early. Raise Town Tier to unlock higher quality caps." class="mq-footer-text" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

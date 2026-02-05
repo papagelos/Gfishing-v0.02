@@ -67,7 +67,7 @@ public class InventorySlot : MonoBehaviour,
     [SerializeField] private bool useCompactNumbers = true;
 
     // Turn this on temporarily if you need spammy logs again.
-    private const bool VerboseLogs = true;
+    private const bool VerboseLogs = false;
 
     // -------------------------------------------------
     // Bound data
@@ -494,9 +494,10 @@ public class InventorySlot : MonoBehaviour,
 
     private static string Compact(int value)
     {
+        // Use 100,000 threshold to match game-wide abbreviation standard
         if (value >= 1_000_000_000) return (value / 1_000_000_000f).ToString("0.#") + "b";
         if (value >= 1_000_000)     return (value / 1_000_000f).ToString("0.#") + "m";
-        if (value >= 1_000)         return (value / 1_000f).ToString("0.#") + "k";
+        if (value >= 100_000)       return (value / 1_000f).ToString("0.#") + "k";
         return Mathf.Max(0, value).ToString();
     }
 

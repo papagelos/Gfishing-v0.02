@@ -1,0 +1,183 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd"
+         editor-extension-mode="False">
+
+    <Style src="project://database/Assets/UI/Panels/Town_Infrastructure.uss?fileID=7433441132597879392&amp;guid=c8272cadfefb0384b8add9013999afcb&amp;type=3#Town_Infrastructure" />
+
+    <ui:VisualElement name="TownInfraRoot" class="ti-overlay">
+        <ui:VisualElement name="TownInfraBackdrop" class="ti-backdrop" />
+
+        <ui:VisualElement name="TownInfraPanel" class="ti-panel">
+
+            <ui:VisualElement name="Header" class="ti-header">
+                <ui:VisualElement class="ti-header-left">
+                    <ui:Label name="TitleLabel" text="TOWN HALL" class="ti-title" />
+                    <ui:Label name="SubtitleLabel" text="Infrastructure • Placement bonuses • Building unlocks" class="ti-subtitle" />
+                </ui:VisualElement>
+                <ui:VisualElement class="ti-header-right">
+                    <ui:Button name="Btn_Close" text="X" class="ti-close" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="Body" class="ti-body">
+
+                <!-- LEFT -->
+                <ui:VisualElement name="LeftColumn" class="ti-col ti-col-left">
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="INFRASTRUCTURE" class="ti-card-title" />
+                        <ui:VisualElement class="ti-row ti-row-split">
+                            <ui:Label name="InfraPointsLabel" text="2,340" class="ti-h1" />
+                            <ui:Label name="InfraTierLabel" text="Town Tier 3" class="ti-pill" />
+                        </ui:VisualElement>
+                        <ui:ProgressBar name="InfraProgressBar" title="Next Tier" value="58" class="ti-next-tier-bar" />
+                        <ui:Label name="InfraProgressHintLabel" text="Reach the threshold to upgrade Town Hall and raise caps." class="ti-small" />
+                    </ui:VisualElement>
+
+                    <!-- BLUEPRINTS CARD (scrollable list inside) -->
+                    <ui:VisualElement class="ti-card ti-blueprints-card">
+
+                        <ui:VisualElement class="ti-section-header">
+                            <ui:Label text="BLUEPRINTS" class="ti-section-title" />
+                            <ui:Label name="BlueprintHintLabel" text="Pick a building to see infra rules + unlocks." class="ti-section-hint" />
+                        </ui:VisualElement>
+
+                        <ui:TextField name="BlueprintSearchField" label="Search" class="ti-search" />
+
+                        <!-- IMPORTANT: keep this name as-is so your code bindings don't break -->
+                        <ui:ScrollView name="BlueprintList" class="ti-list ti-blueprints-list" mode="Vertical">
+                            <ui:Button name="BpBtn_LumberMill" text="Lumber Mill" class="ti-list-item is-selected" />
+                            <ui:Button name="BpBtn_Quarry" text="Quarry" class="ti-list-item" />
+                            <ui:Button name="BpBtn_Smelter" text="Smelter" class="ti-list-item" />
+                            <ui:Button name="BpBtn_Workshop" text="Workshop" class="ti-list-item" />
+                            <ui:Button name="BpBtn_RoadDepot" text="Road Depot" class="ti-list-item" />
+                        </ui:ScrollView>
+
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="ti-card ti-mini-card">
+                        <ui:Label text="CAPS" class="ti-card-title" />
+                        <ui:Label name="CapTilesLabel" text="Tiles: 91 / 200" class="ti-small" />
+                        <ui:Label name="CapBuildingsLabel" text="Buildings: 12 / 24" class="ti-small" />
+                        <ui:Label name="CapActiveLabel" text="Active Producers: 4 / 6" class="ti-small" />
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+                <!-- CENTER -->
+                <ui:VisualElement name="CenterColumn" class="ti-col ti-col-center">
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="SELECTED BLUEPRINT" class="ti-card-title" />
+                        <ui:VisualElement class="ti-row">
+                            <ui:Label name="SelectedBlueprintName" text="Lumber Mill" class="ti-h2" />
+                            <ui:Label name="SelectedBlueprintTier" text="L2" class="ti-pill" />
+                            <ui:Label name="SelectedBlueprintRole" text="Producer" class="ti-tag" />
+                        </ui:VisualElement>
+                        <ui:Label name="SelectedBlueprintDesc" text="Produces wood. Output depends on upgrades and planning bonuses." class="ti-small" />
+                        <ui:VisualElement class="ti-divider" />
+                        <ui:VisualElement class="ti-row ti-row-split">
+                            <ui:VisualElement class="ti-stat">
+                                <ui:Label text="Base Infra" class="ti-stat-label" />
+                                <ui:Label name="SelectedBaseInfra" text="+15" class="ti-stat-value is-pos" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ti-stat">
+                                <ui:Label text="Your Avg Placement" class="ti-stat-label" />
+                                <ui:Label name="SelectedAvgInfra" text="+22" class="ti-stat-value is-pos" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ti-stat">
+                                <ui:Label text="Max Potential" class="ti-stat-label" />
+                                <ui:Label name="SelectedMaxInfra" text="+35" class="ti-stat-value is-pos" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="PLACEMENT BONUS BREAKDOWN" class="ti-card-title" />
+                        <ui:ScrollView name="PlacementBonusBreakdown" class="ti-breakdown">
+                            <ui:VisualElement class="ti-break-row">
+                                <ui:Label text="Adjacent Forest tiles" class="ti-break-name" />
+                                <ui:Label name="Break_Forest" text="+6" class="ti-break-value is-pos" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ti-break-row">
+                                <ui:Label text="Road access" class="ti-break-name" />
+                                <ui:Label name="Break_Road" text="+4" class="ti-break-value is-pos" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ti-break-row">
+                                <ui:Label text="Adjacent Mountains" class="ti-break-name" />
+                                <ui:Label name="Break_Mountain" text="-3" class="ti-break-value is-neg" />
+                            </ui:VisualElement>
+                            <ui:VisualElement class="ti-break-row">
+                                <ui:Label text="Nearby service building" class="ti-break-name" />
+                                <ui:Label name="Break_Service" text="+0" class="ti-break-value" />
+                            </ui:VisualElement>
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="UNLOCKS &amp; RECIPES" class="ti-card-title" />
+                        <ui:ScrollView name="UnlocksList" class="ti-unlocks">
+                            <ui:Label text="• Unlocks: Axe recipe" class="ti-small" />
+                            <ui:Label text="• Unlocks: Wood Plank recipe" class="ti-small" />
+                            <ui:Label text="• Unlocks: Road upgrade tier 2" class="ti-small" />
+                        </ui:ScrollView>
+                        <ui:VisualElement class="ti-row ti-actions">
+                            <ui:Button name="Btn_OpenBuildMode" text="Place Building" class="ti-primary" />
+                            <ui:Button name="Btn_ViewAllUnlocks" text="View All" class="ti-ghost" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+                <!-- RIGHT -->
+                <ui:VisualElement name="RightColumn" class="ti-col ti-col-right">
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="TOWN HALL STATUS" class="ti-card-title" />
+                        <ui:VisualElement class="ti-row ti-row-split">
+                            <ui:Label name="TownHallLevelLabel" text="Town Hall: T3" class="ti-h2" />
+                            <ui:Label name="TownHallNextLabel" text="Next: T4" class="ti-pill" />
+                        </ui:VisualElement>
+                        <ui:Label name="TownHallRequirementHint" text="Upgrade requires Infrastructure + milestone items (from other minigames)." class="ti-small" />
+                        <ui:VisualElement class="ti-divider" />
+                        <ui:Label text="NEXT TIER REQUIREMENTS" class="ti-subtitle2" />
+                        <ui:ScrollView name="NextTierRequirementsList" class="ti-reqs">
+                            <ui:Label text="• Infrastructure: 2,800 / 3,000" class="ti-small" />
+                            <ui:Label text="• Dungeon: Defeat Floor 10 boss" class="ti-small" />
+                            <ui:Label text="• Fishing: Catch Boss Fish (Lake 3)" class="ti-small" />
+                            <ui:Label text="• Village: Purchase 10 Roads" class="ti-small" />
+                        </ui:ScrollView>
+                        <ui:VisualElement class="ti-row ti-actions">
+                            <ui:Button name="Btn_UpgradeTownHall" text="Upgrade Town Hall" class="ti-secondary" />
+                            <ui:Button name="Btn_ViewMilestones" text="Milestones" class="ti-ghost" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="ACTIVE EFFECTS" class="ti-card-title" />
+                        <ui:ScrollView name="ActiveEffectsList" class="ti-buffs">
+                            <ui:Label text="• Road Network: +2% infra from producers" class="ti-small" />
+                            <ui:Label text="• Town Hall T3: +1 active producer cap" class="ti-small" />
+                            <ui:Label text="• Workshop L2: unlocks advanced recipes" class="ti-small" />
+                        </ui:ScrollView>
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="ti-card">
+                        <ui:Label text="QUICK LINKS" class="ti-card-title" />
+                        <ui:Button name="Btn_OpenQualityLab" text="Open Quality Lab" class="ti-ghost" />
+                        <ui:Button name="Btn_OpenDungeon" text="Go to Dungeon" class="ti-ghost" />
+                        <ui:Button name="Btn_OpenFishing" text="Go Fishing" class="ti-ghost" />
+                    </ui:VisualElement>
+
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+
+            <ui:VisualElement name="Footer" class="ti-footer">
+                <ui:Label name="FooterStatusLabel" text="Tip: Hover the grid while placing to preview infra changes." class="ti-footer-text" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -17,5 +17,5 @@ MonoBehaviour:
   thumbnail: {fileID: -8890641348306671835, guid: 46cabd94e7dfccb428e6b312ec71fa6f, type: 3}
   materials:
   - {fileID: 2100000, guid: 3a147d16338f0164a9bfb61159137d87, type: 2}
-  - {fileID: 2100000, guid: 3a147d16338f0164a9bfb61159137d87, type: 2}
   cost: 0
+  terrainType: 0
