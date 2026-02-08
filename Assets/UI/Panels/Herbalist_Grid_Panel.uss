@@ -1,0 +1,191 @@
+/* Fullscreen root overlay (also centers the panel via flex) */
+.herbalist-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Dimmed blocker behind the panel */
+.herbalist-backdrop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+
+    background-color: rgba(0, 0, 0, 0.80);
+}
+
+/* Main interactive panel */
+.herbalist-panel {
+    width: 560px;
+    padding: 16px;
+
+    background-color: rgba(0, 0, 0, 0.80);
+
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-top-width: 2px;
+    border-bottom-width: 2px;
+
+    border-left-color: rgb(255, 230, 0);
+    border-right-color: rgb(255, 230, 0);
+    border-top-color: rgb(255, 230, 0);
+    border-bottom-color: rgb(255, 230, 0);
+
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Header row */
+.herbalist-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.herbalist-title {
+    color: rgb(255, 230, 0);
+    unity-font-style: bold;
+    font-size: 16px;
+}
+
+/* Stats */
+.herbalist-stats {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 12px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.label-muted {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 13px;
+}
+
+.label-accent {
+    color: rgb(255, 230, 0);
+    unity-font-style: bold;
+    font-size: 13px;
+}
+
+/* Grid: flex-wrap 3x3 (no CSS grid) */
+.grid-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    /* 3 columns x 150px + margins (6px left + 6px right per cell) */
+    width: 486px;
+
+    justify-content: center;
+    align-items: center;
+
+    margin-left: auto;
+    margin-right: auto;
+
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+/* Square plot cell wrapper */
+.plot {
+    width: 150px;
+    height: 150px;
+
+    margin-left: 6px;
+    margin-right: 6px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+
+    padding: 10px;
+
+    background-color: rgba(0, 0, 0, 0.55);
+
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+
+    border-left-color: rgba(255, 230, 0, 0.55);
+    border-right-color: rgba(255, 230, 0, 0.55);
+    border-top-color: rgba(255, 230, 0, 0.55);
+    border-bottom-color: rgba(255, 230, 0, 0.55);
+
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+
+    justify-content: center;
+    align-items: center;
+}
+
+/* ProgressBar inside plot (kept horizontal) */
+.plot-progress {
+    width: 100%;
+    height: 24px;
+}
+
+/* Footer */
+.herbalist-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+/* Buttons */
+.btn {
+    height: 34px;
+    padding-left: 12px;
+    padding-right: 12px;
+
+    background-color: rgba(0, 0, 0, 0.60);
+
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+
+    border-left-color: rgba(255, 230, 0, 0.60);
+    border-right-color: rgba(255, 230, 0, 0.60);
+    border-top-color: rgba(255, 230, 0, 0.60);
+    border-bottom-color: rgba(255, 230, 0, 0.60);
+
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+
+    color: rgba(255, 255, 255, 0.90);
+}
+
+.btn:hover {
+    border-left-color: rgb(255, 230, 0);
+    border-right-color: rgb(255, 230, 0);
+    border-top-color: rgb(255, 230, 0);
+    border-bottom-color: rgb(255, 230, 0);
+
+    color: rgb(255, 230, 0);
+}
+
+.btn-primary {
+    background-color: rgba(255, 230, 0, 0.18);
+    color: rgb(255, 230, 0);
+    unity-font-style: bold;
+}
+
+.btn-close {
+    background-color: rgba(0, 0, 0, 0.60);
+}

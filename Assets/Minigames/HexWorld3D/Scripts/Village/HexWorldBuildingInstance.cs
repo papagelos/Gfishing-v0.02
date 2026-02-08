@@ -39,6 +39,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Header("Production")]
         [SerializeField] private int productQuality = 1;
+        [SerializeField] private float relocationCooldown;
 
         public int ProductQuality
         {
@@ -126,50 +127,85 @@ namespace GalacticFishing.Minigames.HexWorld
             }
         }
 
-        /// <summary>
-        /// Gathers serialized state from all IHexWorldBuildingStateProvider components on this building.
-        /// Returns null if no state providers exist or none have state to save.
-        /// </summary>
+        [System.Serializable]
+        private struct BuildingStateContainer
+        {
+            public string payload;
+            public float cooldown;
+        }
+
+        private string WrapState(string payload)
+        {
+            var container = new BuildingStateContainer
+            {
+                payload = payload,
+                cooldown = Mathf.Max(0f, relocationCooldown)
+            };
+            return JsonUtility.ToJson(container);
+        }
+
+        private string ExtractPayload(string wrappedState, out float savedCooldown)
+        {
+            savedCooldown = 0f;
+            if (string.IsNullOrEmpty(wrappedState))
+                return extractorState;
+
+            try
+            {
+                var container = JsonUtility.FromJson<BuildingStateContainer>(wrappedState);
+                savedCooldown = Mathf.Max(0f, container.cooldown);
+                return container.payload;
+            }
+            catch
+            {
+                return wrappedState;
+            }
+        }
+
         public string GatherSerializedState()
         {
             var providers = GetComponentsInChildren<IHexWorldBuildingStateProvider>(true);
-            if (providers == null || providers.Length == 0)
-                return extractorState; // Return existing state if no providers
+            string payload;
 
-            // For single provider (most common case), just return its state
-            if (providers.Length == 1)
+            if (providers == null || providers.Length == 0)
             {
-                string state = providers[0].GetSerializedState();
-                extractorState = state;
-                return state;
+                payload = extractorState;
+            }
+            else if (providers.Length == 1)
+            {
+                payload = providers[0].GetSerializedState();
+            }
+            else
+            {
+                payload = providers[0].GetSerializedState();
             }
 
-            // For multiple providers, we'd need a more complex format
-            // For now, just use the first provider's state
-            string firstState = providers[0].GetSerializedState();
-            extractorState = firstState;
-            return firstState;
+            extractorState = payload;
+            return WrapState(payload);
         }
 
-        /// <summary>
-        /// Restores serialized state to all IHexWorldBuildingStateProvider components on this building.
-        /// </summary>
         public void RestoreSerializedState(string state)
         {
-            extractorState = state;
+            float savedCooldown;
+            string payload = ExtractPayload(state, out savedCooldown);
 
-            if (string.IsNullOrEmpty(state))
+            relocationCooldown = Mathf.Max(0f, savedCooldown);
+            extractorState = payload;
+
+            if (string.IsNullOrEmpty(payload))
                 return;
 
             var providers = GetComponentsInChildren<IHexWorldBuildingStateProvider>(true);
             if (providers == null || providers.Length == 0)
                 return;
 
-            // Distribute state to all providers
             for (int i = 0; i < providers.Length; i++)
             {
-                providers[i].LoadSerializedState(state);
+                providers[i].LoadSerializedState(payload);
             }
         }
+
+        public float GetRelocationCooldown() => relocationCooldown;
+        public void SetRelocationCooldown(float seconds) => relocationCooldown = Mathf.Max(0f, seconds);
     }
 }

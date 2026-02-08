@@ -365,6 +365,7 @@ namespace GalacticFishing.Progress
             if (Data.gear.ownedRodIds == null) Data.gear.ownedRodIds = new List<string>();
             if (Data.gear.ownedBoatIds == null) Data.gear.ownedBoatIds = new List<string>();
             if (Data.gear.unlockedBoatUpgradeIds == null) Data.gear.unlockedBoatUpgradeIds = new List<string>();
+            if (Data.gear.unlockedBlueprintIds == null) Data.gear.unlockedBlueprintIds = new List<string>();
 
             // NEW persistent lists (safe for old saves)
             if (Data.gear.rodUpgradeLevels == null) Data.gear.rodUpgradeLevels = new List<PlayerGearData.LevelEntry>();

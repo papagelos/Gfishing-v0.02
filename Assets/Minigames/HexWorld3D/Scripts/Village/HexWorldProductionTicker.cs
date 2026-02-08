@@ -28,11 +28,13 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private HexWorldWarehouseInventory warehouse;
 
         [Header("Tick")]
-        [SerializeField, Min(1f)] private float tickSeconds = 60f;
-
-        [Header("Synergy Caps")]
-        [Tooltip("Maximum total synergy bonus (2.0 = +200%)")]
-        [SerializeField] private float maxSynergyBonus = 2.0f;
+        [SerializeField, Min(1f)] private float tickSeconds = HexWorldBalanceConfig.DefaultTickSeconds;
+        [SerializeField] private float maxSynergyBonus = HexWorldBalanceConfig.DefaultTotalBonusCapPct;
+        [SerializeField] private float minSynergyBonusFloor = HexWorldBalanceConfig.DefaultMinBonusFloorPct;
+        [SerializeField] private float roadAdjacentBonusPct = HexWorldBalanceConfig.DefaultRoadAdjBonusPct;
+        [SerializeField] private float roadConnectedBonusPct = HexWorldBalanceConfig.DefaultTownHallConnBonusPct;
+        [SerializeField] private string roadAdjacentLabel = "Road Adjacent";
+        [SerializeField] private string roadConnectedLabel = "Road -> Town Hall";
 
         [Header("Debug")]
         [SerializeField] private bool logEachTick;
@@ -42,8 +44,22 @@ namespace GalacticFishing.Minigames.HexWorld
         public event Action ProductionBlocked;
 
         private float _t;
+        private HexWorldBalanceConfig _balanceConfig;
 
         public float SecondsUntilTick => Mathf.Max(0f, tickSeconds - _t);
+
+        public void ApplyBalanceConfig(HexWorldBalanceConfig config)
+        {
+            _balanceConfig = config;
+            if (_balanceConfig != null)
+            {
+                tickSeconds = Mathf.Max(1f, _balanceConfig.tickSeconds);
+                maxSynergyBonus = Mathf.Max(0f, _balanceConfig.totalBonusCapPct);
+                minSynergyBonusFloor = Mathf.Min(0f, _balanceConfig.minBonusFloorPct);
+                roadAdjacentBonusPct = Mathf.Max(0f, _balanceConfig.roadAdjBonusPct);
+                roadConnectedBonusPct = Mathf.Max(0f, _balanceConfig.townHallConnBonusPct);
+            }
+        }
 
         /// <summary>
         /// Calculates the total synergy bonus for a building at the given coordinate.
@@ -51,9 +67,9 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         public float CalculateSynergyBonus(HexCoord coord, HexWorldBuildingDefinition def)
         {
-            var controller = FindObjectOfType<HexWorld3DController>(true);
-            float bonus = EvaluateSynergyRules(controller, coord, def);
-            return Mathf.Clamp(bonus, 0f, maxSynergyBonus);
+            var controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
+            float rawBonus = EvaluateSynergyRules(controller, coord, def);
+            return ComputeEffectiveBonus(rawBonus);
         }
 
         /// <summary>
@@ -74,15 +90,22 @@ namespace GalacticFishing.Minigames.HexWorld
         public List<SynergyRuleResult> EvaluateSynergyRulesDetailed(HexCoord coord, HexWorldBuildingDefinition def)
         {
             var results = new List<SynergyRuleResult>();
-            if (def == null || def.synergyRules == null) return results;
 
-            var ctrl = FindObjectOfType<HexWorld3DController>(true);
+            var ctrl = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
             if (ctrl == null) return results;
+
+            AppendRoadSynergyResult(results, ctrl, coord, CreateRoadRule(roadAdjacentLabel, SynergyType.RoadAdjacent, roadAdjacentBonusPct), SynergyType.RoadAdjacent);
+            AppendRoadSynergyResult(results, ctrl, coord, CreateRoadRule(roadConnectedLabel, SynergyType.RoadConnectedToTownHall, roadConnectedBonusPct), SynergyType.RoadConnectedToTownHall);
+
+            if (def == null || def.synergyRules == null) return results;
 
             for (int i = 0; i < def.synergyRules.Count; i++)
             {
                 var rule = def.synergyRules[i];
                 if (rule == null) continue;
+
+                if (rule.type == SynergyType.RoadAdjacent || rule.type == SynergyType.RoadConnectedToTownHall)
+                    continue; // already added above
 
                 int matchCount = EvaluateRuleMatchCount(ctrl, coord, rule);
                 float bonus = CalculateRuleBonus(rule, matchCount);
@@ -97,6 +120,46 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             return results;
+        }
+
+        private void AppendRoadSynergyResult(List<SynergyRuleResult> target, HexWorld3DController controller, HexCoord coord, SynergyRule rule, SynergyType type)
+        {
+            if (target == null || controller == null || rule == null)
+                return;
+
+            bool satisfied = false;
+            float bonusAmount = 0f;
+
+            if (type == SynergyType.RoadAdjacent)
+            {
+                satisfied = controller.IsAdjacentToRoad(coord);
+                bonusAmount = roadAdjacentBonusPct;
+            }
+            else if (type == SynergyType.RoadConnectedToTownHall)
+            {
+                satisfied = controller.IsConnectedToTownHall(coord);
+                bonusAmount = roadConnectedBonusPct;
+            }
+
+            target.Add(new SynergyRuleResult
+            {
+                rule = rule,
+                isSatisfied = satisfied,
+                matchCount = satisfied ? 1 : 0,
+                bonusValue = satisfied ? bonusAmount : 0f
+            });
+        }
+
+        private SynergyRule CreateRoadRule(string label, SynergyType type, float amount)
+        {
+            return new SynergyRule
+            {
+                label = string.IsNullOrWhiteSpace(label) ? type.ToString() : label,
+                type = type,
+                amountPct = amount,
+                stacking = SynergyStacking.Binary,
+                maxStacks = 1
+            };
         }
 
         /// <summary>
@@ -156,12 +219,12 @@ namespace GalacticFishing.Minigames.HexWorld
             var prod = instance.GetComponent<HexWorldBuildingProductionProfile>();
             if (prod == null || prod.baseOutputPerTick == null) return result;
 
-            var controller = FindObjectOfType<HexWorld3DController>(true);
+            var controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
             var def = controller != null ? controller.ResolveBuildingByName(instance.buildingName) : null;
 
-            float synergyBonus = EvaluateSynergyRules(controller, instance.Coord, def);
-            synergyBonus = Mathf.Clamp(synergyBonus, 0f, maxSynergyBonus);
-            float multiplier = 1.0f + synergyBonus;
+            float rawBonus = EvaluateSynergyRules(controller, instance.Coord, def);
+            float synergyBonus = ComputeEffectiveBonus(rawBonus);
+            float multiplier = ComputeFinalMultiplier(rawBonus);
 
             for (int i = 0; i < prod.baseOutputPerTick.Count; i++)
             {
@@ -179,7 +242,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void Awake()
         {
-            if (!warehouse) warehouse = FindObjectOfType<HexWorldWarehouseInventory>(true);
+            if (!warehouse) warehouse = UnityEngine.Object.FindObjectOfType<HexWorldWarehouseInventory>(true);
         }
 
         private void Update()
@@ -250,9 +313,9 @@ namespace GalacticFishing.Minigames.HexWorld
             var totals = new Dictionary<HexWorldResourceId, int>();
 
             // Find the controller to access owned tiles and synergy helpers
-            var controller = FindObjectOfType<HexWorld3DController>(true);
+            var controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
 
-            var states = FindObjectsOfType<HexWorldBuildingActiveState>(true);
+            var states = UnityEngine.Object.FindObjectsOfType<HexWorldBuildingActiveState>(true);
             for (int i = 0; i < states.Length; i++)
             {
                 var s = states[i];
@@ -264,18 +327,15 @@ namespace GalacticFishing.Minigames.HexWorld
                 // Get building instance to find its coordinate and definition
                 var buildingInst = s.GetComponent<HexWorldBuildingInstance>();
                 if (buildingInst == null) continue;
+                if (buildingInst.GetRelocationCooldown() > 0f) continue;
 
                 // Find building definition to get synergy rules
                 var buildingDef = controller != null ? controller.ResolveBuildingByName(buildingInst.buildingName) : null;
 
                 // Calculate total synergy bonus from all rules
-                float synergyBonus = EvaluateSynergyRules(controller, buildingInst.Coord, buildingDef);
-
-                // Clamp total bonus to maxSynergyBonus (default +200%)
-                synergyBonus = Mathf.Clamp(synergyBonus, 0f, maxSynergyBonus);
-
-                // Apply synergy multiplier (1.0 + bonus)
-                float multiplier = 1.0f + synergyBonus;
+                float rawBonus = EvaluateSynergyRules(controller, buildingInst.Coord, buildingDef);
+                float synergyBonus = ComputeEffectiveBonus(rawBonus);
+                float multiplier = ComputeFinalMultiplier(rawBonus);
 
                 if (logSynergyDetails && synergyBonus > 0f)
                 {
@@ -318,26 +378,72 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private float EvaluateSynergyRules(HexWorld3DController controller, HexCoord coord, HexWorldBuildingDefinition def)
         {
-            if (controller == null || def == null) return 0f;
-            if (def.synergyRules == null || def.synergyRules.Count == 0) return 0f;
+            if (controller == null) return 0f;
 
             float totalBonus = 0f;
+            bool hasRoadAdjacentRule = false;
+            bool hasTownHallRule = false;
 
-            for (int i = 0; i < def.synergyRules.Count; i++)
+            if (def != null && def.synergyRules != null)
             {
-                var rule = def.synergyRules[i];
-                if (rule == null) continue;
-
-                float ruleBonus = EvaluateSingleRule(controller, coord, rule);
-                totalBonus += ruleBonus;
-
-                if (logSynergyDetails && ruleBonus > 0f)
+                for (int i = 0; i < def.synergyRules.Count; i++)
                 {
-                    Debug.Log($"  [Synergy Rule] '{rule.label}': +{ruleBonus * 100:F1}%");
+                    var rule = def.synergyRules[i];
+                    if (rule == null) continue;
+
+                    if (rule.type == SynergyType.RoadAdjacent)
+                        hasRoadAdjacentRule = true;
+                    else if (rule.type == SynergyType.RoadConnectedToTownHall)
+                        hasTownHallRule = true;
+
+                    float ruleBonus = EvaluateSingleRule(controller, coord, rule);
+                    totalBonus += ruleBonus;
+
+                    if (logSynergyDetails && ruleBonus > 0f)
+                    {
+                        Debug.Log($"  [Synergy Rule] '{rule.label}': +{ruleBonus * 100:F1}%");
+                    }
                 }
             }
 
+            if (!hasRoadAdjacentRule && controller.IsAdjacentToRoad(coord))
+            {
+                totalBonus += roadAdjacentBonusPct;
+                if (logSynergyDetails && roadAdjacentBonusPct > 0f)
+                    Debug.Log($"  [Synergy Rule] '{roadAdjacentLabel}': +{roadAdjacentBonusPct * 100f:F1}%");
+            }
+
+            if (!hasTownHallRule && controller.IsConnectedToTownHall(coord))
+            {
+                totalBonus += roadConnectedBonusPct;
+                if (logSynergyDetails && roadConnectedBonusPct > 0f)
+                    Debug.Log($"  [Synergy Rule] '{roadConnectedLabel}': +{roadConnectedBonusPct * 100f:F1}%");
+            }
+
+            if (def != null)
+            {
+                float districtBonus = HexWorldDistrictBonusService.CalculateDistrictBonus(
+                    coord,
+                    def.preferredTerrainType,
+                    controller.OwnedTiles);
+                totalBonus += districtBonus;
+
+                if (logSynergyDetails && districtBonus > 0f)
+                    Debug.Log($"  [District Bonus] +{districtBonus * 100f:F1}%");
+            }
+
             return totalBonus;
+        }
+
+        private float ComputeFinalMultiplier(float rawBonus)
+        {
+            float clampedBonus = Mathf.Clamp(rawBonus, -0.8f, 2.0f);
+            return 1.0f + clampedBonus;
+        }
+
+        private float ComputeEffectiveBonus(float rawBonus)
+        {
+            return ComputeFinalMultiplier(rawBonus) - 1.0f;
         }
 
         /// <summary>
@@ -346,26 +452,28 @@ namespace GalacticFishing.Minigames.HexWorld
         private float EvaluateSingleRule(HexWorld3DController controller, HexCoord coord, SynergyRule rule)
         {
             int matchCount = 0;
+            bool hasOverrideAmount = false;
+            float overrideAmount = 0f;
 
             switch (rule.type)
             {
                 case SynergyType.RoadAdjacent:
-                    // Check if building is adjacent to any road tile
                     matchCount = controller.IsAdjacentToRoad(coord) ? 1 : 0;
+                    hasOverrideAmount = true;
+                    overrideAmount = roadAdjacentBonusPct;
                     break;
 
                 case SynergyType.RoadConnectedToTownHall:
-                    // Check if building is connected to Town Hall via roads
                     matchCount = controller.IsConnectedToTownHall(coord) ? 1 : 0;
+                    hasOverrideAmount = true;
+                    overrideAmount = roadConnectedBonusPct;
                     break;
 
                 case SynergyType.AdjacentTileTag:
-                    // Count adjacent tiles with the specified tag
                     matchCount = controller.CountAdjacentTilesWithTag(coord, rule.targetTagOrId);
                     break;
 
                 case SynergyType.WithinRadiusBuildingType:
-                    // Count buildings of specified type within radius
                     matchCount = controller.CountBuildingsWithinRadius(coord, rule.targetTagOrId, rule.radius);
                     break;
 
@@ -376,18 +484,17 @@ namespace GalacticFishing.Minigames.HexWorld
             if (matchCount <= 0)
                 return 0f;
 
-            // Apply stacking rules
+            if (hasOverrideAmount)
+                return overrideAmount;
+
             if (rule.stacking == SynergyStacking.Binary)
             {
-                // Binary: bonus applies once if any match exists
                 return rule.amountPct;
             }
-            else // PerCount
+            else
             {
-                // PerCount: bonus stacks per matching count
                 int effectiveCount = matchCount;
 
-                // Apply max stacks cap if configured
                 if (rule.maxStacks > 0)
                     effectiveCount = Mathf.Min(effectiveCount, rule.maxStacks);
 

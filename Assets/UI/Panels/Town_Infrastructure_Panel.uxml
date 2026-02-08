@@ -5,7 +5,7 @@
 
     <Style src="project://database/Assets/UI/Panels/Town_Infrastructure.uss?fileID=7433441132597879392&amp;guid=c8272cadfefb0384b8add9013999afcb&amp;type=3#Town_Infrastructure" />
 
-    <ui:VisualElement name="TownInfraRoot" class="ti-overlay">
+    <ui:VisualElement name="TownInfraRoot" class="ti-overlay" picking-mode="Ignore">
         <ui:VisualElement name="TownInfraBackdrop" class="ti-backdrop" />
 
         <ui:VisualElement name="TownInfraPanel" class="ti-panel">

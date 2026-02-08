@@ -1,4 +1,5 @@
 // Assets/Minigames/HexWorld3D/Scripts/Village/HexWorldBuildingContextMenu.cs
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,6 +13,8 @@ namespace GalacticFishing.Minigames.HexWorld
     /// </summary>
     public sealed class HexWorldBuildingContextMenu : MonoBehaviour
     {
+        private const string ActiveTabClass = "is-active";
+
         [Header("UI Toolkit")]
         [Tooltip("UIDocument containing the context menu UXML.")]
         [SerializeField] private UIDocument uiDocument;
@@ -31,14 +34,30 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Tooltip("Reference to the Forestry Minigame UI panel.")]
         [SerializeField] private ForestryMinigameUI forestryMinigameUI;
+        [SerializeField] private HunterMinigameUI hunterMinigameUI;
+        [SerializeField] private HerbalistMinigameUI herbalistMinigameUI;
 
         // Cached UI elements
         private VisualElement _screenRoot;
         private VisualElement _contextMenuRoot;
+        private VisualElement _buildingView;
+        private VisualElement _tileView;
         private Label _titleLabel;
+        private Label _subtitleLabel;
         private Button _closeButton;
 
-        // Stats
+        // Semantic stats (UI Contract)
+        private Label _statProdPerTick;
+        private Label _statTotalBonus;
+        private Label _statStorage;
+        private Label _glanceOutputQuality;
+        private Label _liveBonusTotalPill;
+        private Label _tileTerrain;
+        private Label _tileTier;
+        private Label _tileDescription;
+        private VisualElement _tileEffectsList;
+
+        // Legacy fallback stats
         private Label _stat1Name;
         private Label _stat1Value;
         private Label _stat2Name;
@@ -48,9 +67,12 @@ namespace GalacticFishing.Minigames.HexWorld
         private VisualElement _statsSection;
 
         // Options
+        private Toggle _toggleBuildingActive;
         private Toggle _toggleBuildingActiveYes;
         private Toggle _toggleBuildingActiveNo;
         private Toggle _toggleShowTileStats;
+        private Button _tabBuilding;
+        private Button _tabTile;
         private Label _modeDescription;
         private VisualElement _optionsSection;
 
@@ -58,6 +80,7 @@ namespace GalacticFishing.Minigames.HexWorld
         private Button _button1;
         private Button _button2;
         private Button _button3;
+        private Button _buttonRemove;
         private VisualElement _buttonsSection;
         private VisualElement _slotsSection;
 
@@ -72,6 +95,9 @@ namespace GalacticFishing.Minigames.HexWorld
         private VisualElement _toolboxPopup;
         private ScrollView _toolboxList;
         private bool _toolboxOpen = false;
+        private VisualElement _recipePopup;
+        private ScrollView _recipeList;
+        private bool _recipePopupOpen = false;
 
         // State
         private HexWorldBuildingInstance _currentTarget;
@@ -80,6 +106,9 @@ namespace GalacticFishing.Minigames.HexWorld
         private HexWorldBuildingDefinition _currentBuildingDef;
         private bool _showingTileStats = false;
         private bool _wired = false;
+        private bool _button2IsRecipeButton = false;
+        private bool _loggedProductionTickerResolveError;
+        private bool _loggedWarehouseResolveError;
 
         private void OnEnable()
         {
@@ -92,6 +121,7 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (_wired)
             {
+                UnregisterControllerEvents();
                 UnregisterCallbacks();
                 _wired = false;
             }
@@ -124,13 +154,8 @@ namespace GalacticFishing.Minigames.HexWorld
 
             QueryAndCacheElements(root);
             RegisterCallbacks();
+            RegisterControllerEvents();
             _wired = true;
-
-            // Auto-find production ticker and warehouse if not assigned
-            if (!productionTicker)
-                productionTicker = FindObjectOfType<HexWorldProductionTicker>(true);
-            if (!warehouse)
-                warehouse = FindObjectOfType<HexWorldWarehouseInventory>(true);
 
             // Start hidden
             SetVisible(false);
@@ -139,8 +164,10 @@ namespace GalacticFishing.Minigames.HexWorld
         private void QueryAndCacheElements(VisualElement root)
         {
             // Root containers
-            _screenRoot = root.Q<VisualElement>("ScreenRoot");
+            _screenRoot = root.Q<VisualElement>("ScreenRoot") ?? root;
             _contextMenuRoot = root.Q<VisualElement>("ContextMenuRoot");
+            _buildingView = root.Q<VisualElement>("BuildingView");
+            _tileView = root.Q<VisualElement>("TileView");
 
             if (_screenRoot == null && _contextMenuRoot == null)
             {
@@ -149,9 +176,22 @@ namespace GalacticFishing.Minigames.HexWorld
 
             // Header
             _titleLabel = root.Q<Label>("TitleLabel");
+            _subtitleLabel = root.Q<Label>("SubtitleLabel");
             _closeButton = root.Q<Button>("CloseButton");
 
-            // Stats
+            // Semantic stats (UI contract names + fallback)
+            _statProdPerTick = root.Q<Label>("StatProdPerTick") ?? root.Q<Label>("Glance_ProdPerTick");
+            _statTotalBonus = root.Q<Label>("StatTotalBonus") ?? root.Q<Label>("Glance_TotalBonus");
+            _statStorage = root.Q<Label>("StatStorage") ?? root.Q<Label>("Glance_Storage");
+            _glanceOutputQuality = root.Q<Label>("Glance_OutputQuality");
+            _liveBonusTotalPill = root.Q<Label>("LiveBonusTotalPill") ?? root.Q<Label>("LiveBonusesTotalPill");
+
+            _tileTerrain = root.Q<Label>("Tile_Terrain");
+            _tileTier = root.Q<Label>("Tile_Tier");
+            _tileDescription = root.Q<Label>("Tile_Description");
+            _tileEffectsList = root.Q<VisualElement>("TileEffectsList");
+
+            // Legacy stats fallback
             _statsSection = root.Q<VisualElement>("StatsSection");
             _stat1Name = root.Q<Label>("Stat1Name");
             _stat1Value = root.Q<Label>("Stat1Value");
@@ -162,32 +202,35 @@ namespace GalacticFishing.Minigames.HexWorld
 
             // Options
             _optionsSection = root.Q<VisualElement>("OptionsSection");
+            _toggleBuildingActive = root.Q<Toggle>("Tgl_Active");
             _toggleBuildingActiveYes = root.Q<Toggle>("Toggle_BuildingActiveYes");
             _toggleBuildingActiveNo = root.Q<Toggle>("Toggle_BuildingActiveNo");
             _toggleShowTileStats = root.Q<Toggle>("Toggle_ShowTileStats");
+            _tabBuilding = root.Q<Button>("Tab_Building");
+            _tabTile = root.Q<Button>("Tab_Tile");
             _modeDescription = root.Q<Label>("ModeDescription");
 
             // Buttons
             _buttonsSection = root.Q<VisualElement>("ButtonsSection");
-            _button1 = root.Q<Button>("Button1");
-            _button2 = root.Q<Button>("Button2");
-            _button3 = root.Q<Button>("Button3");
+            _button1 = root.Q<Button>("Button1") ?? root.Q<Button>("Btn_Collect");
+            _button2 = root.Q<Button>("Button2") ?? root.Q<Button>("Btn_Upgrade");
+            _button3 = root.Q<Button>("Button3") ?? root.Q<Button>("Btn_Move");
+            _buttonRemove = root.Q<Button>("Btn_Remove");
             _slotsSection = root.Q<VisualElement>("SlotsSection");
 
             // Synergy Checklist
             _synergySection = root.Q<VisualElement>("SynergySection");
-            _synergyListScroll = root.Q<VisualElement>("SynergyListScroll");
+            _synergyListScroll = root.Q<VisualElement>("SynergyListScroll") ?? root.Q<VisualElement>("SynergyChecklistList");
 
             // Log warnings for missing critical elements
             var missing = new List<string>();
             if (_titleLabel == null) missing.Add("TitleLabel");
             if (_closeButton == null) missing.Add("CloseButton");
-            if (_toggleShowTileStats == null) missing.Add("Toggle_ShowTileStats");
-            if (_button1 == null) missing.Add("Button1");
-            if (_stat1Name == null) missing.Add("Stat1Name");
-            if (_stat1Value == null) missing.Add("Stat1Value");
-            if (_stat2Name == null) missing.Add("Stat2Name");
-            if (_stat2Value == null) missing.Add("Stat2Value");
+            if (_button1 == null && _button2 == null && _button3 == null) missing.Add("ActionButtons");
+            bool hasBuildingStats = _statProdPerTick != null || _stat1Value != null;
+            if (!hasBuildingStats) missing.Add("StatProdPerTick");
+            bool hasTileStats = _tileTerrain != null || _stat1Value != null;
+            if (!hasTileStats) missing.Add("Tile_Terrain");
 
             if (missing.Count > 0)
             {
@@ -201,9 +244,20 @@ namespace GalacticFishing.Minigames.HexWorld
             _button1?.RegisterCallback<ClickEvent>(OnButton1Clicked);
             _button2?.RegisterCallback<ClickEvent>(OnButton2Clicked);
             _button3?.RegisterCallback<ClickEvent>(OnButton3Clicked);
+            _buttonRemove?.RegisterCallback<ClickEvent>(OnRemoveButtonClicked);
             _toggleShowTileStats?.RegisterValueChangedCallback(OnToggleShowTileStatsChanged);
-            _toggleBuildingActiveYes?.RegisterValueChangedCallback(OnToggleActiveYesChanged);
-            _toggleBuildingActiveNo?.RegisterValueChangedCallback(OnToggleActiveNoChanged);
+            _tabBuilding?.RegisterCallback<ClickEvent>(OnTabBuildingClicked);
+            _tabTile?.RegisterCallback<ClickEvent>(OnTabTileClicked);
+
+            if (_toggleBuildingActive != null)
+            {
+                _toggleBuildingActive.RegisterValueChangedCallback(OnToggleActiveChanged);
+            }
+            else
+            {
+                _toggleBuildingActiveYes?.RegisterValueChangedCallback(OnToggleActiveYesChanged);
+                _toggleBuildingActiveNo?.RegisterValueChangedCallback(OnToggleActiveNoChanged);
+            }
         }
 
         private void UnregisterCallbacks()
@@ -212,9 +266,41 @@ namespace GalacticFishing.Minigames.HexWorld
             _button1?.UnregisterCallback<ClickEvent>(OnButton1Clicked);
             _button2?.UnregisterCallback<ClickEvent>(OnButton2Clicked);
             _button3?.UnregisterCallback<ClickEvent>(OnButton3Clicked);
+            _buttonRemove?.UnregisterCallback<ClickEvent>(OnRemoveButtonClicked);
             _toggleShowTileStats?.UnregisterValueChangedCallback(OnToggleShowTileStatsChanged);
-            _toggleBuildingActiveYes?.UnregisterValueChangedCallback(OnToggleActiveYesChanged);
-            _toggleBuildingActiveNo?.UnregisterValueChangedCallback(OnToggleActiveNoChanged);
+            _tabBuilding?.UnregisterCallback<ClickEvent>(OnTabBuildingClicked);
+            _tabTile?.UnregisterCallback<ClickEvent>(OnTabTileClicked);
+
+            if (_toggleBuildingActive != null)
+            {
+                _toggleBuildingActive.UnregisterValueChangedCallback(OnToggleActiveChanged);
+            }
+            else
+            {
+                _toggleBuildingActiveYes?.UnregisterValueChangedCallback(OnToggleActiveYesChanged);
+                _toggleBuildingActiveNo?.UnregisterValueChangedCallback(OnToggleActiveNoChanged);
+            }
+        }
+
+        private void RegisterControllerEvents()
+        {
+            if (controller != null)
+                controller.RoadNetworkRecomputed += OnRoadNetworkRecomputed;
+        }
+
+        private void UnregisterControllerEvents()
+        {
+            if (controller != null)
+                controller.RoadNetworkRecomputed -= OnRoadNetworkRecomputed;
+        }
+
+        private void OnRoadNetworkRecomputed()
+        {
+            if (!IsVisible || _showingTileStats || _currentTarget == null || _currentBuildingDef == null)
+                return;
+
+            PopulateBuildingStats();
+            PopulateSynergyChecklist();
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -276,6 +362,8 @@ namespace GalacticFishing.Minigames.HexWorld
             EnsureWired();
             if (!_wired) return;
 
+            HideRecipePopup();
+
             _currentTarget = null;
             _currentTile = null;
             _currentTileStyle = style;
@@ -323,6 +411,8 @@ namespace GalacticFishing.Minigames.HexWorld
             _currentBuildingDef = null;
             _showingTileStats = false;
 
+            HideRecipePopup();
+
             SetVisible(false);
         }
 
@@ -349,6 +439,13 @@ namespace GalacticFishing.Minigames.HexWorld
         private void ShowBuildingView()
         {
             if (_currentBuildingDef == null) return;
+
+            HideRecipePopup();
+            _showingTileStats = false;
+            SetTabSelection(showTileView: false);
+
+            if (_buildingView != null) _buildingView.style.display = DisplayStyle.Flex;
+            if (_tileView != null) _tileView.style.display = DisplayStyle.None;
 
             // Set header
             if (_titleLabel != null)
@@ -393,6 +490,12 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void ShowTileStatsView()
         {
+            _showingTileStats = true;
+            SetTabSelection(showTileView: true);
+
+            if (_buildingView != null) _buildingView.style.display = DisplayStyle.None;
+            if (_tileView != null) _tileView.style.display = DisplayStyle.Flex;
+
             // Set header to tile name
             if (_titleLabel != null && _currentTileStyle != null)
             {
@@ -416,6 +519,8 @@ namespace GalacticFishing.Minigames.HexWorld
             ClearSynergyChecklist();
 
             // Hide active toggles in tile view
+            if (_toggleBuildingActive != null)
+                _toggleBuildingActive.style.display = DisplayStyle.None;
             if (_toggleBuildingActiveYes != null)
                 _toggleBuildingActiveYes.style.display = DisplayStyle.None;
             if (_toggleBuildingActiveNo != null)
@@ -428,6 +533,12 @@ namespace GalacticFishing.Minigames.HexWorld
             }
         }
 
+        private void SetTabSelection(bool showTileView)
+        {
+            _tabBuilding?.EnableInClassList(ActiveTabClass, !showTileView);
+            _tabTile?.EnableInClassList(ActiveTabClass, showTileView);
+        }
+
         private void PopulateBuildingStats()
         {
             if (_currentTarget == null) return;
@@ -436,6 +547,10 @@ namespace GalacticFishing.Minigames.HexWorld
                               _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Producer;
             bool isProcessor = IsProcessorBuilding();
 
+            var resolvedWarehouse = EnsureWarehouseReference();
+            if (resolvedWarehouse == null)
+                return;
+
             // Handle Processor buildings specially (TICKET 22)
             if (isProcessor)
             {
@@ -443,43 +558,56 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            // Row 1: Production Per Tick (for Producer buildings) or Building Level (for others)
-            if (_stat1Name != null && _stat1Value != null)
-            {
-                if (isProducer)
-                {
-                    _stat1Name.text = "Production";
-                    _stat1Value.text = FormatProductionPerTick();
-                }
-                else
-                {
-                    _stat1Name.text = "Building Level";
-                    _stat1Value.text = _currentTarget.Level.ToString();
-                }
-                SetStatRowVisible(1, true);
-            }
+            string productionText = isProducer ? FormatProductionPerTick() : $"L{_currentTarget.Level}";
+            string totalBonusText = isProducer ? FormatTotalBonus() : "+0%";
+            string storageText = $"{resolvedWarehouse.TotalStored}/{resolvedWarehouse.Capacity}";
 
-            // Row 2: Total Bonus % (for Producer buildings) or hide
-            if (_stat2Name != null && _stat2Value != null)
-            {
-                if (isProducer)
-                {
-                    _stat2Name.text = "Synergy Bonus";
-                    _stat2Value.text = FormatTotalBonus();
-                    SetStatRowVisible(2, true);
-                }
-                else
-                {
-                    SetStatRowVisible(2, false);
-                }
-            }
+            // Semantic fields in verified UXML
+            if (_statProdPerTick != null) _statProdPerTick.text = productionText;
+            if (_statTotalBonus != null) _statTotalBonus.text = totalBonusText;
+            if (_statStorage != null) _statStorage.text = storageText;
+            if (_glanceOutputQuality != null) _glanceOutputQuality.text = isProducer ? "Q 0" : "-";
+            if (_liveBonusTotalPill != null) _liveBonusTotalPill.text = $"{totalBonusText} TOTAL";
 
-            // Row 3: Warehouse Storage
-            if (_stat3Name != null && _stat3Value != null)
+            bool hasSemanticContractRows = _statProdPerTick != null || _statTotalBonus != null || _statStorage != null;
+            if (!hasSemanticContractRows)
             {
-                _stat3Name.text = "Storage";
-                _stat3Value.text = FormatWarehouseStorage();
-                SetStatRowVisible(3, true);
+                // Legacy fallback rows
+                if (_stat1Name != null && _stat1Value != null)
+                {
+                    if (isProducer)
+                    {
+                        _stat1Name.text = "Production";
+                        _stat1Value.text = productionText;
+                    }
+                    else
+                    {
+                        _stat1Name.text = "Building Level";
+                        _stat1Value.text = _currentTarget.Level.ToString();
+                    }
+                    SetStatRowVisible(1, true);
+                }
+
+                if (_stat2Name != null && _stat2Value != null)
+                {
+                    if (isProducer)
+                    {
+                        _stat2Name.text = "Synergy Bonus";
+                        _stat2Value.text = totalBonusText;
+                        SetStatRowVisible(2, true);
+                    }
+                    else
+                    {
+                        SetStatRowVisible(2, false);
+                    }
+                }
+
+                if (_stat3Name != null && _stat3Value != null)
+                {
+                    _stat3Name.text = "Storage";
+                    _stat3Value.text = storageText;
+                    SetStatRowVisible(3, true);
+                }
             }
         }
 
@@ -490,36 +618,50 @@ namespace GalacticFishing.Minigames.HexWorld
         private void PopulateProcessorStats()
         {
             var processorCtrl = GetProcessorController();
+            var buildingInstance = _currentTarget;
+            string qualityText = (buildingInstance != null && buildingInstance.GetRelocationCooldown() > 0f)
+                ? $"COOLDOWN: {Mathf.CeilToInt(buildingInstance.GetRelocationCooldown())}s"
+                : FormatQualityTransformation(processorCtrl);
+            string outputText = FormatProcessorOutput(processorCtrl);
+            string totalBonusText = FormatTotalBonus();
+            string storageText = FormatWarehouseStorage();
 
-            // Row 1: Quality Transformation (Q_in → Q_out)
-            if (_stat1Name != null && _stat1Value != null)
-            {
-                _stat1Name.text = "Quality";
-                _stat1Value.text = FormatQualityTransformation(processorCtrl);
-                SetStatRowVisible(1, true);
-            }
+            if (_statProdPerTick != null) _statProdPerTick.text = outputText;
+            if (_statTotalBonus != null) _statTotalBonus.text = totalBonusText;
+            if (_statStorage != null) _statStorage.text = storageText;
+            if (_glanceOutputQuality != null) _glanceOutputQuality.text = qualityText;
+            if (_liveBonusTotalPill != null) _liveBonusTotalPill.text = $"{totalBonusText} TOTAL";
 
-            // Row 2: Tool Quality
-            if (_stat2Name != null && _stat2Value != null)
+            bool hasSemanticContractRows = _statProdPerTick != null || _statTotalBonus != null || _statStorage != null;
+            if (!hasSemanticContractRows)
             {
-                _stat2Name.text = "Tool Quality";
-                if (processorCtrl != null)
+                if (_stat1Name != null && _stat1Value != null)
                 {
-                    _stat2Value.text = $"Q{Mathf.RoundToInt(processorCtrl.InstalledToolQuality)}";
+                    _stat1Name.text = "Quality";
+                    _stat1Value.text = qualityText;
+                    SetStatRowVisible(1, true);
                 }
-                else
-                {
-                    _stat2Value.text = "-";
-                }
-                SetStatRowVisible(2, true);
-            }
 
-            // Row 3: Output per Tick (production rate)
-            if (_stat3Name != null && _stat3Value != null)
-            {
-                _stat3Name.text = "Output/Tick";
-                _stat3Value.text = FormatProcessorOutput(processorCtrl);
-                SetStatRowVisible(3, true);
+                if (_stat2Name != null && _stat2Value != null)
+                {
+                    _stat2Name.text = "Tool Quality";
+                    if (processorCtrl != null)
+                    {
+                        _stat2Value.text = $"Q{Mathf.RoundToInt(processorCtrl.InstalledToolQuality)}";
+                    }
+                    else
+                    {
+                        _stat2Value.text = "-";
+                    }
+                    SetStatRowVisible(2, true);
+                }
+
+                if (_stat3Name != null && _stat3Value != null)
+                {
+                    _stat3Name.text = "Output/Tick";
+                    _stat3Value.text = outputText;
+                    SetStatRowVisible(3, true);
+                }
             }
         }
 
@@ -529,13 +671,20 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private string FormatQualityTransformation(HexWorldProcessorController processorCtrl)
         {
-            if (processorCtrl == null || processorCtrl.Recipe == null)
+            if (processorCtrl == null) 
                 return "- → -";
 
-            var recipe = processorCtrl.Recipe;
+            var recipe = processorCtrl.ActiveRecipe;
+            if (recipe == null)
+                return "- → -";
+
+            var inputs = recipe.GetAllInputs();
+            if (inputs == null || inputs.Length == 0)
+                return "- → -";
 
             // Get input material quality from PlayerProgressManager
-            string inputMaterialId = recipe.input.id.ToString();
+            var primaryInput = inputs[0];
+            string inputMaterialId = primaryInput.id.ToString();
             int inputQuality = PlayerProgressManager.Instance?.GetMaterialQuality(inputMaterialId) ?? 0;
 
             // Calculate preview output quality
@@ -551,7 +700,7 @@ namespace GalacticFishing.Minigames.HexWorld
             else
                 changeIndicator = " (=)";
 
-            return $"Q{inputQuality} {recipe.input.id} → Q{outputQuality} {recipe.outputId}{changeIndicator}";
+            return $"Q{inputQuality} {primaryInput.id} → Q{outputQuality} {recipe.outputId}{changeIndicator}";
         }
 
         /// <summary>
@@ -559,11 +708,20 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private string FormatProcessorOutput(HexWorldProcessorController processorCtrl)
         {
-            if (processorCtrl == null || processorCtrl.Recipe == null)
+            if (processorCtrl == null)
                 return "- / tick";
 
-            var recipe = processorCtrl.Recipe;
-            int outputAmount = Mathf.RoundToInt(recipe.baseOutputAmount);
+            var recipe = processorCtrl.ActiveRecipe;
+            if (recipe == null)
+                return "- / tick";
+
+            float synergyMultiplier = 0f;
+            if (_currentTarget != null && _currentBuildingDef != null && EnsureProductionTickerReference())
+            {
+                synergyMultiplier = productionTicker.CalculateSynergyBonus(_currentTarget.Coord, _currentBuildingDef);
+            }
+
+            int outputAmount = Mathf.RoundToInt(recipe.baseOutputAmount * (1f + synergyMultiplier));
             if (outputAmount <= 0) outputAmount = 1;
 
             return $"{outputAmount} {recipe.outputId} / tick";
@@ -580,18 +738,6 @@ namespace GalacticFishing.Minigames.HexWorld
             // If building is dormant, production is 0
             if (!_currentTarget.IsActive)
                 return "0 / tick";
-
-            // Try to get production from ticker
-            if (productionTicker != null)
-            {
-                var production = productionTicker.CalculateEffectiveProduction(_currentTarget);
-                if (production != null && production.Count > 0)
-                {
-                    // Format first resource (most buildings produce one resource type)
-                    var first = production[0];
-                    return $"{first.amount} {first.id} / tick";
-                }
-            }
 
             // Fallback: try to read base output directly
             var profile = _currentTarget.GetComponent<HexWorldBuildingProductionProfile>();
@@ -613,14 +759,58 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_currentTarget == null || _currentBuildingDef == null)
                 return "+0%";
 
-            if (productionTicker != null)
+            if (!EnsureProductionTickerReference())
+                return "+0%";
+
+            float bonus = productionTicker.CalculateSynergyBonus(_currentTarget.Coord, _currentBuildingDef);
+            int bonusPct = Mathf.RoundToInt(bonus * 100f);
+            return bonusPct >= 0 ? $"+{bonusPct}%" : $"{bonusPct}%";
+
+        }
+
+        private bool EnsureProductionTickerReference()
+        {
+            return TryResolveSingletonReference(ref productionTicker, nameof(productionTicker), ref _loggedProductionTickerResolveError);
+        }
+
+        private static float GetSynergyDisplayAmount(SynergyRule rule)
+        {
+            return rule != null ? rule.amountPct : 0f;
+        }
+
+        private bool TryResolveSingletonReference<T>(ref T field, string fieldName, ref bool loggedError) where T : UnityEngine.Object
+        {
+            if (field != null)
+                return true;
+
+            var found = UnityEngine.Object.FindObjectsOfType<T>(true);
+            if (found.Length == 1)
             {
-                float bonus = productionTicker.CalculateSynergyBonus(_currentTarget.Coord, _currentBuildingDef);
-                int bonusPct = Mathf.RoundToInt(bonus * 100f);
-                return bonusPct >= 0 ? $"+{bonusPct}%" : $"{bonusPct}%";
+                field = found[0];
+                return true;
             }
 
-            return "+0%";
+            if (!loggedError)
+            {
+                if (found.Length == 0)
+                {
+                    Debug.LogError($"[{nameof(HexWorldBuildingContextMenu)}] Missing reference '{fieldName}' and no scene instance found. Assign it in the inspector.");
+                }
+                else
+                {
+                    Debug.LogError($"[{nameof(HexWorldBuildingContextMenu)}] Missing reference '{fieldName}' and found {found.Length} instances. Assign it in the inspector.");
+                }
+                loggedError = true;
+            }
+
+            return false;
+        }
+
+        private HexWorldWarehouseInventory EnsureWarehouseReference()
+        {
+            if (!TryResolveSingletonReference(ref warehouse, nameof(warehouse), ref _loggedWarehouseResolveError))
+                return null;
+            return warehouse;
         }
 
         /// <summary>
@@ -628,17 +818,9 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private string FormatWarehouseStorage()
         {
-            if (warehouse != null)
-            {
-                return $"{warehouse.TotalStored}/{warehouse.Capacity}";
-            }
-
-            // Try to find warehouse if not assigned
-            var wh = FindObjectOfType<HexWorldWarehouseInventory>();
+            var wh = EnsureWarehouseReference();
             if (wh != null)
-            {
                 return $"{wh.TotalStored}/{wh.Capacity}";
-            }
 
             return "-/-";
         }
@@ -648,41 +830,37 @@ namespace GalacticFishing.Minigames.HexWorld
         // ─────────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Populates the synergy checklist with rows showing ✅/❌, label, and bonus value.
-        /// For Processor buildings, shows recipe requirements instead (TICKET 22).
+        /// Populates the synergy checklist with rows showing ✓/✗, label, and bonus value.
+        /// Producers and Processors both expose the road/town-hall planning synergies.
         /// </summary>
         private void PopulateSynergyChecklist()
         {
             if (_synergyListScroll == null) return;
 
-            // Clear existing content
             _synergyListScroll.Clear();
 
-            // Handle Processor buildings specially - show recipe requirements
-            if (IsProcessorBuilding())
-            {
-                PopulateProcessorRecipeInfo();
-                return;
-            }
+            bool supportsSynergy = _currentBuildingDef != null &&
+                                   (_currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Producer ||
+                                    _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Processor);
 
-            // Hide section if no building or not a producer
-            bool isProducer = _currentBuildingDef != null &&
-                              _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Producer;
-
-            if (_currentTarget == null || _currentBuildingDef == null || !isProducer)
+            if (_currentTarget == null || _currentBuildingDef == null || !supportsSynergy)
             {
                 if (_synergySection != null)
                     _synergySection.style.display = DisplayStyle.None;
                 return;
             }
 
-            // Check if building has any synergy rules
-            if (_currentBuildingDef.synergyRules == null || _currentBuildingDef.synergyRules.Count == 0)
-            {
-                // Show section with "No synergies" message
-                if (_synergySection != null)
-                    _synergySection.style.display = DisplayStyle.Flex;
+            if (_synergySection != null)
+                _synergySection.style.display = DisplayStyle.Flex;
 
+            List<HexWorldProductionTicker.SynergyRuleResult> results = null;
+            if (EnsureProductionTickerReference())
+            {
+                results = productionTicker.EvaluateSynergyRulesDetailed(_currentTarget.Coord, _currentBuildingDef);
+            }
+
+            if (results == null || results.Count == 0)
+            {
                 var noSynergiesLabel = new Label("No synergies available");
                 noSynergiesLabel.style.color = new Color(0.6f, 0.6f, 0.6f);
                 noSynergiesLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
@@ -692,59 +870,41 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            // Show the section
-            if (_synergySection != null)
-                _synergySection.style.display = DisplayStyle.Flex;
-
-            // Get detailed synergy results from production ticker
-            List<HexWorldProductionTicker.SynergyRuleResult> results = null;
-            if (productionTicker != null)
+            for (int i = 0; i < results.Count; i++)
             {
-                results = productionTicker.EvaluateSynergyRulesDetailed(_currentTarget.Coord, _currentBuildingDef);
-            }
+                var result = results[i];
+                var rule = result.rule;
+                string labelText = GetSynergyLabelText(rule);
 
-            // Create a row for each synergy rule
-            for (int i = 0; i < _currentBuildingDef.synergyRules.Count; i++)
-            {
-                var rule = _currentBuildingDef.synergyRules[i];
-                if (rule == null) continue;
-
-                // Find matching result (if available)
-                bool isSatisfied = false;
-                float bonusValue = rule.amountPct; // Default to rule's base bonus
-
-                if (results != null && i < results.Count)
-                {
-                    isSatisfied = results[i].isSatisfied;
-                    bonusValue = results[i].bonusValue;
-                }
-
-                // Create row container
-                var row = new VisualElement();
-                row.style.flexDirection = FlexDirection.Row;
-                row.style.justifyContent = Justify.SpaceBetween;
-                row.style.alignItems = Align.Center;
-                row.style.paddingTop = 2;
-                row.style.paddingBottom = 2;
-                row.style.paddingLeft = 4;
-                row.style.paddingRight = 4;
-
-                // Status icon and label
+                bool isSatisfied = result.isSatisfied;
                 string statusIcon = isSatisfied ? "✓" : "✗";
-                string labelText = !string.IsNullOrWhiteSpace(rule.label) ? rule.label : rule.type.ToString();
+
+                var row = new VisualElement
+                {
+                    style =
+                    {
+                        flexDirection = FlexDirection.Row,
+                        justifyContent = Justify.SpaceBetween,
+                        alignItems = Align.Center,
+                        paddingTop = 2,
+                        paddingBottom = 2,
+                        paddingLeft = 4,
+                        paddingRight = 4
+                    }
+                };
 
                 var statusLabel = new Label($"{statusIcon} {labelText}");
                 statusLabel.style.color = isSatisfied ? new Color(0.4f, 0.9f, 0.4f) : new Color(0.7f, 0.7f, 0.7f);
                 statusLabel.style.flexGrow = 1;
 
-                // Bonus value label
-                int bonusPct = Mathf.RoundToInt(rule.amountPct * 100f);
+                float displayAmount = GetSynergyDisplayAmount(rule);
+                int bonusPct = Mathf.RoundToInt(displayAmount * 100f);
                 string bonusText = bonusPct >= 0 ? $"+{bonusPct}%" : $"{bonusPct}%";
 
-                // For PerCount rules, show potential stacking info
-                if (rule.stacking == SynergyStacking.PerCount && rule.maxStacks > 1)
+                if (rule != null && rule.stacking == SynergyStacking.PerCount && rule.maxStacks > 1)
                 {
-                    bonusText = $"+{bonusPct}% ea";
+                    int perStackPct = Mathf.RoundToInt(rule.amountPct * 100f);
+                    bonusText = perStackPct >= 0 ? $"+{perStackPct}% ea" : $"{perStackPct}% ea";
                 }
 
                 var bonusLabel = new Label(bonusText);
@@ -754,9 +914,24 @@ namespace GalacticFishing.Minigames.HexWorld
 
                 row.Add(statusLabel);
                 row.Add(bonusLabel);
-
                 _synergyListScroll.Add(row);
             }
+        }
+
+        private static string GetSynergyLabelText(SynergyRule rule)
+        {
+            if (rule == null)
+                return "Synergy";
+
+            if (rule.type == SynergyType.RoadAdjacent)
+                return "Road Adjacent";
+
+            if (rule.type == SynergyType.RoadConnectedToTownHall)
+                return "Road -> Town Hall";
+
+            return !string.IsNullOrWhiteSpace(rule.label)
+                ? rule.label
+                : rule.type.ToString();
         }
 
         /// <summary>
@@ -780,8 +955,12 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_synergySection != null)
                 _synergySection.style.display = DisplayStyle.Flex;
 
+            if (_synergyListScroll == null)
+                return;
+
             var processorCtrl = GetProcessorController();
-            if (processorCtrl == null || processorCtrl.Recipe == null)
+            var recipe = processorCtrl?.ActiveRecipe;
+            if (processorCtrl == null || recipe == null)
             {
                 var noRecipeLabel = new Label("No recipe configured");
                 noRecipeLabel.style.color = new Color(0.7f, 0.5f, 0.5f);
@@ -792,23 +971,40 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            var recipe = processorCtrl.Recipe;
+            var inputs = recipe.GetAllInputs();
+            if (inputs == null || inputs.Length == 0)
+            {
+                var missingInputs = new Label("Recipe has no inputs configured");
+                missingInputs.style.color = new Color(0.7f, 0.5f, 0.5f);
+                missingInputs.style.unityTextAlign = TextAnchor.MiddleCenter;
+                missingInputs.style.paddingTop = 8;
+                missingInputs.style.paddingBottom = 8;
+                _synergyListScroll.Add(missingInputs);
+                return;
+            }
 
             // Row 1: Recipe name / conversion
-            var recipeRow = CreateInfoRow("Recipe", $"{recipe.input.id} → {recipe.outputId}");
+            string inputsDisplay = string.Join(" + ", Array.ConvertAll(inputs, i => $"{i.amount} {i.id}"));
+            var recipeRow = CreateInfoRow("Recipe", $"{inputsDisplay} → {recipe.outputId}");
             _synergyListScroll.Add(recipeRow);
 
-            // Row 2: Input requirement
-            int inputAvailable = warehouse?.Get(recipe.input.id) ?? 0;
-            int inputRequired = recipe.input.amount;
-            bool hasEnough = inputAvailable >= inputRequired;
+            var wh = EnsureWarehouseReference();
 
-            var inputRow = CreateInfoRow(
-                $"✓ Input ({recipe.input.id})",
-                $"{inputAvailable}/{inputRequired}",
-                hasEnough ? new Color(0.4f, 0.9f, 0.4f) : new Color(0.9f, 0.5f, 0.5f)
-            );
-            _synergyListScroll.Add(inputRow);
+            // Input rows
+            for (int i = 0; i < inputs.Length; i++)
+            {
+                var input = inputs[i];
+                int available = wh?.Get(input.id) ?? 0;
+                bool hasEnough = available >= input.amount;
+
+                string prefix = hasEnough ? "✓" : "✗";
+                var inputRow = CreateInfoRow(
+                    $"{prefix} Input ({input.id})",
+                    $"{available}/{input.amount}",
+                    hasEnough ? new Color(0.4f, 0.9f, 0.4f) : new Color(0.9f, 0.5f, 0.5f)
+                );
+                _synergyListScroll.Add(inputRow);
+            }
 
             // Row 3: Gain Factor (quality improvement potential)
             int gainPct = Mathf.RoundToInt(recipe.gainFactor * 100f);
@@ -981,6 +1177,7 @@ namespace GalacticFishing.Minigames.HexWorld
             _slotsSection.Add(card);
 
             _toolboxOpen = false;
+            RefreshToolSlotDisplay();
         }
 
         /// <summary>
@@ -1026,120 +1223,168 @@ namespace GalacticFishing.Minigames.HexWorld
             if (processorCtrl == null) return;
 
             var toolType = processorCtrl.ToolSlotType;
+            var compatibleTools = HexWorldToolCatalog.GetToolsForSlot(toolType);
+            var wh = EnsureWarehouseReference();
 
-            // Get available tools of this type from warehouse
-            int toolCount = warehouse?.Get(toolType) ?? 0;
-
-            if (toolCount <= 0)
+            if (compatibleTools.Count == 0)
             {
-                var noToolsLabel = new Label($"No {FormatToolTypeName(toolType)} in warehouse");
-                noToolsLabel.style.color = new Color(0.6f, 0.5f, 0.5f);
-                noToolsLabel.style.paddingTop = 12;
-                noToolsLabel.style.paddingBottom = 12;
-                noToolsLabel.style.paddingLeft = 10;
-                noToolsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                _toolboxList.Add(noToolsLabel);
+                AddNoToolsLabel(toolType);
                 return;
             }
 
-            // Get tool quality from PlayerProgressManager
-            string toolMaterialId = toolType.ToString();
-            int toolQuality = PlayerProgressManager.Instance?.GetMaterialQuality(toolMaterialId) ?? 0;
+            bool anyTools = false;
 
-            // Create selectable tool entry
-            var toolRow = new VisualElement();
-            toolRow.style.flexDirection = FlexDirection.Row;
-            toolRow.style.justifyContent = Justify.SpaceBetween;
-            toolRow.style.alignItems = Align.Center;
-            toolRow.style.paddingTop = 8;
-            toolRow.style.paddingBottom = 8;
-            toolRow.style.paddingLeft = 10;
-            toolRow.style.paddingRight = 10;
-            toolRow.style.backgroundColor = new Color(0.15f, 0.15f, 0.18f);
-            toolRow.style.marginTop = 2;
-            toolRow.style.marginBottom = 2;
-            toolRow.style.marginLeft = 4;
-            toolRow.style.marginRight = 4;
-            toolRow.style.borderTopLeftRadius = 4;
-            toolRow.style.borderTopRightRadius = 4;
-            toolRow.style.borderBottomLeftRadius = 4;
-            toolRow.style.borderBottomRightRadius = 4;
-
-            var toolLabel = new Label($"{FormatToolTypeName(toolType)} (x{toolCount})");
-            toolLabel.style.color = new Color(0.9f, 0.9f, 0.9f);
-            toolLabel.style.flexGrow = 1;
-
-            var qualityLabel = new Label($"Q{toolQuality}");
-            qualityLabel.style.color = toolQuality > processorCtrl.InstalledToolQuality
-                ? new Color(0.4f, 0.9f, 0.4f)  // Green if better
-                : new Color(0.9f, 0.9f, 0.9f); // White otherwise
-            qualityLabel.style.minWidth = 40;
-            qualityLabel.style.unityTextAlign = TextAnchor.MiddleRight;
-
-            var selectBtn = new Button(() => SelectTool(toolType, toolQuality));
-            selectBtn.text = "EQUIP";
-            selectBtn.style.marginLeft = 8;
-            selectBtn.style.paddingLeft = 12;
-            selectBtn.style.paddingRight = 12;
-            selectBtn.style.backgroundColor = new Color(0.2f, 0.4f, 0.6f);
-            selectBtn.style.color = Color.white;
-            selectBtn.style.borderTopLeftRadius = 4;
-            selectBtn.style.borderTopRightRadius = 4;
-            selectBtn.style.borderBottomLeftRadius = 4;
-            selectBtn.style.borderBottomRightRadius = 4;
-
-            // Disable if same or lower quality
-            if (toolQuality <= processorCtrl.InstalledToolQuality)
+            for (int i = 0; i < compatibleTools.Count; i++)
             {
-                selectBtn.SetEnabled(false);
-                selectBtn.style.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+                var toolDef = compatibleTools[i];
+                int toolCount = wh != null ? wh.Get(toolDef.ToolId) : 0;
+                if (toolCount <= 0)
+                    continue;
+
+                anyTools = true;
+
+                var toolRow = new VisualElement();
+                toolRow.style.flexDirection = FlexDirection.Row;
+                toolRow.style.justifyContent = Justify.SpaceBetween;
+                toolRow.style.alignItems = Align.Center;
+                toolRow.style.paddingTop = 8;
+                toolRow.style.paddingBottom = 8;
+                toolRow.style.paddingLeft = 10;
+                toolRow.style.paddingRight = 10;
+                toolRow.style.backgroundColor = new Color(0.15f, 0.15f, 0.18f);
+                toolRow.style.marginTop = 2;
+                toolRow.style.marginBottom = 2;
+                toolRow.style.marginLeft = 4;
+                toolRow.style.marginRight = 4;
+                toolRow.style.borderTopLeftRadius = 4;
+                toolRow.style.borderTopRightRadius = 4;
+                toolRow.style.borderBottomLeftRadius = 4;
+                toolRow.style.borderBottomRightRadius = 4;
+
+                var toolLabel = new Label($"{toolDef.DisplayName} (x{toolCount})");
+                toolLabel.style.color = new Color(0.9f, 0.9f, 0.9f);
+                toolLabel.style.flexGrow = 1;
+
+                var qualityLabel = new Label($"Q{toolDef.Quality}");
+                if (toolDef.Quality > processorCtrl.InstalledToolQuality)
+                    qualityLabel.style.color = new Color(0.4f, 0.9f, 0.4f);
+                else if (toolDef.Quality < processorCtrl.InstalledToolQuality)
+                    qualityLabel.style.color = new Color(0.9f, 0.6f, 0.4f);
+                else
+                    qualityLabel.style.color = new Color(0.9f, 0.9f, 0.9f);
+                qualityLabel.style.minWidth = 40;
+                qualityLabel.style.unityTextAlign = TextAnchor.MiddleRight;
+
+                var selectBtn = new Button(() => SelectTool(toolDef.ToolId));
+                selectBtn.text = "EQUIP";
+                selectBtn.style.marginLeft = 8;
+                selectBtn.style.paddingLeft = 12;
+                selectBtn.style.paddingRight = 12;
+                selectBtn.style.backgroundColor = new Color(0.2f, 0.4f, 0.6f);
+                selectBtn.style.color = Color.white;
+                selectBtn.style.borderTopLeftRadius = 4;
+                selectBtn.style.borderTopRightRadius = 4;
+                selectBtn.style.borderBottomLeftRadius = 4;
+                selectBtn.style.borderBottomRightRadius = 4;
+
+                toolRow.Add(toolLabel);
+                toolRow.Add(qualityLabel);
+                toolRow.Add(selectBtn);
+
+                toolRow.RegisterCallback<MouseEnterEvent>(e =>
+                    toolRow.style.backgroundColor = new Color(0.2f, 0.2f, 0.25f));
+                toolRow.RegisterCallback<MouseLeaveEvent>(e =>
+                    toolRow.style.backgroundColor = new Color(0.15f, 0.15f, 0.18f));
+
+                _toolboxList.Add(toolRow);
             }
 
-            toolRow.Add(toolLabel);
-            toolRow.Add(qualityLabel);
-            toolRow.Add(selectBtn);
+            if (!anyTools)
+            {
+                AddNoToolsLabel(toolType);
+            }
+        }
 
-            // Hover effect
-            toolRow.RegisterCallback<MouseEnterEvent>(e =>
-                toolRow.style.backgroundColor = new Color(0.2f, 0.2f, 0.25f));
-            toolRow.RegisterCallback<MouseLeaveEvent>(e =>
-                toolRow.style.backgroundColor = new Color(0.15f, 0.15f, 0.18f));
+        private void AddNoToolsLabel(HexWorldResourceId toolType)
+        {
+            if (_toolboxList == null) return;
 
-            _toolboxList.Add(toolRow);
+            string toolName = HexWorldToolCatalog.GetDisplayName(toolType);
+            var noToolsLabel = new Label($"No {toolName} tools in warehouse");
+            noToolsLabel.style.color = new Color(0.6f, 0.5f, 0.5f);
+            noToolsLabel.style.paddingTop = 12;
+            noToolsLabel.style.paddingBottom = 12;
+            noToolsLabel.style.paddingLeft = 10;
+            noToolsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            _toolboxList.Add(noToolsLabel);
         }
 
         /// <summary>
         /// Handles selecting a tool from the toolbox.
         /// Updates the processor's installed tool quality and removes the tool from warehouse.
         /// </summary>
-        private void SelectTool(HexWorldResourceId toolType, int toolQuality)
+        private void SelectTool(HexWorldResourceId toolId)
         {
             var processorCtrl = GetProcessorController();
             if (processorCtrl == null) return;
 
-            // Remove tool from warehouse
-            if (warehouse != null && warehouse.TryRemove(toolType, 1))
+            if (!HexWorldToolCatalog.TryGetTool(toolId, out var toolDef))
             {
-                // Update processor's installed tool quality
-                processorCtrl.InstalledToolQuality = toolQuality;
-
-                // Close toolbox
-                _toolboxOpen = false;
-                if (_toolboxPopup != null)
-                    _toolboxPopup.style.display = DisplayStyle.None;
-
-                // Refresh the tool slot display
-                RefreshToolSlotDisplay();
-
-                // Refresh processor stats to show updated quality transformation
-                PopulateProcessorStats();
-
-                Debug.Log($"[ContextMenu] Equipped {toolType} Q{toolQuality} to {_currentTarget?.buildingName}");
+                Debug.LogWarning($"[ContextMenu] Unknown tool selected: {toolId}");
+                return;
             }
-            else
+
+            if (toolDef.SlotType != processorCtrl.ToolSlotType)
             {
-                Debug.LogWarning($"[ContextMenu] Failed to remove {toolType} from warehouse");
+                Debug.LogWarning($"[ContextMenu] {toolId} is incompatible with {processorCtrl.ToolSlotType}");
+                return;
             }
+
+            var wh = EnsureWarehouseReference();
+            if (wh == null)
+            {
+                Debug.LogWarning($"[ContextMenu] No warehouse found to equip {toolId}");
+                return;
+            }
+
+            HexWorldResourceId previousToolId = processorCtrl.InstalledToolId;
+            bool returnedPrevious = false;
+
+            if (previousToolId != HexWorldResourceId.None)
+            {
+                if (!wh.TryAdd(previousToolId, 1))
+                {
+                    Debug.LogWarning($"[ContextMenu] Warehouse full, cannot unequip {previousToolId}");
+                    return;
+                }
+                returnedPrevious = true;
+            }
+
+            if (!wh.TryRemove(toolId, 1))
+            {
+                if (returnedPrevious)
+                {
+                    // Revert the add attempt so counts stay consistent
+                    if (!wh.TryRemove(previousToolId, 1))
+                    {
+                        Debug.LogWarning($"[ContextMenu] Failed to revert previous tool return for {previousToolId}");
+                    }
+                }
+
+                Debug.LogWarning($"[ContextMenu] Failed to remove {toolId} from warehouse");
+                return;
+            }
+
+            processorCtrl.InstallTool(toolId, toolDef.Quality);
+
+            _toolboxOpen = false;
+            if (_toolboxPopup != null)
+                _toolboxPopup.style.display = DisplayStyle.None;
+
+            RefreshToolSlotDisplay();
+            PopulateProcessorStats();
+
+            Debug.Log($"[ContextMenu] Equipped {toolDef.DisplayName} Q{toolDef.Quality} to {_currentTarget?.buildingName}");
         }
 
         /// <summary>
@@ -1151,7 +1396,10 @@ namespace GalacticFishing.Minigames.HexWorld
             if (processorCtrl == null) return;
 
             int quality = Mathf.RoundToInt(processorCtrl.InstalledToolQuality);
-            string toolTypeName = FormatToolTypeName(processorCtrl.ToolSlotType);
+            HexWorldResourceId displayToolId = processorCtrl.InstalledToolId != HexWorldResourceId.None
+                ? processorCtrl.InstalledToolId
+                : processorCtrl.ToolSlotType;
+            string toolTypeName = HexWorldToolCatalog.GetDisplayName(displayToolId);
 
             if (_toolSlotLabel != null)
                 _toolSlotLabel.text = $"{toolTypeName} (Q{quality})";
@@ -1173,6 +1421,51 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void PopulateTileStatsView(HexWorldTileStyle style)
         {
+            if (_tileTerrain != null)
+                _tileTerrain.text = style != null ? style.terrainType.ToString() : "Unknown";
+
+            if (_tileTier != null)
+                _tileTier.text = style != null ? style.category.ToString() : "Unknown";
+
+            if (_tileDescription != null)
+            {
+                if (style != null)
+                {
+                    string tileName = !string.IsNullOrWhiteSpace(style.displayName) ? style.displayName : style.name;
+                    _tileDescription.text = tileName;
+                }
+                else
+                {
+                    _tileDescription.text = string.Empty;
+                }
+            }
+
+            if (_tileEffectsList != null)
+            {
+                _tileEffectsList.Clear();
+                if (style != null && style.properties != null && style.properties.Count > 0)
+                {
+                    for (int i = 0; i < style.properties.Count; i++)
+                    {
+                        var prop = style.properties[i];
+                        var row = new VisualElement();
+                        row.style.flexDirection = FlexDirection.Row;
+                        row.style.justifyContent = Justify.SpaceBetween;
+
+                        var label = new Label(prop.label ?? "Property");
+                        label.style.flexGrow = 1;
+                        var value = new Label(prop.value ?? "-");
+                        row.Add(label);
+                        row.Add(value);
+                        _tileEffectsList.Add(row);
+                    }
+                }
+                else if (style != null)
+                {
+                    _tileEffectsList.Add(new Label("No tile effects"));
+                }
+            }
+
             if (style != null)
             {
                 // Row 1: Terrain Type
@@ -1293,6 +1586,21 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
+            // Check if building is a Hunter Lodge - show MANAGE TRAILS button
+            if (IsHunterBuilding())
+            {
+                ConfigureHunterButton();
+                ConfigureUpgradeButtonsStartingAt(1);
+                return;
+            }
+
+            if (IsHerbalistBuilding())
+            {
+                ConfigureHerbalistButton();
+                ConfigureUpgradeButtonsStartingAt(1);
+                return;
+            }
+
             // Check if building is a Processor - show VIEW PROCESSOR / CHANGE RECIPE button (TICKET 22)
             if (IsProcessorBuilding())
             {
@@ -1356,6 +1664,10 @@ namespace GalacticFishing.Minigames.HexWorld
             return buildingName.IndexOf("quarry", System.StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        
+        private static readonly string[] ForestryInternalNames = { "Building_Lumberyard", "ForestryStation", "Lumberyard" };
+        private const string HunterInternalName = "Building_HunterLodge";
+
         /// <summary>
         /// Checks if the current building is a Forestry Station (case-insensitive).
         /// Matches "lumberyard" or "forestry" in the building name.
@@ -1367,8 +1679,36 @@ namespace GalacticFishing.Minigames.HexWorld
             string buildingName = _currentTarget.buildingName;
             if (string.IsNullOrEmpty(buildingName)) return false;
 
+            for (int i = 0; i < ForestryInternalNames.Length; i++)
+            {
+                if (string.Equals(buildingName, ForestryInternalNames[i], System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
             return buildingName.IndexOf("lumberyard", System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                    buildingName.IndexOf("forestry", System.StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private bool IsHunterBuilding()
+        {
+            if (_currentTarget == null) return false;
+
+            string buildingName = _currentTarget.buildingName;
+            if (string.IsNullOrEmpty(buildingName)) return false;
+
+            return string.Equals(buildingName, HunterInternalName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsHerbalistBuilding()
+        {
+            if (_currentTarget == null || _currentBuildingDef == null) return false;
+            if (_currentBuildingDef.kind != HexWorldBuildingDefinition.BuildingKind.Producer) return false;
+
+            string buildingName = _currentTarget.buildingName;
+            if (string.IsNullOrEmpty(buildingName)) return false;
+
+            return string.Equals(buildingName, "Building_Herbalist", StringComparison.Ordinal) ||
+                   string.Equals(buildingName, "Greenhouse", StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -1376,8 +1716,11 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private bool IsProcessorBuilding()
         {
-            if (_currentBuildingDef == null) return false;
-            return _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Processor;
+            if (_currentBuildingDef != null && _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.Processor)
+                return true;
+
+            if (_currentTarget == null) return false;
+            return _currentTarget.GetComponent<HexWorldProcessorController>() != null;
         }
 
         /// <summary>
@@ -1394,7 +1737,7 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private bool HasMinigameButton()
         {
-            return IsQuarryBuilding() || IsForestryBuilding() || IsProcessorBuilding();
+            return IsQuarryBuilding() || IsForestryBuilding() || IsHunterBuilding() || IsHerbalistBuilding() || IsProcessorBuilding();
         }
 
         /// <summary>
@@ -1419,6 +1762,21 @@ namespace GalacticFishing.Minigames.HexWorld
             _button1.style.display = DisplayStyle.Flex;
         }
 
+        private void ConfigureHunterButton()
+        {
+            if (_button1 == null) return;
+
+            _button1.text = "MANAGE TRAILS";
+            _button1.style.display = DisplayStyle.Flex;
+        }
+
+        private void ConfigureHerbalistButton()
+        {
+            if (_button1 == null) return;
+            _button1.text = "MANAGE GREENHOUSE";
+            _button1.style.display = DisplayStyle.Flex;
+        }
+
         /// <summary>
         /// Configures buttons for Processor buildings (TICKET 22).
         /// Shows PROCESS NOW as primary action, and CHANGE RECIPE if multiple recipes supported.
@@ -1426,26 +1784,189 @@ namespace GalacticFishing.Minigames.HexWorld
         private void ConfigureProcessorButtons()
         {
             var processorCtrl = GetProcessorController();
+            var buildingInstance = _currentTarget;
+            bool coolingDown = buildingInstance != null && buildingInstance.GetRelocationCooldown() > 0f;
+            bool hasRecipe = processorCtrl != null && processorCtrl.ActiveRecipe != null;
 
             // Button1: PROCESS NOW (manual trigger)
             if (_button1 != null)
             {
-                if (processorCtrl != null && processorCtrl.CanConvert())
-                {
-                    _button1.text = "PROCESS NOW";
-                    _button1.SetEnabled(true);
-                }
-                else
-                {
-                    _button1.text = "PROCESS NOW";
-                    _button1.SetEnabled(false);
-                }
+                bool canProcess = hasRecipe && processorCtrl.CanConvert() && !coolingDown;
+                _button1.text = coolingDown ? "COOLDOWN" : "PROCESS NOW";
+                _button1.SetEnabled(canProcess);
                 _button1.style.display = DisplayStyle.Flex;
             }
 
-            // Button2: CHANGE RECIPE (if processor supports multiple recipes - placeholder for future)
-            // For now, we'll just show upgrades starting at button2
-            ConfigureUpgradeButtonsStartingAt(1);
+            _button2IsRecipeButton = false;
+
+            bool hasMultipleRecipes = processorCtrl?.AvailableRecipes != null &&
+                                      processorCtrl.AvailableRecipes.Count > 1;
+
+            if (hasMultipleRecipes && _button2 != null)
+            {
+                _button2.text = "CHANGE RECIPE";
+                _button2.SetEnabled(true);
+                _button2.style.display = DisplayStyle.Flex;
+                _button2IsRecipeButton = true;
+                ConfigureUpgradeButtonsStartingAt(2);
+            }
+            else
+            {
+                HideRecipePopup();
+                ConfigureUpgradeButtonsStartingAt(1);
+            }
+        }
+
+        private void ToggleRecipePopup()
+        {
+            if (_recipePopupOpen)
+            {
+                HideRecipePopup();
+            }
+            else
+            {
+                ShowRecipePopup();
+            }
+        }
+
+        private void ShowRecipePopup()
+        {
+            var processorCtrl = GetProcessorController();
+            if (processorCtrl == null) return;
+
+            EnsureRecipePopupElements();
+            PopulateRecipePopup(processorCtrl);
+
+            if (_recipePopup != null)
+                _recipePopup.style.display = DisplayStyle.Flex;
+
+            _recipePopupOpen = true;
+        }
+
+        private void HideRecipePopup()
+        {
+            if (_recipePopup != null)
+                _recipePopup.style.display = DisplayStyle.None;
+
+            if (_recipeList != null)
+                _recipeList.Clear();
+
+            _recipePopupOpen = false;
+        }
+
+        private void EnsureRecipePopupElements()
+        {
+            if (_recipePopup != null && _recipeList != null)
+                return;
+
+            _recipePopup = new VisualElement();
+            _recipePopup.style.display = DisplayStyle.None;
+            _recipePopup.style.backgroundColor = new Color(0.12f, 0.12f, 0.15f);
+            _recipePopup.style.marginTop = 4;
+            _recipePopup.style.paddingTop = 6;
+            _recipePopup.style.paddingBottom = 6;
+            _recipePopup.style.paddingLeft = 10;
+            _recipePopup.style.paddingRight = 10;
+            _recipePopup.style.borderTopLeftRadius = 4;
+            _recipePopup.style.borderTopRightRadius = 4;
+            _recipePopup.style.borderBottomLeftRadius = 4;
+            _recipePopup.style.borderBottomRightRadius = 4;
+            _recipePopup.style.maxHeight = 180;
+
+            _recipeList = new ScrollView(ScrollViewMode.Vertical);
+            _recipeList.style.flexGrow = 1;
+            _recipePopup.Add(_recipeList);
+
+            var anchor = _buttonsSection ?? _contextMenuRoot;
+            anchor?.Add(_recipePopup);
+        }
+
+        private void PopulateRecipePopup(HexWorldProcessorController processorCtrl)
+        {
+            if (_recipeList == null) return;
+            _recipeList.Clear();
+
+            var recipes = processorCtrl.AvailableRecipes;
+            if (recipes == null || recipes.Count == 0)
+            {
+                var noRecipesLabel = new Label("No recipes available");
+                noRecipesLabel.style.color = new Color(0.7f, 0.5f, 0.5f);
+                noRecipesLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                noRecipesLabel.style.paddingTop = 8;
+                noRecipesLabel.style.paddingBottom = 8;
+                _recipeList.Add(noRecipesLabel);
+                return;
+            }
+
+            int activeIndex = processorCtrl.ActiveRecipeIndex;
+
+            for (int i = 0; i < recipes.Count; i++)
+            {
+                var recipe = recipes[i];
+                if (recipe == null) continue;
+                int recipeIndex = i;
+
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.justifyContent = Justify.SpaceBetween;
+                row.style.paddingTop = 6;
+                row.style.paddingBottom = 6;
+                row.style.paddingLeft = 8;
+                row.style.paddingRight = 8;
+                row.style.marginBottom = 4;
+                row.style.backgroundColor = new Color(0.15f, 0.15f, 0.18f);
+                row.style.borderTopLeftRadius = 4;
+                row.style.borderTopRightRadius = 4;
+                row.style.borderBottomLeftRadius = 4;
+                row.style.borderBottomRightRadius = 4;
+
+                string recipeName = !string.IsNullOrWhiteSpace(recipe.name) ? recipe.name : $"Recipe {i + 1}";
+                var nameLabel = new Label(recipeName);
+                nameLabel.style.color = new Color(0.9f, 0.9f, 0.9f);
+                nameLabel.style.flexGrow = 1;
+
+                var inputs = recipe.GetAllInputs();
+                string summary = inputs != null && inputs.Length > 0
+                    ? string.Join(" + ", Array.ConvertAll(inputs, input => $"{input.amount} {input.id}"))
+                    : "No inputs";
+                var summaryLabel = new Label($"{summary} → {recipe.outputId}");
+                summaryLabel.style.color = new Color(0.7f, 0.7f, 0.7f);
+                summaryLabel.style.flexGrow = 1;
+                summaryLabel.style.marginLeft = 6;
+
+                var selectBtn = new Button(() => SelectProcessorRecipe(recipeIndex));
+                bool isActive = recipeIndex == activeIndex;
+                selectBtn.text = isActive ? "ACTIVE" : "SET";
+                selectBtn.SetEnabled(!isActive);
+                selectBtn.style.marginLeft = 8;
+                selectBtn.style.paddingLeft = 10;
+                selectBtn.style.paddingRight = 10;
+                selectBtn.style.backgroundColor = isActive ? new Color(0.2f, 0.6f, 0.3f) : new Color(0.2f, 0.4f, 0.6f);
+                selectBtn.style.color = Color.white;
+
+                row.Add(nameLabel);
+                row.Add(summaryLabel);
+                row.Add(selectBtn);
+
+                _recipeList.Add(row);
+            }
+        }
+
+        private void SelectProcessorRecipe(int recipeIndex)
+        {
+            var processorCtrl = GetProcessorController();
+            if (processorCtrl == null) return;
+
+            processorCtrl.SetActiveRecipe(recipeIndex);
+            HideRecipePopup();
+
+            PopulateProcessorStats();
+            ConfigureProcessorButtons();
+
+            if (_synergyListScroll != null)
+                _synergyListScroll.Clear();
+            PopulateProcessorRecipeInfo();
         }
 
         /// <summary>
@@ -1481,6 +2002,9 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_button1 != null) _button1.style.display = DisplayStyle.None;
             if (_button2 != null) _button2.style.display = DisplayStyle.None;
             if (_button3 != null) _button3.style.display = DisplayStyle.None;
+            if (_buttonRemove != null) _buttonRemove.style.display = DisplayStyle.None;
+            _button2IsRecipeButton = false;
+            HideRecipePopup();
         }
 
         private static string FormatUpgradeCost(HexWorldUpgradeDefinition up)
@@ -1513,7 +2037,14 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void ConfigureActiveToggles(HexWorldBuildingInstance target)
         {
-            if (_toggleBuildingActiveYes == null || _toggleBuildingActiveNo == null) return;
+            if (_toggleBuildingActive != null)
+            {
+                _toggleBuildingActive.style.display = DisplayStyle.Flex;
+                _toggleBuildingActive.SetValueWithoutNotify(target.IsActive);
+            }
+
+            if (_toggleBuildingActiveYes == null || _toggleBuildingActiveNo == null)
+                return;
 
             // Show the toggles
             _toggleBuildingActiveYes.style.display = DisplayStyle.Flex;
@@ -1522,6 +2053,20 @@ namespace GalacticFishing.Minigames.HexWorld
             // Set current state without triggering callbacks
             _toggleBuildingActiveYes.SetValueWithoutNotify(target.IsActive);
             _toggleBuildingActiveNo.SetValueWithoutNotify(!target.IsActive);
+        }
+
+        private void OnToggleActiveChanged(ChangeEvent<bool> evt)
+        {
+            if (_currentTarget == null || controller == null) return;
+
+            if (evt.newValue != _currentTarget.IsActive)
+            {
+                controller.TryToggleBuildingActiveAtCoord(_currentTarget.Coord);
+            }
+
+            SyncActiveToggles();
+            PopulateBuildingStats();
+            PopulateSynergyChecklist();
         }
 
         private void OnToggleActiveYesChanged(ChangeEvent<bool> evt)
@@ -1571,6 +2116,7 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (_currentTarget == null) return;
 
+            _toggleBuildingActive?.SetValueWithoutNotify(_currentTarget.IsActive);
             _toggleBuildingActiveYes?.SetValueWithoutNotify(_currentTarget.IsActive);
             _toggleBuildingActiveNo?.SetValueWithoutNotify(!_currentTarget.IsActive);
         }
@@ -1598,6 +2144,18 @@ namespace GalacticFishing.Minigames.HexWorld
             }
         }
 
+        private void OnTabBuildingClicked(ClickEvent evt)
+        {
+            if (_currentBuildingDef == null) return;
+            ShowBuildingView();
+        }
+
+        private void OnTabTileClicked(ClickEvent evt)
+        {
+            if (_currentTileStyle == null && _currentTarget == null) return;
+            ShowTileStatsView();
+        }
+
         private void OnButton1Clicked(ClickEvent evt)
         {
             // Check if this is a Quarry building - open drill UI instead of purchasing upgrade
@@ -1611,6 +2169,18 @@ namespace GalacticFishing.Minigames.HexWorld
             if (IsForestryBuilding())
             {
                 OpenForestryMinigame();
+                return;
+            }
+
+            if (IsHunterBuilding())
+            {
+                OpenHunterMinigame();
+                return;
+            }
+
+            if (IsHerbalistBuilding())
+            {
+                OpenHerbalistMinigame();
                 return;
             }
 
@@ -1666,7 +2236,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Auto-find QuarryMinigameUI if not assigned
             if (quarryMinigameUI == null)
             {
-                quarryMinigameUI = FindObjectOfType<QuarryMinigameUI>(true);
+                quarryMinigameUI = UnityEngine.Object.FindObjectOfType<QuarryMinigameUI>(true);
                 if (quarryMinigameUI == null)
                 {
                     Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Could not find QuarryMinigameUI in scene.");
@@ -1699,7 +2269,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Auto-find ForestryMinigameUI if not assigned
             if (forestryMinigameUI == null)
             {
-                forestryMinigameUI = FindObjectOfType<ForestryMinigameUI>(true);
+                forestryMinigameUI = UnityEngine.Object.FindObjectOfType<ForestryMinigameUI>(true);
                 if (forestryMinigameUI == null)
                 {
                     Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Could not find ForestryMinigameUI in scene.");
@@ -1714,8 +2284,64 @@ namespace GalacticFishing.Minigames.HexWorld
             Hide();
         }
 
+        private void OpenHunterMinigame()
+        {
+            if (_currentTarget == null) return;
+
+            var hunterController = _currentTarget.GetComponent<HunterMinigameController>();
+            if (hunterController == null)
+            {
+                Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Hunter building has no HunterMinigameController: {_currentTarget.buildingName}");
+                return;
+            }
+
+            if (hunterMinigameUI == null)
+            {
+                hunterMinigameUI = UnityEngine.Object.FindObjectOfType<HunterMinigameUI>(true);
+                if (hunterMinigameUI == null)
+                {
+                    Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Could not find HunterMinigameUI in scene.");
+                    return;
+                }
+            }
+
+            hunterMinigameUI.Show(hunterController);
+            Hide();
+        }
+
+        private void OpenHerbalistMinigame()
+        {
+            if (_currentTarget == null) return;
+
+            var herbalistController = _currentTarget.GetComponent<HerbalistMinigameController>();
+            if (herbalistController == null)
+            {
+                Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Herbalist building missing controller: {_currentTarget.buildingName}");
+                return;
+            }
+
+            if (herbalistMinigameUI == null)
+            {
+                herbalistMinigameUI = UnityEngine.Object.FindObjectOfType<HerbalistMinigameUI>(true);
+                if (herbalistMinigameUI == null)
+                {
+                    Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Could not find HerbalistMinigameUI in scene.");
+                    return;
+                }
+            }
+
+            herbalistMinigameUI.Show(herbalistController);
+            Hide();
+        }
+
         private void OnButton2Clicked(ClickEvent evt)
         {
+            if (_button2IsRecipeButton)
+            {
+                ToggleRecipePopup();
+                return;
+            }
+
             // For minigame buildings (Quarry, Forestry), Button2 is the first upgrade (index 0)
             // For other buildings, Button2 is the second upgrade (index 1)
             int upgradeIndex = HasMinigameButton() ? 0 : 1;
@@ -1728,6 +2354,12 @@ namespace GalacticFishing.Minigames.HexWorld
             // For other buildings, Button3 is the third upgrade (index 2)
             int upgradeIndex = HasMinigameButton() ? 1 : 2;
             TryPurchaseUpgrade(upgradeIndex);
+        }
+
+        private void OnRemoveButtonClicked(ClickEvent evt)
+        {
+            // Scene removal remains controller-driven through placement mode; avoid destructive operations here.
+            Hide();
         }
 
         private void TryPurchaseUpgrade(int index)

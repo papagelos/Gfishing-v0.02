@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/Panels/Material_Quality.uss?fileID=7433441132597879392&amp;guid=725279ccb783e0b4094e00c9d6a5fda7&amp;type=3#Material_Quality" />
-    <ui:VisualElement name="MaterialQualityRoot" class="mq-overlay">
+    <ui:VisualElement name="MaterialQualityRoot" class="mq-overlay" picking-mode="Ignore">
         <ui:VisualElement name="MaterialQualityBackdrop" class="mq-backdrop" />
         <ui:VisualElement name="MaterialQualityPanel" class="mq-panel">
             <ui:VisualElement name="Header" class="mq-header">

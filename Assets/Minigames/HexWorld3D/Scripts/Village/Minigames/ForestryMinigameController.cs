@@ -129,10 +129,10 @@ namespace GalacticFishing.Minigames.HexWorld
         private void Start()
         {
             // Cache controller reference
-            _controller = FindObjectOfType<HexWorld3DController>(true);
+            _controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
 
             // Subscribe to production tick
-            var ticker = FindObjectOfType<HexWorldProductionTicker>(true);
+            var ticker = UnityEngine.Object.FindObjectOfType<HexWorldProductionTicker>(true);
             if (ticker != null)
             {
                 ticker.TickCompleted += OnProductionTick;
@@ -141,7 +141,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void OnDestroy()
         {
-            var ticker = FindObjectOfType<HexWorldProductionTicker>(true);
+            var ticker = UnityEngine.Object.FindObjectOfType<HexWorldProductionTicker>(true);
             if (ticker != null)
             {
                 ticker.TickCompleted -= OnProductionTick;
@@ -173,6 +173,8 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (_buildingInstance != null && !_buildingInstance.IsActive)
                 return; // Skip if building is dormant
+            if (_buildingInstance != null && _buildingInstance.GetRelocationCooldown() > 0f)
+                return; // Skip while relocation cooldown is active
 
             float growthAmount = CalculateGrowthAmount();
             int totalWood = 0;
@@ -456,7 +458,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Add to warehouse
             if (totalWood > 0 || totalFiber > 0)
             {
-                var warehouse = FindObjectOfType<HexWorldWarehouseInventory>(true);
+                var warehouse = UnityEngine.Object.FindObjectOfType<HexWorldWarehouseInventory>(true);
                 if (warehouse != null)
                 {
                     if (totalWood > 0) warehouse.TryAdd(HexWorldResourceId.Wood, totalWood);

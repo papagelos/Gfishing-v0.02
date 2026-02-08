@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/Panels/Town_Infrastructure.uss?fileID=7433441132597879392&amp;guid=c8272cadfefb0384b8add9013999afcb&amp;type=3#Town_Infrastructure" />
-    <ui:VisualElement name="PlacementHoverCard" picking-mode="Ignore" class="ti-hover">
+    <ui:VisualElement name="PlacementHoverCard" class="ti-hover">
         <ui:VisualElement class="ti-hover-header">
             <ui:Label name="HoverNameLabel" text="Lumber Mill" class="ti-hover-title" />
             <ui:Label name="HoverDeltaLabel" text="+12 infra" class="ti-hover-delta is-pos" />

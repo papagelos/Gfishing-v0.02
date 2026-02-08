@@ -1,0 +1,35 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="HunterTrailRoot" class="fp-overlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; visibility: hidden;">
+        <ui:VisualElement name="HunterTrailBackdrop" class="fp-backdrop" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6);" />
+        <ui:VisualElement name="HunterTrailPanel" class="fp-panel" style="position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 520px; background-color: rgb(35, 38, 45); border-radius: 8px; padding: 16px;">
+            <ui:VisualElement name="TrailHeader" style="flex-direction: row; justify-content: space-between; margin-bottom: 12px;">
+                <ui:VisualElement>
+                    <ui:Label text="HUNTER LODGE" style="font-size: 18px; color: white; -unity-font-style: bold;" />
+                    <ui:Label text="Trail Board • Manage capture focus" style="font-size: 12px; color: rgb(180, 180, 180);" />
+                </ui:VisualElement>
+                <ui:Button name="Btn_CloseTrail" text="X" style="width: 28px; height: 28px; font-size: 14px;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="TrailBody" style="flex-direction: column; gap: 10px;">
+                <ui:VisualElement class="fp-card" style="background-color: rgb(50, 55, 65); border-radius: 6px; padding: 12px;">
+                    <ui:Label text="CAPTURE PROGRESS" style="font-size: 11px; color: rgb(150, 150, 150); margin-bottom: 6px;" />
+                    <ui:ProgressBar name="TrailProgressBar" low-value="0" high-value="100" value="0" style="height: 20px;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="fp-card" style="background-color: rgb(50, 55, 65); border-radius: 6px; padding: 12px;">
+                    <ui:Label text="TRAIL FOCUS" style="font-size: 11px; color: rgb(150, 150, 150); margin-bottom: 6px;" />
+                    <ui:VisualElement style="flex-direction: row; gap: 6px;">
+                        <ui:Button name="Btn_TrailBalanced" text="BALANCED" style="flex: 1; height: 32px;" />
+                        <ui:Button name="Btn_TrailHide" text="HIDE FOCUS" style="flex: 1; height: 32px;" />
+                        <ui:Button name="Btn_TrailFeather" text="FEATHER FOCUS" style="flex: 1; height: 32px;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="fp-card" style="background-color: rgb(50, 55, 65); border-radius: 6px; padding: 12px;">
+                    <ui:Label text="EXPECTED YIELD" style="font-size: 11px; color: rgb(150, 150, 150); margin-bottom: 6px;" />
+                    <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
+                        <ui:Label name="TrailHideOutputLabel" text="Raw Hide: 2" style="font-size: 14px; color: rgb(200, 170, 120);" />
+                        <ui:Label name="TrailFeatherOutputLabel" text="Feathers: 1" style="font-size: 14px; color: rgb(200, 200, 130);" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

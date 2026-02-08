@@ -27,6 +27,13 @@ namespace GalacticFishing.Minigames.HexWorld
         [Tooltip("Cosmetic tiles are free visual paints. Gameplay tiles cost resources and affect mechanics.")]
         public TileCategory category = TileCategory.Cosmetic;
 
+        [Tooltip("Minimum Town Hall tier required before this tile appears in progression-aware UI flows.")]
+        [Min(1)]
+        public int unlockTownTier = 1;
+
+        [Tooltip("Placement prerequisites. This tile becomes usable only after all listed buildingName IDs have been placed at least once this session.")]
+        public List<string> requiredBuildingPlacementNames = new List<string>();
+
         [Tooltip("Resources required to paint/place this tile. Empty = free.")]
         public List<HexWorldResourceStack> paintCost = new List<HexWorldResourceStack>();
 

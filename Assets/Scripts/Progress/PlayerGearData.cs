@@ -31,6 +31,11 @@ namespace GalacticFishing.Progress
         /// </summary>
         public List<string> unlockedBoatUpgradeIds = new List<string>();
 
+        /// <summary>
+        /// Canonical building IDs the player has permanently unlocked for the HexWorld palette.
+        /// </summary>
+        public List<string> unlockedBlueprintIds = new List<string>();
+
         // NEW: generic workshop upgrade levels (keyed by WorkshopUpgrade.id)
         public List<LevelEntry> workshopUpgradeLevels = new List<LevelEntry>();
 

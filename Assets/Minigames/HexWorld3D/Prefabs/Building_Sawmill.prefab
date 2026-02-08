@@ -166,6 +166,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 501bf7c0f1cc3df419b7e34a00ee057a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldProcessorController
-  recipe: {fileID: 11400000, guid: 8c581db04de0c8842b81ddf00cee67a7, type: 2}
+  availableRecipes:
+  - {fileID: 11400000, guid: b050e0354ce2429b85b9837ff01245b3, type: 2}
+  legacyRecipe: {fileID: 0}
+  activeRecipeIndex: 0
+  toolSlotType: 50
   installedToolQuality: 10
+  installedToolId: 0
   logProcessing: 0

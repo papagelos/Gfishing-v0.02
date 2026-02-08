@@ -473,8 +473,11 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
 
     private void RefreshAll()
     {
+        var controller = controllerBehaviour as HexWorld3DController;
+
         // Lake name is removed from the bar; do not write anything to _lakeNameLabel.
-        if (_creditsLabel != null) _creditsLabel.text = "Credits: —";
+        if (_creditsLabel != null && controller != null)
+            _creditsLabel.text = $"Credits: {controller.Credits:N0}";
 
         // Ticket 17: IP / QP labels (KEEP prefix text visible)
         long ip = PlayerProgressManager.Instance?.InfrastructurePoints ?? 0;

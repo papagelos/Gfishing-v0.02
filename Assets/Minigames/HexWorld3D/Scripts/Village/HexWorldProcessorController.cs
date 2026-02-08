@@ -1,6 +1,8 @@
 // Assets/Minigames/HexWorld3D/Scripts/Village/HexWorldProcessorController.cs
 using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using GalacticFishing.Progress; 
 using GalacticFishing.UI;
 
@@ -15,11 +17,17 @@ namespace GalacticFishing.Minigames.HexWorld
     /// - If Q_tool < Q_in: Q_out = Q_in - ceil((Q_in - Q_tool) × lossFactor)
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class HexWorldProcessorController : MonoBehaviour
+    public sealed class HexWorldProcessorController : MonoBehaviour, IHexWorldBuildingStateProvider
     {
         [Header("Recipe")]
-        [Tooltip("The recipe this processor uses to convert resources.")]
-        [SerializeField] private ProcessorRecipeDefinition recipe;
+        [Tooltip("All recipes this processor can execute (index 0 is default).")]
+        [SerializeField] private List<ProcessorRecipeDefinition> availableRecipes = new();
+
+        [SerializeField, FormerlySerializedAs("recipe"), HideInInspector]
+        private ProcessorRecipeDefinition legacyRecipe;
+
+        [SerializeField, HideInInspector]
+        private int activeRecipeIndex;
 
         [Header("Tool Slot")]
         [Tooltip("The type of tool this processor requires (e.g., Tool_Saw for Sawmill).")]
@@ -27,6 +35,8 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Tooltip("Quality level of the installed tool (affects output quality).")]
         [SerializeField] private float installedToolQuality = 10f;
+        [Tooltip("Resource ID of the currently installed tool item, if any.")]
+        [SerializeField] private HexWorldResourceId installedToolId = HexWorldResourceId.None;
 
         [Header("Debug")]
         [SerializeField] private bool logProcessing;
@@ -38,9 +48,36 @@ namespace GalacticFishing.Minigames.HexWorld
         private HexWorldBuildingActiveState _activeState;
 
         /// <summary>
-        /// The recipe this processor uses.
+        /// The recipes assigned to this processor.
         /// </summary>
-        public ProcessorRecipeDefinition Recipe => recipe;
+        public IReadOnlyList<ProcessorRecipeDefinition> AvailableRecipes => availableRecipes;
+
+        /// <summary>
+        /// Index of the currently active recipe.
+        /// </summary>
+        public int ActiveRecipeIndex
+        {
+            get
+            {
+                int max = (availableRecipes != null && availableRecipes.Count > 0) ? availableRecipes.Count - 1 : 0;
+                return Mathf.Clamp(activeRecipeIndex, 0, max);
+            }
+        }
+
+        /// <summary>
+        /// The recipe currently selected for this processor (null if none).
+        /// </summary>
+        public ProcessorRecipeDefinition ActiveRecipe
+        {
+            get
+            {
+                if (availableRecipes == null || availableRecipes.Count == 0)
+                    return null;
+
+                int clamped = Mathf.Clamp(activeRecipeIndex, 0, availableRecipes.Count - 1);
+                return availableRecipes[clamped];
+            }
+        }
 
         /// <summary>
         /// The type of tool this processor requires (e.g., Tool_Saw).
@@ -63,6 +100,11 @@ namespace GalacticFishing.Minigames.HexWorld
         }
 
         /// <summary>
+        /// Resource ID for the tool currently installed (or None if the processor is using a baseline tool).
+        /// </summary>
+        public HexWorldResourceId InstalledToolId => installedToolId;
+
+        /// <summary>
         /// Fired when the installed tool quality changes.
         /// </summary>
         public event Action<float> ToolChanged;
@@ -82,6 +124,39 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             _buildingInstance = GetComponent<HexWorldBuildingInstance>();
             _activeState = GetComponent<HexWorldBuildingActiveState>();
+            ClampActiveRecipeIndex();
+        }
+
+        private void OnValidate()
+        {
+            if (availableRecipes == null)
+                availableRecipes = new List<ProcessorRecipeDefinition>();
+
+            if (legacyRecipe != null)
+            {
+                if (availableRecipes.Count == 0)
+                {
+                    availableRecipes.Add(legacyRecipe);
+                }
+                legacyRecipe = null;
+            }
+
+            ClampActiveRecipeIndex();
+        }
+
+        private void ClampActiveRecipeIndex()
+        {
+            if (availableRecipes == null)
+                availableRecipes = new List<ProcessorRecipeDefinition>();
+
+            if (availableRecipes.Count == 0)
+            {
+                activeRecipeIndex = 0;
+            }
+            else
+            {
+                activeRecipeIndex = Mathf.Clamp(activeRecipeIndex, 0, availableRecipes.Count - 1);
+            }
         }
 
         private void OnEnable()
@@ -109,6 +184,11 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_activeState != null && !_activeState.IsActive)
                 return;
 
+            // Respect relocation cooldown so moved/placed processors do not produce immediately.
+            if (_buildingInstance != null && _buildingInstance.GetRelocationCooldown() > 0f)
+                return;
+
+            var recipe = ActiveRecipe;
             if (recipe == null)
             {
                 if (logProcessing)
@@ -131,6 +211,7 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         public void TryProcessConversion()
         {
+            var recipe = ActiveRecipe;
             if (recipe == null || _warehouse == null) return;
 
             var allInputs = recipe.GetAllInputs();
@@ -156,16 +237,25 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
             }
 
-            // Get input material quality (use the first/primary input for quality calculation)
-            var primaryInput = allInputs[0];
-            string inputMaterialId = primaryInput.id.ToString();
-            int inputQuality = PlayerProgressManager.Instance?.GetMaterialQuality(inputMaterialId) ?? 0;
+            int inputQuality = CalculateInputQualityQin(allInputs);
 
             // Calculate output quality using the spec formula
             int outputQuality = CalculateOutputQuality(inputQuality, installedToolQuality, recipe.gainFactor, recipe.lossFactor);
 
-            // Calculate output amount (base amount, could be modified by synergies later)
-            int outputAmount = Mathf.RoundToInt(recipe.baseOutputAmount);
+            float synergyMultiplier = 0f;
+            if (_ticker == null)
+                _ticker = FindObjectOfType<HexWorldProductionTicker>(true);
+
+            if (_ticker != null && _buildingInstance != null)
+            {
+                var buildingDef = ResolveCurrentBuildingDefinition();
+                if (buildingDef != null)
+                {
+                    synergyMultiplier = _ticker.CalculateSynergyBonus(_buildingInstance.Coord, buildingDef);
+                }
+            }
+
+            int outputAmount = Mathf.RoundToInt(recipe.baseOutputAmount * (1f + synergyMultiplier));
             if (outputAmount <= 0) outputAmount = 1;
 
             // Deduct ALL inputs from warehouse
@@ -219,20 +309,27 @@ namespace GalacticFishing.Minigames.HexWorld
         /// <returns>The calculated output quality (clamped to minimum 0).</returns>
         public static int CalculateOutputQuality(int inputQuality, float toolQuality, float gainFactor, float lossFactor)
         {
+            float resolvedGainFactor = (!float.IsNaN(gainFactor) && !float.IsInfinity(gainFactor) && gainFactor > 0f)
+                ? gainFactor
+                : 0.50f;
+            float resolvedLossFactor = (!float.IsNaN(lossFactor) && !float.IsInfinity(lossFactor) && lossFactor > 0f)
+                ? lossFactor
+                : 0.33f;
+
             int outputQuality;
 
             if (toolQuality >= inputQuality)
             {
                 // Tool is good enough - quality improves
                 float diff = toolQuality - inputQuality;
-                int bonus = Mathf.CeilToInt(diff * gainFactor);
+                int bonus = Mathf.CeilToInt(diff * resolvedGainFactor);
                 outputQuality = inputQuality + bonus;
             }
             else
             {
                 // Tool is lower quality than input - quality degrades
                 float diff = inputQuality - toolQuality;
-                int penalty = Mathf.CeilToInt(diff * lossFactor);
+                int penalty = Mathf.CeilToInt(diff * resolvedLossFactor);
                 outputQuality = inputQuality - penalty;
             }
 
@@ -242,17 +339,17 @@ namespace GalacticFishing.Minigames.HexWorld
 
         /// <summary>
         /// Gets a preview of what the output quality would be for the current state.
-        /// Useful for UI display. Uses primary input for quality calculation.
+        /// Useful for UI display.
         /// </summary>
         public int GetPreviewOutputQuality()
         {
+            var recipe = ActiveRecipe;
             if (recipe == null) return 0;
 
             var allInputs = recipe.GetAllInputs();
             if (allInputs.Length == 0) return 0;
 
-            string inputMaterialId = allInputs[0].id.ToString();
-            int inputQuality = PlayerProgressManager.Instance?.GetMaterialQuality(inputMaterialId) ?? 0;
+            int inputQuality = CalculateInputQualityQin(allInputs);
 
             return CalculateOutputQuality(inputQuality, installedToolQuality, recipe.gainFactor, recipe.lossFactor);
         }
@@ -263,6 +360,7 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         public bool CanConvert()
         {
+            var recipe = ActiveRecipe;
             if (recipe == null || _warehouse == null) return false;
 
             var allInputs = recipe.GetAllInputs();
@@ -276,12 +374,46 @@ namespace GalacticFishing.Minigames.HexWorld
         }
 
         /// <summary>
+        /// Sets the active recipe index, clamping to the valid range.
+        /// Switching recipes cancels any pending manual conversion interactions.
+        /// </summary>
+        public void SetActiveRecipe(int index)
+        {
+            if (availableRecipes == null || availableRecipes.Count == 0)
+            {
+                activeRecipeIndex = 0;
+                return;
+            }
+
+            int clamped = Mathf.Clamp(index, 0, availableRecipes.Count - 1);
+            if (clamped == activeRecipeIndex)
+                return;
+
+            activeRecipeIndex = clamped;
+        }
+
+        /// <summary>
+        /// Installs the given tool into this processor while updating the cached quality value.
+        /// </summary>
+        public void InstallTool(HexWorldResourceId toolId, float toolQuality)
+        {
+            installedToolId = toolId;
+            InstalledToolQuality = toolQuality;
+        }
+
+        public void ConfigureToolSlot(HexWorldResourceId slotType)
+        {
+            toolSlotType = slotType;
+        }
+
+        /// <summary>
         /// Gets a status summary for UI display.
         /// Supports multi-input recipes (TICKET 23).
         /// </summary>
         public string GetStatusSummary()
         {
-            if (recipe == null) return "No recipe";
+            var recipe = ActiveRecipe;
+            if (recipe == null) return "No recipe configured";
 
             if (_warehouse == null)
                 _warehouse = FindObjectOfType<HexWorldWarehouseInventory>(true);
@@ -306,9 +438,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // All inputs available - show ready status
-            var primaryInput = allInputs[0];
-            string inputMaterialId = primaryInput.id.ToString();
-            int inputQuality = PlayerProgressManager.Instance?.GetMaterialQuality(inputMaterialId) ?? 0;
+            int inputQuality = CalculateInputQualityQin(allInputs);
             int previewQuality = GetPreviewOutputQuality();
 
             string inputsStr = string.Join(" + ", System.Array.ConvertAll(allInputs, i => $"{i.amount} {i.id}"));
@@ -326,6 +456,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [ContextMenu("Debug: Preview Output Quality")]
         private void DebugPreviewQuality()
         {
+            var recipe = ActiveRecipe;
             if (recipe == null)
             {
                 Debug.Log("[Processor Debug] No recipe assigned.");
@@ -339,8 +470,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            string inputMaterialId = allInputs[0].id.ToString();
-            int inputQuality = PlayerProgressManager.Instance?.GetMaterialQuality(inputMaterialId) ?? 0;
+            int inputQuality = CalculateInputQualityQin(allInputs);
             int outputQuality = GetPreviewOutputQuality();
 
             string inputsStr = string.Join(" + ", System.Array.ConvertAll(allInputs, i => $"{i.amount} {i.id}"));
@@ -348,5 +478,88 @@ namespace GalacticFishing.Minigames.HexWorld
                       $"{recipe.outputId} Q{outputQuality} (gain={recipe.gainFactor}, loss={recipe.lossFactor})");
         }
 #endif
+
+        private static int CalculateInputQualityQin(HexWorldResourceStack[] allInputs)
+        {
+            if (allInputs == null || allInputs.Length == 0)
+                return 0;
+
+            long weightedQualitySum = 0;
+            int totalInputQuantity = 0;
+
+            for (int i = 0; i < allInputs.Length; i++)
+            {
+                var input = allInputs[i];
+                int qty = Mathf.Max(0, input.amount);
+                if (qty <= 0) continue;
+
+                int qi = PlayerProgressManager.Instance?.GetMaterialQuality(input.id.ToString()) ?? 0;
+                weightedQualitySum += (long)qi * qty;
+                totalInputQuantity += qty;
+            }
+
+            if (totalInputQuantity <= 0)
+                return 0;
+
+            return (int)(weightedQualitySum / totalInputQuantity);
+        }
+
+        private HexWorldBuildingDefinition ResolveCurrentBuildingDefinition()
+        {
+            if (_buildingInstance == null)
+                _buildingInstance = GetComponent<HexWorldBuildingInstance>();
+
+            if (_buildingInstance == null || string.IsNullOrWhiteSpace(_buildingInstance.buildingName))
+                return null;
+
+            var controller = FindObjectOfType<HexWorld3DController>(true);
+            return controller != null ? controller.ResolveBuildingByName(_buildingInstance.buildingName) : null;
+        }
+
+        // ─────────────────────────────────────────────────────────────────
+        // IHexWorldBuildingStateProvider
+        // ─────────────────────────────────────────────────────────────────
+
+        [Serializable]
+        private struct ProcessorState
+        {
+            public float installedToolQuality;
+            public HexWorldResourceId installedToolId;
+            public int activeRecipeIndex;
+        }
+
+        public string GetSerializedState()
+        {
+            var state = new ProcessorState
+            {
+                installedToolQuality = installedToolQuality,
+                installedToolId = installedToolId,
+                activeRecipeIndex = ActiveRecipeIndex
+            };
+
+            return JsonUtility.ToJson(state);
+        }
+
+        public void LoadSerializedState(string state)
+        {
+            if (string.IsNullOrEmpty(state))
+                return;
+
+            try
+            {
+                var loaded = JsonUtility.FromJson<ProcessorState>(state);
+                installedToolId = loaded.installedToolId;
+                InstalledToolQuality = Mathf.Max(0f, loaded.installedToolQuality);
+
+                int maxIndex = (availableRecipes != null && availableRecipes.Count > 0)
+                    ? availableRecipes.Count - 1
+                    : 0;
+                activeRecipeIndex = Mathf.Clamp(loaded.activeRecipeIndex, 0, maxIndex);
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[HexWorldProcessorController] Failed to load state: {e.Message}");
+            }
+        }
     }
 }

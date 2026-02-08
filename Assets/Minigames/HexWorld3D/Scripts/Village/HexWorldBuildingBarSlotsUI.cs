@@ -99,7 +99,9 @@ public void RefreshPaging() => ApplyPaging();
 
             controller.SelectedBuildingChanged += OnSelectedBuildingChanged;
             controller.ToastRequested += ShowToast;
+            controller.BlueprintUnlocksChanged += OnBlueprintUnlocksChanged;
 
+            RefreshUnlockStates();
             OnSelectedBuildingChanged(controller.SelectedBuilding);
         }
 
@@ -109,6 +111,7 @@ public void RefreshPaging() => ApplyPaging();
             {
                 controller.SelectedBuildingChanged -= OnSelectedBuildingChanged;
                 controller.ToastRequested -= ShowToast;
+                controller.BlueprintUnlocksChanged -= OnBlueprintUnlocksChanged;
             }
         }
 
@@ -191,18 +194,11 @@ public void RefreshPaging() => ApplyPaging();
 
             if (buildings == null) return;
 
-            var unlockedSet = new HashSet<HexWorldBuildingDefinition>();
-            if (!startAllUnlocked && initiallyUnlocked != null)
-            {
-                foreach (var b in initiallyUnlocked)
-                    if (b) unlockedSet.Add(b);
-            }
-
             foreach (var def in buildings)
             {
                 if (!def) continue;
 
-                bool unlocked = startAllUnlocked || unlockedSet.Contains(def);
+                bool unlocked = controller.IsBlueprintUnlocked(def);
 
                 var slot = Instantiate(slotPrefab, slotsContainer);
                 slot.name = $"BuildingSlot_{(string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName)}";
@@ -232,6 +228,21 @@ public void RefreshPaging() => ApplyPaging();
 
             SnapToSelectedIfNeeded(controller ? controller.SelectedBuilding : null);
             ApplyPaging();
+        }
+
+        private void OnBlueprintUnlocksChanged()
+        {
+            RefreshUnlockStates();
+        }
+
+        private void RefreshUnlockStates()
+        {
+            foreach (var kv in _slots)
+            {
+                if (!kv.Value) continue;
+                bool unlocked = controller != null && controller.IsBlueprintUnlocked(kv.Key);
+                kv.Value.SetUnlocked(unlocked);
+            }
         }
 
         private void SnapToSelectedIfNeeded(HexWorldBuildingDefinition selected)

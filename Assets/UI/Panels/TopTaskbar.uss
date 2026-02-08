@@ -2,13 +2,18 @@
 
 VisualElement {}
 
-/* Root */
+/* Root (top-anchored, NOT fullscreen) */
 .screen-root {
     position: absolute;
     left: 0;
+    right: 0;
     top: 0;
-    width: 100%;
+
+    /* Keep the existing design height (supports dropdown space) */
     height: 220px;
+
+    /* Ensure children like dropdowns can render beyond if needed */
+    overflow: visible;
 }
 
 /* Hover trigger area */

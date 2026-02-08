@@ -311,7 +311,7 @@ namespace GalacticFishing.Minigames.HexWorld
             if (_townHallRequirementHint != null)
             {
                 if (nextTierDef != null)
-                    _townHallRequirementHint.text = "Upgrade requires Infrastructure threshold.";
+                    _townHallRequirementHint.text = "Upgrade requires Infrastructure + milestone item.";
                 else
                     _townHallRequirementHint.text = "Town Hall is at maximum level.";
             }
@@ -354,10 +354,20 @@ namespace GalacticFishing.Minigames.HexWorld
             ipLabel.AddToClassList("ti-small");
             _nextTierRequirementsList.Add(ipLabel);
 
-            // Placeholder for future milestone requirements
-            var placeholderLabel = new Label("• Additional milestones: Coming soon");
-            placeholderLabel.AddToClassList("ti-small");
-            _nextTierRequirementsList.Add(placeholderLabel);
+            if (hexWorldController != null &&
+                hexWorldController.TryGetTownHallMilestoneRequirement(currentTier + 1, out var milestoneReq))
+            {
+                int have = hexWorldController.GetWarehouseResourceAmount(milestoneReq.id);
+                var milestoneLabel = new Label($"• Milestone: {milestoneReq.label} ({have}/{milestoneReq.quantity})");
+                milestoneLabel.AddToClassList("ti-small");
+                _nextTierRequirementsList.Add(milestoneLabel);
+            }
+            else
+            {
+                var noMilestoneLabel = new Label("• Milestone: None required.");
+                noMilestoneLabel.AddToClassList("ti-small");
+                _nextTierRequirementsList.Add(noMilestoneLabel);
+            }
         }
 
         /// <summary>

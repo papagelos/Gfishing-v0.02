@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <ui:VisualElement name="ForestryMinigameRoot" class="fp-overlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: none;">
-        <ui:VisualElement name="ForestryMinigameBackdrop" class="fp-backdrop" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.6);" />
+    <ui:VisualElement name="ForestryMinigameRoot" class="fp-overlay" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; display: flex; visibility: hidden;">
+        <ui:VisualElement name="ForestryMinigameBackdrop" class="fp-backdrop" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.6);" />
         <ui:VisualElement name="ForestryMinigamePanel" class="fp-panel" style="position: absolute; left: 50%; top: 50%; translate: -50% -50%; width: 600px; background-color: rgb(40, 45, 55); border-radius: 8px; padding: 16px;">
             <ui:VisualElement name="Header" class="fp-header" style="flex-direction: row; justify-content: space-between; margin-bottom: 16px;">
                 <ui:VisualElement class="fp-header-left">
@@ -74,7 +74,7 @@
                             <ui:Button name="Btn_HarvestAll" text="HARVEST READY" style="flex: 1; margin-right: 4px; height: 32px;" />
                             <ui:Button name="Btn_PlantAll" text="PLANT EMPTY" style="flex: 1; margin-left: 4px; height: 32px;" />
                         </ui:VisualElement>
-                        <ui:Label name="ActionResultLabel" text="" style="font-size: 11px; color: rgb(100, 200, 100); margin-top: 8px; -unity-text-align: middle-center;" />
+                        <ui:Label name="ActionResultLabel" style="font-size: 11px; color: rgb(100, 200, 100); margin-top: 8px; -unity-text-align: middle-center;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>

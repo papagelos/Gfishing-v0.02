@@ -44,5 +44,15 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Tooltip("IP required to unlock this tier (cumulative total).")]
         public long ipRequired = 0;
+
+        [Header("Milestone Requirement")]
+        [Tooltip("Warehouse resource required as milestone proof for this tier unlock.")]
+        public HexWorldResourceId milestoneResourceId = HexWorldResourceId.None;
+
+        [Tooltip("Amount of milestone resource required.")]
+        public int milestoneQuantity = 0;
+
+        [Tooltip("UI label shown for the milestone requirement.")]
+        public string milestoneLabel = "";
     }
 }

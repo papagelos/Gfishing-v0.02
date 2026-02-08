@@ -1,0 +1,48 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Panels/Herbalist_Grid_Panel.uss?fileID=7433441132597879392&amp;guid=781e028f61aa27e4fb5c4454f340d3a5&amp;type=3#Herbalist_Grid_Panel" />
+    <ui:VisualElement name="HerbalistGridRoot" class="herbalist-root">
+        <ui:VisualElement name="HerbalistBackdrop" class="herbalist-backdrop" />
+        <ui:VisualElement class="herbalist-panel">
+            <ui:VisualElement class="herbalist-header">
+                <ui:Label text="PLANTING GRID" class="herbalist-title" />
+                <ui:Button name="Btn_Close" text="CLOSE" class="btn btn-close" />
+            </ui:VisualElement>
+            <ui:VisualElement class="herbalist-stats">
+                <ui:Label text="Growth Speed: —" class="label-muted" />
+                <ui:Label name="GrowthSpeedLabel" text="+0%" class="label-accent" />
+            </ui:VisualElement>
+            <ui:VisualElement class="grid-container">
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_0" low-value="0" high-value="1" title="Plot 1" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_1" low-value="0" high-value="1" title="Plot 2" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_2" low-value="0" high-value="1" title="Plot 3" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_3" low-value="0" high-value="1" title="Plot 4" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_4" low-value="0" high-value="1" title="Plot 5" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_5" low-value="0" high-value="1" title="Plot 6" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_6" low-value="0" high-value="1" title="Plot 7" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_7" low-value="0" high-value="1" title="Plot 8" class="plot-progress" />
+                </ui:VisualElement>
+                <ui:VisualElement class="plot">
+                    <ui:ProgressBar name="PlotProgress_8" low-value="0" high-value="1" title="Plot 9" class="plot-progress" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="herbalist-footer">
+                <ui:Button name="Btn_HarvestAll" text="HARVEST ALL" class="btn btn-primary" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

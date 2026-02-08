@@ -16,6 +16,7 @@ namespace GalacticFishing.Minigames.HexWorld
     {
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private HexWorld3DController controller;
+        [SerializeField] private Sprite lockedSprite;
 
         private const int SlotsPerPage = 7;
         private const string ActiveTabClass = "is-active";
@@ -26,12 +27,17 @@ namespace GalacticFishing.Minigames.HexWorld
         private enum TileFilter { Cosmetic, Upgraded }
 
         private HudMode _mode = HudMode.Tiles;
+        private HexWorld3DController.PaletteMode _controllerPaletteMode = HexWorld3DController.PaletteMode.Tiles;
         private TileFilter _tileFilter = TileFilter.Cosmetic;
         private int _pageIndex;
 
         // Cached UI elements
         private Button _tabTiles;
+        private Button _btnRoadsMode;
         private Button _tabBuildings;
+        private Button _btnExitMode;
+        private Button _btnDeleteMode;
+        private Button _btnUpgradeMode;
         private Button _filterCosmetic;
         private Button _filterUpgraded;
         private VisualElement _subFilterCol;
@@ -39,7 +45,17 @@ namespace GalacticFishing.Minigames.HexWorld
         private Button _nextButton;
         private Label _pageLabel;
         private Label _costWarningLabel;
+        private Label _tilesCountLabel;
+        private Label _buildingsCountLabel;
+        private Label _activeCountLabel;
         private readonly Button[] _slotButtons = new Button[SlotsPerPage];
+
+        private int _lastTilesPlaced = int.MinValue;
+        private int _lastTileCap = int.MinValue;
+        private int _lastBuildingsPlaced = int.MinValue;
+        private int _lastBuildingCap = int.MinValue;
+        private int _lastActiveUsed = int.MinValue;
+        private int _lastActiveCap = int.MinValue;
 
         private bool _wired;
         private bool _hasStarted;
@@ -162,19 +178,48 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (!_wired || controller == null) return;
             SyncModeFromController(controller.CurrentPaletteMode);
+            RefreshCounters();
+            RefreshExitButton();
         }
 
         private void QueryAndCacheElements(VisualElement root)
         {
             _tabTiles = root.Q<Button>("Tab_Tiles");
+            if (_tabTiles != null)
+                _tabTiles.pickingMode = UnityEngine.UIElements.PickingMode.Position;
+            _btnRoadsMode = root.Q<Button>("BtnRoadsMode");
             _tabBuildings = root.Q<Button>("Tab_Buildings");
+            if (_tabBuildings != null)
+                _tabBuildings.pickingMode = UnityEngine.UIElements.PickingMode.Position;
+            _btnExitMode = root.Q<Button>("BtnExitMode");
+            if (_btnExitMode != null)
+                _btnExitMode.pickingMode = PickingMode.Position;
+            _btnDeleteMode = root.Q<Button>("BtnDeleteMode");
+            _btnUpgradeMode = root.Q<Button>("BtnUpgradeMode");
             _filterCosmetic = root.Q<Button>("Filter_Cosmetic");
             _filterUpgraded = root.Q<Button>("Filter_Upgraded");
             _subFilterCol = root.Q<VisualElement>("SubFilterCol");
+            if (_subFilterCol != null)
+                _subFilterCol.pickingMode = PickingMode.Ignore;
             _prevButton = root.Q<Button>("PrevPage");
             _nextButton = root.Q<Button>("NextPage");
+            if (_prevButton != null)
+                _prevButton.pickingMode = UnityEngine.UIElements.PickingMode.Position;
+            if (_nextButton != null)
+                _nextButton.pickingMode = UnityEngine.UIElements.PickingMode.Position;
+            var pagerContainer = root.Q<VisualElement>("Pager");
+            if (pagerContainer != null)
+                pagerContainer.pickingMode = UnityEngine.UIElements.PickingMode.Ignore;
             _pageLabel = root.Q<Label>("PageLabel");
             _costWarningLabel = root.Q<Label>("CostWarningLabel");
+            _tilesCountLabel = root.Q<Label>("LabelTilesCount")
+                               ?? root.Q<Label>("CapTilesLabel")
+                               ?? root.Q<Label>("TilesValue");
+            _buildingsCountLabel = root.Q<Label>("LabelBuildingsCount")
+                                   ?? root.Q<Label>("CapBuildingsLabel");
+            _activeCountLabel = root.Q<Label>("LabelActiveProducersCount")
+                                ?? root.Q<Label>("LabelActiveCount")
+                                ?? root.Q<Label>("SlotsValue");
 
             for (int i = 0; i < SlotsPerPage; i++)
             {
@@ -185,7 +230,11 @@ namespace GalacticFishing.Minigames.HexWorld
         private void RegisterCallbacks()
         {
             _tabTiles?.RegisterCallback<ClickEvent>(OnTabTilesClicked);
+            _btnRoadsMode?.RegisterCallback<ClickEvent>(OnRoadsModeClicked);
             _tabBuildings?.RegisterCallback<ClickEvent>(OnTabBuildingsClicked);
+            _btnExitMode?.RegisterCallback<ClickEvent>(OnExitModeClicked);
+            _btnDeleteMode?.RegisterCallback<ClickEvent>(OnDeleteModeClicked);
+            _btnUpgradeMode?.RegisterCallback<ClickEvent>(OnUpgradeModeClicked);
             _filterCosmetic?.RegisterCallback<ClickEvent>(OnFilterCosmeticClicked);
             _filterUpgraded?.RegisterCallback<ClickEvent>(OnFilterUpgradedClicked);
             _prevButton?.RegisterCallback<ClickEvent>(OnPrevPageClicked);
@@ -201,7 +250,11 @@ namespace GalacticFishing.Minigames.HexWorld
         private void UnregisterCallbacks()
         {
             _tabTiles?.UnregisterCallback<ClickEvent>(OnTabTilesClicked);
+            _btnRoadsMode?.UnregisterCallback<ClickEvent>(OnRoadsModeClicked);
             _tabBuildings?.UnregisterCallback<ClickEvent>(OnTabBuildingsClicked);
+            _btnExitMode?.UnregisterCallback<ClickEvent>(OnExitModeClicked);
+            _btnDeleteMode?.UnregisterCallback<ClickEvent>(OnDeleteModeClicked);
+            _btnUpgradeMode?.UnregisterCallback<ClickEvent>(OnUpgradeModeClicked);
             _filterCosmetic?.UnregisterCallback<ClickEvent>(OnFilterCosmeticClicked);
             _filterUpgraded?.UnregisterCallback<ClickEvent>(OnFilterUpgradedClicked);
             _prevButton?.UnregisterCallback<ClickEvent>(OnPrevPageClicked);
@@ -218,6 +271,11 @@ namespace GalacticFishing.Minigames.HexWorld
             controller.PaletteModeChanged += OnPaletteModeChanged;
             controller.SelectedStyleChanged += OnSelectedStyleChanged;
             controller.SelectedBuildingChanged += OnSelectedBuildingChanged;
+            controller.TilesPlacedChanged += OnTilesPlacedChanged;
+            controller.ActiveSlotsChanged += OnActiveSlotsChanged;
+            controller.TownHallLevelChanged += OnTownHallLevelChanged;
+            controller.BlueprintUnlocksChanged += OnBlueprintUnlocksChanged;
+            controller.OnProgressionUnlocksChanged += OnProgressionUnlocksChanged;
         }
 
         private void UnsubscribeFromController()
@@ -227,6 +285,11 @@ namespace GalacticFishing.Minigames.HexWorld
             controller.PaletteModeChanged -= OnPaletteModeChanged;
             controller.SelectedStyleChanged -= OnSelectedStyleChanged;
             controller.SelectedBuildingChanged -= OnSelectedBuildingChanged;
+            controller.TilesPlacedChanged -= OnTilesPlacedChanged;
+            controller.ActiveSlotsChanged -= OnActiveSlotsChanged;
+            controller.TownHallLevelChanged -= OnTownHallLevelChanged;
+            controller.BlueprintUnlocksChanged -= OnBlueprintUnlocksChanged;
+            controller.OnProgressionUnlocksChanged -= OnProgressionUnlocksChanged;
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -235,12 +298,24 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void OnTabTilesClicked(ClickEvent evt)
         {
-            if (_mode == HudMode.Tiles) return;
+            if (_mode == HudMode.Tiles && _controllerPaletteMode != HexWorld3DController.PaletteMode.Roads) return;
 
             _mode = HudMode.Tiles;
             _pageIndex = 0;
 
             controller.SetPaletteModeTiles();
+            UpdateTabActiveClass();
+            UpdateSubFilterVisibility();
+            UpdateSubFilterActiveClass();
+            RebuildCards();
+        }
+
+        private void OnRoadsModeClicked(ClickEvent evt)
+        {
+            _mode = HudMode.Tiles;
+            _pageIndex = 0;
+
+            controller.SetPaletteModeRoads();
             UpdateTabActiveClass();
             UpdateSubFilterVisibility();
             UpdateSubFilterActiveClass();
@@ -260,6 +335,32 @@ namespace GalacticFishing.Minigames.HexWorld
             UpdateSubFilterActiveClass();
             HideCostWarning();
             RebuildCards();
+        }
+
+        private void OnDeleteModeClicked(ClickEvent evt)
+        {
+            controller.SetPaletteModeDelete();
+            UpdateTabActiveClass();
+            UpdateSubFilterVisibility();
+            UpdateSubFilterActiveClass();
+            HideCostWarning();
+            RebuildCards();
+        }
+
+        private void OnUpgradeModeClicked(ClickEvent evt)
+        {
+            controller.SetPaletteModeTileUpgrade();
+            UpdateTabActiveClass();
+            UpdateSubFilterVisibility();
+            UpdateSubFilterActiveClass();
+            HideCostWarning();
+            RebuildCards();
+        }
+
+        private void OnExitModeClicked(ClickEvent evt)
+        {
+            controller.OnExitModeClicked();
+            RefreshExitButton();
         }
 
         private void OnFilterCosmeticClicked(ClickEvent evt)
@@ -386,16 +487,41 @@ namespace GalacticFishing.Minigames.HexWorld
         // Controller Event Handlers
         // ─────────────────────────────────────────────────────────────────
 
-        private void OnPaletteModeChanged(HexWorld3DController.PaletteMode mode) => SyncModeFromController(mode);
+        private void OnPaletteModeChanged(HexWorld3DController.PaletteMode mode)
+        {
+            SyncModeFromController(mode);
+            RefreshExitButton();
+        }
 
-        private void OnSelectedStyleChanged(HexWorldTileStyle _) => RefreshSelectionHighlight();
-        private void OnSelectedBuildingChanged(HexWorldBuildingDefinition _) => RefreshSelectionHighlight();
+        private void OnSelectedStyleChanged(HexWorldTileStyle _)
+        {
+            RefreshSelectionHighlight();
+            RefreshExitButton();
+        }
+
+        private void OnSelectedBuildingChanged(HexWorldBuildingDefinition _)
+        {
+            RefreshSelectionHighlight();
+            RefreshExitButton();
+        }
+        private void OnTilesPlacedChanged(int _, int __) => RefreshCounters();
+        private void OnActiveSlotsChanged(int _, int __, int ___) => RefreshCounters();
+        private void OnTownHallLevelChanged(int _)
+        {
+            RefreshCounters();
+            RebuildCards();
+        }
+        private void OnBlueprintUnlocksChanged() => RebuildCards();
+        private void OnProgressionUnlocksChanged() => RebuildCards();
 
         private void SyncModeFromController(HexWorld3DController.PaletteMode mode)
         {
+            _controllerPaletteMode = mode;
+
             HudMode newMode = mode switch
             {
                 HexWorld3DController.PaletteMode.Tiles => HudMode.Tiles,
+                HexWorld3DController.PaletteMode.Roads => HudMode.Tiles,
                 HexWorld3DController.PaletteMode.Buildings => HudMode.Buildings,
                 _ => HudMode.Tiles
             };
@@ -419,10 +545,19 @@ namespace GalacticFishing.Minigames.HexWorld
         private void UpdateTabActiveClass()
         {
             if (_tabTiles != null)
-                _tabTiles.EnableInClassList(ActiveTabClass, _mode == HudMode.Tiles);
+                _tabTiles.EnableInClassList(ActiveTabClass, _mode == HudMode.Tiles && _controllerPaletteMode != HexWorld3DController.PaletteMode.Roads);
+
+            if (_btnRoadsMode != null)
+                _btnRoadsMode.EnableInClassList(ActiveTabClass, _controllerPaletteMode == HexWorld3DController.PaletteMode.Roads);
 
             if (_tabBuildings != null)
                 _tabBuildings.EnableInClassList(ActiveTabClass, _mode == HudMode.Buildings);
+
+            if (_btnDeleteMode != null)
+                _btnDeleteMode.EnableInClassList(ActiveTabClass, _controllerPaletteMode == HexWorld3DController.PaletteMode.Delete);
+
+            if (_btnUpgradeMode != null)
+                _btnUpgradeMode.EnableInClassList(ActiveTabClass, _controllerPaletteMode == HexWorld3DController.PaletteMode.TileUpgrade);
         }
 
         private void UpdateSubFilterVisibility()
@@ -451,6 +586,37 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (_costWarningLabel == null) return;
             _costWarningLabel.style.display = DisplayStyle.None;
+        }
+
+        private void RefreshExitButton()
+        {
+            if (_btnExitMode == null || controller == null)
+                return;
+
+            if (controller.CurrentPaletteMode == HexWorld3DController.PaletteMode.Delete)
+            {
+                _btnExitMode.text = "EXIT DELETE MODE";
+                _btnExitMode.style.display = DisplayStyle.Flex;
+            }
+            else if (controller.CurrentPaletteMode == HexWorld3DController.PaletteMode.TileUpgrade)
+            {
+                _btnExitMode.text = "EXIT UPGRADE MODE";
+                _btnExitMode.style.display = DisplayStyle.Flex;
+            }
+            else if (controller.SelectedStyle != null)
+            {
+                _btnExitMode.text = "EXIT PAINT MODE";
+                _btnExitMode.style.display = DisplayStyle.Flex;
+            }
+            else if (controller.SelectedBuilding != null)
+            {
+                _btnExitMode.text = "EXIT BUILD MODE";
+                _btnExitMode.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _btnExitMode.style.display = DisplayStyle.None;
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -512,20 +678,36 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
 
                 btn.style.display = DisplayStyle.Flex;
+                btn.pickingMode = PickingMode.Position;
 
                 var style = tileList[dataIndex];
-                btn.userData = style;
-
-                btn.text = string.IsNullOrWhiteSpace(style.displayName) ? style.name : style.displayName;
-
-                var sp = style.thumbnail;
-                btn.style.backgroundImage = (sp != null) ? Background.FromSprite(sp) : StyleKeyword.None;
+                bool unlocked = controller != null && controller.IsUnlocked(style);
+                string styleName = string.IsNullOrWhiteSpace(style.displayName) ? style.name : style.displayName;
+                btn.text = styleName;
 
                 // Build tooltip with cost and tags for Gameplay tiles
-                btn.tooltip = BuildTileTooltip(style);
+                btn.tooltip = unlocked
+                    ? BuildTileTooltip(style)
+                    : $"LOCKED\n{styleName}";
 
                 // Visual distinction for gameplay tiles
-                btn.EnableInClassList(GameplaySlotClass, style.category == TileCategory.Gameplay);
+                btn.EnableInClassList(GameplaySlotClass, unlocked && style.category == TileCategory.Gameplay);
+
+                if (unlocked)
+                {
+                    btn.userData = style;
+                    var sp = style.thumbnail;
+                    btn.style.backgroundImage = (sp != null)
+                        ? UnityEngine.UIElements.Background.FromSprite(sp)
+                        : StyleKeyword.None;
+                }
+                else
+                {
+                    btn.userData = null;
+                    btn.style.backgroundImage = (lockedSprite != null)
+                        ? UnityEngine.UIElements.Background.FromSprite(lockedSprite)
+                        : StyleKeyword.None;
+                }
             }
         }
 
@@ -609,14 +791,29 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
 
                 btn.style.display = DisplayStyle.Flex;
+                btn.pickingMode = PickingMode.Position;
 
                 var def = buildingList[dataIndex];
-                btn.userData = def;
+                bool unlocked = controller != null && controller.IsUnlocked(def);
+                string displayName = string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName;
+                btn.text = displayName;
+                btn.tooltip = unlocked ? displayName : $"LOCKED\n{displayName}";
 
-                btn.text = string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName;
-
-                var sp = def.icon;
-                btn.style.backgroundImage = (sp != null) ? Background.FromSprite(sp) : StyleKeyword.None;
+                if (unlocked)
+                {
+                    btn.userData = def;
+                    var sp = def.icon;
+                    btn.style.backgroundImage = (sp != null)
+                        ? UnityEngine.UIElements.Background.FromSprite(sp)
+                        : StyleKeyword.None;
+                }
+                else
+                {
+                    btn.userData = null;
+                    btn.style.backgroundImage = (lockedSprite != null)
+                        ? UnityEngine.UIElements.Background.FromSprite(lockedSprite)
+                        : StyleKeyword.None;
+                }
             }
         }
 
@@ -644,6 +841,49 @@ namespace GalacticFishing.Minigames.HexWorld
                     btn.EnableInClassList(SelectedSlotClass, selected != null && btn.userData == selected);
                 }
             }
+        }
+
+        private void LateUpdate()
+        {
+            if (!_wired || controller == null) return;
+
+            if (controller.TilesPlaced != _lastTilesPlaced ||
+                controller.TileCapacityMax != _lastTileCap ||
+                controller.BuildingsPlaced != _lastBuildingsPlaced ||
+                controller.BuildingCapacityMax != _lastBuildingCap ||
+                controller.ActiveBuildingsUsed != _lastActiveUsed ||
+                controller.ActiveSlotsTotal != _lastActiveCap)
+            {
+                RefreshCounters();
+            }
+        }
+
+        private void RefreshCounters()
+        {
+            if (!controller) return;
+
+            int tilesPlaced = controller.TilesPlaced;
+            int tileCap = controller.TileCapacityMax;
+            int buildingsPlaced = controller.BuildingsPlaced;
+            int buildingCap = controller.BuildingCapacityMax;
+            int activeUsed = controller.ActiveBuildingsUsed;
+            int activeCap = controller.ActiveSlotsTotal;
+
+            if (_tilesCountLabel != null)
+                _tilesCountLabel.text = $"Tiles: {tilesPlaced} / {tileCap}";
+
+            if (_buildingsCountLabel != null)
+                _buildingsCountLabel.text = $"Buildings: {buildingsPlaced} / {buildingCap}";
+
+            if (_activeCountLabel != null)
+                _activeCountLabel.text = $"Active: {activeUsed} / {activeCap}";
+
+            _lastTilesPlaced = tilesPlaced;
+            _lastTileCap = tileCap;
+            _lastBuildingsPlaced = buildingsPlaced;
+            _lastBuildingCap = buildingCap;
+            _lastActiveUsed = activeUsed;
+            _lastActiveCap = activeCap;
         }
     }
 }

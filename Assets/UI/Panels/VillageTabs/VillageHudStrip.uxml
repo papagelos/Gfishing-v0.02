@@ -1,17 +1,21 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/Panels/VillageTabs/VillageHudStrip.uss?fileID=7433441132597879392&amp;guid=9c19a9366a3039f4bb2b353228c156b8&amp;type=3#VillageHudStrip" />
-    <ui:VisualElement name="ScreenRoot" picking-mode="Ignore" class="screen-root">
-        <ui:VisualElement name="HudRow" picking-mode="Ignore" class="hud-row">
+    <ui:VisualElement name="ScreenRoot" class="screen-root">
+        <ui:VisualElement name="HudRow" class="hud-row">
             <ui:VisualElement name="ModeCol" class="mode-col">
                 <ui:Button name="Tab_Tiles" tooltip="Tiles" icon-image="project://database/Assets/Sprites/Fish%20Temp%20sprites/1.png?fileID=2800000&amp;guid=417aae7d93c117540af3ab7c9de43988&amp;type=3#1" class="mode-btn tiles" />
+                <ui:Button name="BtnRoadsMode" text="Roads" tooltip="Road placement mode (auto-selects Basic Road)" class="mode-btn roads" />
                 <ui:Button name="Tab_Buildings" tooltip="Buildings" icon-image="project://database/Assets/Sprites/Story/Final/3.png?fileID=2800000&amp;guid=cd61f7aa04a6fff4ca66aa2f5a000c97&amp;type=3#3" class="mode-btn buildings" />
             </ui:VisualElement>
             <ui:VisualElement name="SubFilterCol" class="subfilter-col">
+                <ui:Button name="BtnExitMode" text="EXIT MODE" class="subfilter-btn" style="display: none;" />
                 <ui:Button name="Filter_Cosmetic" text="Cosmetic" tooltip="Free visual paints" class="subfilter-btn" />
                 <ui:Button name="Filter_Upgraded" text="Upgraded" tooltip="Gameplay tiles with costs" class="subfilter-btn" />
+                <ui:Button name="BtnDeleteMode" text="DELETE" class="subfilter-btn" />
+                <ui:Button name="BtnUpgradeMode" text="UPGRADE" class="subfilter-btn" />
             </ui:VisualElement>
-            <ui:VisualElement name="Strip" picking-mode="Ignore" class="strip">
-                <ui:VisualElement name="Cards" picking-mode="Ignore" class="cards">
+            <ui:VisualElement name="Strip" class="strip">
+                <ui:VisualElement name="Cards" class="cards">
                     <ui:Button name="SlotBtn0" text="Name" class="card-btn" style="-unity-text-outline-color: rgb(255, 255, 255); width: 120px; height: 120px;" />
                     <ui:Button name="SlotBtn1" text="Name" class="card-btn" style="-unity-text-outline-color: rgb(204, 204, 204); width: 120px; height: 120px;" />
                     <ui:Button name="SlotBtn2" text="Name" class="card-btn" style="-unity-text-outline-color: rgb(255, 255, 255); width: 120px; height: 120px;" />
@@ -20,12 +24,17 @@
                     <ui:Button name="SlotBtn5" text="Name" class="card-btn" style="-unity-text-outline-color: rgb(255, 255, 255); width: 120px; height: 120px;" />
                     <ui:Button name="SlotBtn6" text="Name" class="card-btn" style="-unity-text-outline-color: rgb(255, 255, 255); width: 120px; height: 120px;" />
                 </ui:VisualElement>
-                <ui:VisualElement name="Pager" class="pager">
+                <ui:VisualElement name="Pager" focusable="true" class="pager" style="position: relative;">
                     <ui:Button name="PrevPage" text="◀" class="pager-btn" />
                     <ui:Label name="PageLabel" text="1/1" class="pager-label" />
                     <ui:Button name="NextPage" text="▶" class="pager-btn" />
                 </ui:VisualElement>
-                <ui:Label name="CostWarningLabel" text="" class="cost-warning-label" style="display: none;" />
+                <ui:VisualElement name="CountersRow" style="flex-direction: row; gap: 12px; margin-top: 4px;">
+                    <ui:Label name="LabelTilesCount" text="Tiles: 0 / 0" />
+                    <ui:Label name="LabelBuildingsCount" text="Buildings: 0 / 0" />
+                    <ui:Label name="LabelActiveProducersCount" text="Active: 0 / 0" />
+                </ui:VisualElement>
+                <ui:Label name="CostWarningLabel" class="cost-warning-label" style="display: none;" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

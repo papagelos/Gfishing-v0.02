@@ -65,18 +65,28 @@ namespace GalacticFishing.Minigames.HexWorld
     [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Building Definition", fileName = "Building_")]
     public sealed class HexWorldBuildingDefinition : ScriptableObject
     {
+        public enum BuildingRarity
+        {
+            Common = 0,
+            Uncommon = 1,
+            Rare = 2,
+            Epic = 3
+        }
+
         public enum BuildingKind
         {
             Producer,
             TownHall,
             Warehouse,
             Processor,  // TICKET 20: Converts raw resources to refined goods
-            Other
+            Other,
+            Support
         }
 
         [Header("UI")]
         public string displayName = "New Building";
         public Sprite icon;
+        public string buildingName => name;
 
         [Header("Prefab")]
         public GameObject prefab;
@@ -94,6 +104,14 @@ namespace GalacticFishing.Minigames.HexWorld
         [Header("Capacity / Activity")]
         [Tooltip("What role this building plays. Used for defaults (e.g., TownHall/Warehouse don't consume active slots).")]
         public BuildingKind kind = BuildingKind.Producer;
+
+        [Header("Progression")]
+        [Tooltip("Minimum Town Hall tier required before this building appears in progression-aware UI flows.")]
+        [Min(1)]
+        public int unlockTownTier = 1;
+
+        [Tooltip("Placement prerequisites. This building becomes usable only after all listed buildingName IDs have been placed at least once this session.")]
+        public List<string> requiredBuildingPlacementNames = new List<string>();
 
         [Tooltip("If true, this building counts toward Town Hall Active Slots when Active.")]
         public bool consumesActiveSlot = true;
@@ -122,6 +140,9 @@ namespace GalacticFishing.Minigames.HexWorld
         public List<SynergyRule> synergyRules = new List<SynergyRule>();
 
         [Header("Rewards (TICKET 19)")]
+        [Tooltip("Rarity tier used for standardized building placement IP rewards.")]
+        public BuildingRarity rarity = BuildingRarity.Common;
+
         [Tooltip("IP awarded when this building is placed. Range: 10-25 typical.")]
         [Range(0, 100)]
         public int ipReward = 10;
