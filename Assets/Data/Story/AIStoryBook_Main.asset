@@ -55,6 +55,16 @@ MonoBehaviour:
     showOnce: 0
     pauseGame: 1
   - id: Scene_Start_MainGame
-    text: Main Game Scene Start
+    text: 'Main Game Scene Start
+
+'
+    showOnce: 0
+    pauseGame: 1
+  - id: Museum_Enrollment_Lake1
+    text: Oh! You cleared an entire lake? You are just the kind of person we are
+      looking for.  Consider yourself enrolled into the museum reputation system!
+      || Your next task is to clear all lakes of world 1, defeat the boss fish, and
+      give that fish to us. Here, take this Seal as proof of your enrollment. Off
+      you go!
     showOnce: 0
     pauseGame: 1

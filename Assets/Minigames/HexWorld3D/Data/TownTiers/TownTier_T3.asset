@@ -24,3 +24,4 @@ MonoBehaviour:
   milestoneResourceId: 61
   milestoneQuantity: 1
   milestoneLabel: Dungeon Survey Badge
+  townHallSprite: {fileID: 21300000, guid: eba54da8ab1a98545baad3b3c94098a6, type: 3}

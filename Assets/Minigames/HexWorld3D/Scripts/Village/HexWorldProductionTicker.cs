@@ -28,7 +28,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private HexWorldWarehouseInventory warehouse;
 
         [Header("Tick")]
-        [SerializeField, Min(1f)] private float tickSeconds = HexWorldBalanceConfig.DefaultTickSeconds;
+        private float tickSeconds = HexWorldBalanceConfig.DefaultTickSeconds;
         [SerializeField] private float maxSynergyBonus = HexWorldBalanceConfig.DefaultTotalBonusCapPct;
         [SerializeField] private float minSynergyBonusFloor = HexWorldBalanceConfig.DefaultMinBonusFloorPct;
         [SerializeField] private float roadAdjacentBonusPct = HexWorldBalanceConfig.DefaultRoadAdjBonusPct;

@@ -329,8 +329,8 @@ namespace GalacticFishing.Progress
         {
             if (Instance != null && Instance != this)
             {
-                Debug.LogWarning("[PlayerProgress] Duplicate manager in scene, destroying this one.", this);
-                Destroy(gameObject);
+                Debug.LogWarning($"[Singleton] Duplicate {GetType().Name} found on {gameObject.name}. Removing component only to preserve container.", this);
+                Destroy(this);
                 return;
             }
 

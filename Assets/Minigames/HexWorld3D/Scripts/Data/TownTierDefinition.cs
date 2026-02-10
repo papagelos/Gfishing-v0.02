@@ -54,5 +54,9 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Tooltip("UI label shown for the milestone requirement.")]
         public string milestoneLabel = "";
+
+        [Header("Visuals")]
+        [Tooltip("Town Hall sprite to display while this tier is active.")]
+        public Sprite townHallSprite;
     }
 }

@@ -21,6 +21,7 @@
                     <ui:Label name="WarehouseTotalValue" text="Warehouse: 0/0" class="dropdown-row" />
                 </ui:VisualElement>
                 <ui:VisualElement name="ResourcesPanel" class="dropdown-panel" style="display: none;">
+                    <ui:Label name="LabelStorageCapacity" text="STORAGE CAPACITY: 0" class="dropdown-row" style="color: rgb(255, 255, 255);" />
                     <ui:VisualElement name="ResourceGrid" class="resource-grid">
                         <ui:Label name="Res_Wood" text="Wood: 0" class="resource-entry" />
                         <ui:Label name="Res_Stone" text="Stone: 0" class="resource-entry" />

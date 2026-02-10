@@ -182,6 +182,40 @@ public sealed class RecordToastView : MonoBehaviour
             : -1f;
     }
 
+    /// <summary>
+    /// Shows a generic milestone toast using the same fancy frame/fade behavior.
+    /// </summary>
+    public void ShowGenericMilestone(string header, string body)
+    {
+        if (!group) return;
+
+        if (headerText != null)
+        {
+            string hdrCol = ColorUtility.ToHtmlStringRGB(headerColor);
+            string safeHeader = string.IsNullOrWhiteSpace(header) ? "MILESTONE COMPLETE" : header;
+            headerText.text = $"<b><color=#{hdrCol}>{safeHeader}</color></b>";
+        }
+
+        if (bodyText != null)
+            bodyText.text = body ?? string.Empty;
+
+        if (_fadeRoutine != null) StopCoroutine(_fadeRoutine);
+
+        gameObject.SetActive(true);
+
+        group.interactable = true;
+        group.blocksRaycasts = true;
+
+        if (closeButton != null)
+            closeButton.interactable = true;
+
+        _fadeRoutine = StartCoroutine(FadeCanvas(group, group.alpha, 1f, fadeDuration));
+
+        _autoHideAt = autoHideSeconds > 0f
+            ? Time.unscaledTime + autoHideSeconds
+            : -1f;
+    }
+
     public void Hide()
     {
         if (!group) return;

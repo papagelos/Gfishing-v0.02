@@ -24,3 +24,4 @@ MonoBehaviour:
   milestoneResourceId: 0
   milestoneQuantity: 0
   milestoneLabel: 
+  townHallSprite: {fileID: 21300000, guid: 394bb287215b1ac4fa3cc8ae256f3609, type: 3}

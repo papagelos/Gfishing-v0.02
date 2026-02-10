@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5357598431521104900}
   - component: {fileID: 3843024632647779096}
   - component: {fileID: 1283159281576216298}
+  - component: {fileID: 9071105533130861161}
   - component: {fileID: 4915221242064559947}
   m_Layer: 0
   m_Name: Building_Townhall
@@ -83,7 +84,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 550903b546a54d94fa032462bf0a5180, type: 3}
+  m_Sprite: {fileID: 21300000, guid: eba54da8ab1a98545baad3b3c94098a6, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -131,6 +132,9 @@ MonoBehaviour:
   buildingName: 
   Level: 1
   IsActive: 1
+  extractorState: 
+  productQuality: 1
+  relocationCooldown: 0
   ConsumesActiveSlot: 1
 --- !u!114 &1283159281576216298
 MonoBehaviour:
@@ -146,6 +150,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingProductionProfile
   consumesActiveSlot: 1
   baseOutputPerTick: []
+--- !u!114 &9071105533130861161
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8689533182396043018}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d6a1e3b9c4f7a80b1d2e3f4059678ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.TownHallVisualController
+  targetRenderer: {fileID: 314741702006749111}
 --- !u!65 &4915221242064559947
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -165,5 +182,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 10.24, y: 10.24, z: 0.2}
-  m_Center: {x: 0, y: 5.12, z: 0}
+  m_Size: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0, z: 0}

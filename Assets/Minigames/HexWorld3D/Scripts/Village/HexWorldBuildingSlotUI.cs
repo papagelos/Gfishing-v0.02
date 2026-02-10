@@ -25,7 +25,11 @@ namespace GalacticFishing.Minigames.HexWorld
             Definition = def;
             SetUnlocked(unlocked);
 
-            if (label) label.text = string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName;
+            if (label)
+            {
+                string displayName = string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName;
+                label.text = unlocked ? displayName : "???";
+            }
             if (icon)
             {
                 icon.sprite = def.icon;

@@ -13,6 +13,9 @@ public sealed class RodPowerUnlockTracker : MonoBehaviour
     [Tooltip("If not assigned, we auto-find the first GFishSpawner in the scene.")]
     [SerializeField] private GFishSpawner spawner;
 
+    [Tooltip("Optional. If empty, we auto-find the first WorldManager in the scene.")]
+    [SerializeField] private WorldManager worldManager;
+
     [Header("Output mode")]
     [Tooltip("If true, outputs ONLY the number (e.g. '30000' or '100K'). If false, outputs prefix + number.")]
     [SerializeField] private bool valueOnly = false;
@@ -40,6 +43,7 @@ public sealed class RodPowerUnlockTracker : MonoBehaviour
 
     private float _nextRefresh;
     private string _last;
+    private bool _worldManagerDockedLogged;
 
     private void Reset()
     {
@@ -49,14 +53,14 @@ public sealed class RodPowerUnlockTracker : MonoBehaviour
     private void Awake()
     {
         if (!label) label = GetComponent<TMP_Text>();
-        if (!spawner) spawner = FindFirstObjectByType<GFishSpawner>();
+        TryAutoDiscoverReferences();
         Apply(true);
     }
 
     private void OnEnable()
     {
         if (!label) label = GetComponent<TMP_Text>();
-        if (!spawner) spawner = FindFirstObjectByType<GFishSpawner>();
+        TryAutoDiscoverReferences();
         Apply(true);
     }
 
@@ -72,8 +76,7 @@ public sealed class RodPowerUnlockTracker : MonoBehaviour
 
     private void Apply(bool force)
     {
-        if (!spawner)
-            spawner = FindFirstObjectByType<GFishSpawner>();
+        TryAutoDiscoverReferences();
 
         string msg;
 
@@ -102,6 +105,50 @@ public sealed class RodPowerUnlockTracker : MonoBehaviour
             _last = msg;
             label.text = msg;
         }
+    }
+
+    private void TryAutoDiscoverReferences()
+    {
+        TryAutoDiscoverWorldManager();
+
+        if (!spawner && worldManager)
+            spawner = FindSpawnerForWorldManager(worldManager);
+
+        if (!spawner)
+        {
+            spawner = UnityEngine.Object.FindAnyObjectByType<GFishSpawner>(FindObjectsInactive.Include);
+        }
+    }
+
+    private void TryAutoDiscoverWorldManager()
+    {
+        if (worldManager) return;
+
+        worldManager = UnityEngine.Object.FindAnyObjectByType<WorldManager>(FindObjectsInactive.Include);
+        if (!worldManager) return;
+
+        if (!_worldManagerDockedLogged)
+        {
+            Debug.Log($"[UI] {gameObject.name} successfully docked to WorldManager.");
+            _worldManagerDockedLogged = true;
+        }
+    }
+
+    private static GFishSpawner FindSpawnerForWorldManager(WorldManager targetWorldManager)
+    {
+        if (!targetWorldManager) return null;
+
+        var spawners = UnityEngine.Object.FindObjectsByType<GFishSpawner>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (spawners == null || spawners.Length == 0) return null;
+
+        for (int i = 0; i < spawners.Length; i++)
+        {
+            var candidate = spawners[i];
+            if (candidate != null && candidate.worldManager == targetWorldManager)
+                return candidate;
+        }
+
+        return null;
     }
 
     // 99999 -> "99999"

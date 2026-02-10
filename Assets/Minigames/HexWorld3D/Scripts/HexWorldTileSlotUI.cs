@@ -58,7 +58,10 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             if (nameText)
-                nameText.text = style ? (string.IsNullOrWhiteSpace(style.displayName) ? style.name : style.displayName) : "";
+            {
+                string displayName = style ? (string.IsNullOrWhiteSpace(style.displayName) ? style.name : style.displayName) : string.Empty;
+                nameText.text = unlocked ? displayName : "???";
+            }
 
             ApplyLockedVisual();
         }

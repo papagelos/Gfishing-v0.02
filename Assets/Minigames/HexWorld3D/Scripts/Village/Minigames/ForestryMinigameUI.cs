@@ -103,6 +103,9 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             _forestryMinigameRoot = root.Q<VisualElement>("ForestryMinigameRoot");
             _closeButton = root.Q<Button>("Btn_Close");
+            var headerTitle = root.Q<Label>("TitleLabel");
+            if (headerTitle != null)
+                headerTitle.text = "FORESTRY PLOTS";
 
             // Stats labels
             _growthSpeedLabel = root.Q<Label>("GrowthSpeedLabel");

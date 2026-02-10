@@ -23,7 +23,7 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
 {
     [Header("Data Sources")]
     [SerializeField] private MonoBehaviour controllerBehaviour; // assign your HexWorld3DController here
-    [SerializeField] private MonoBehaviour warehouseBehaviour;  // assign your Warehouse inventory here
+    [SerializeField] private HexWorldWarehouseInventory warehouseBehaviour;  // assign your Warehouse inventory here
 
     [Header("External Panels")]
     [Tooltip("Assign the TownInfraController (Town Hall panel). BtnQualityLab toggles this now.")]
@@ -76,6 +76,7 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
     private Label _stoneLabel;
     private Label _fiberLabel;
     private Label _baitLabel;
+    private Label _capacityLabel;
 
     private Toggle _pinToggle;
     private Button _btnStats;
@@ -143,6 +144,7 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
         _stoneLabel = QAny<Label>(root, "Res_Stone");
         _fiberLabel = QAny<Label>(root, "Res_Fiber");
         _baitLabel = QAny<Label>(root, "Res_Bait");
+        _capacityLabel = root.Q<Label>("LabelStorageCapacity");
 
         _pinToggle = QAny<Toggle>(root, "PinToggle");
         _btnStats = QAny<Button>(root, "BtnStats");
@@ -174,7 +176,7 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
             _hoverZone.style.height = revealZoneHeightPx;
 
         // Load pinned state
-        _isPinned = PlayerPrefs.GetInt(PrefPinnedKey, 0) == 1;
+        _isPinned = PlayerPrefs.GetInt(PrefPinnedKey, 1) == 1;
         if (_pinToggle != null) _pinToggle.value = _isPinned;
 
         // Start with dropdowns closed
@@ -508,6 +510,7 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
             int total = GetInt(t, warehouseBehaviour, "TotalStored");
             int cap = GetInt(t, warehouseBehaviour, "Capacity");
             if (_warehouseTotalLabel != null) _warehouseTotalLabel.text = $"Warehouse: {total}/{cap}";
+            if (_capacityLabel != null) _capacityLabel.text = $"STORAGE CAPACITY: {cap}";
 
             if (_woodLabel != null) _woodLabel.text = $"Wood: {TryGetAmount(warehouseBehaviour, "Wood")}";
             if (_stoneLabel != null) _stoneLabel.text = $"Stone: {TryGetAmount(warehouseBehaviour, "Stone")}";

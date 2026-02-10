@@ -13,7 +13,7 @@ public class FarmMapRuntimeController : MonoBehaviour
     [Header("Tilemaps (same Grid)")]
     public Tilemap unlockMap;    // locked overlay lives here
     public Tilemap terrainMap;   // grass / industrial
-    public Tilemap buildingMap;  // lumbermill etc
+    public Tilemap buildingMap;  // forestry station etc
     public Tilemap highlightMap; // selection outline/glow
 
     [Header("Tiles")]
@@ -22,7 +22,7 @@ public class FarmMapRuntimeController : MonoBehaviour
 
     public TileBase tileGrass;
     public TileBase tileIndustrial;
-    public TileBase tileLumbermill;
+    public TileBase tileForestry;
 
     [Header("Background bounds (for auto sizing)")]
     public SpriteRenderer bgBL;
@@ -37,7 +37,7 @@ public class FarmMapRuntimeController : MonoBehaviour
     public int unlockCost = 1000;
     public int grassCost = 500;
     public int industrialCost = 800;
-    public int lumbermillCost = 2500;
+    public int forestryCost = 2500;
 
     [Header("Debug")]
     public bool debugFreeBuild = true; // true = ignores costs
@@ -162,8 +162,8 @@ public class FarmMapRuntimeController : MonoBehaviour
         {
             if (kb.bKey.wasPressedThisFrame)
             {
-                if (tileLumbermill != null && TrySpend(lumbermillCost))
-                    buildingMap.SetTile(cell, tileLumbermill);
+                if (tileForestry != null && TrySpend(forestryCost))
+                    buildingMap.SetTile(cell, tileForestry);
 
                 UpdateInfo();
             }
@@ -248,7 +248,7 @@ public class FarmMapRuntimeController : MonoBehaviour
 
         if (terrain != null)
         {
-            infoText.text = $"Terrain: {terrain.name} — Place Building: Lumbermill ({lumbermillCost:n0}) (press B) — Delete removes terrain";
+            infoText.text = $"Terrain: {terrain.name} — Place Building: Forestry Station ({forestryCost:n0}) (press B) — Delete removes terrain";
             return;
         }
 

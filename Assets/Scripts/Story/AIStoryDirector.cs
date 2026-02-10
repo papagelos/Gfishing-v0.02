@@ -37,7 +37,12 @@ public class AIStoryDirector : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning($"[Singleton] Duplicate {GetType().Name} found on {gameObject.name}. Removing component only to preserve container.", this);
+            Destroy(this);
+            return;
+        }
         Instance = this;
         DontDestroyOnLoad(gameObject);
 

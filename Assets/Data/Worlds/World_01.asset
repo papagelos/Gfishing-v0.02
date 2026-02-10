@@ -18,54 +18,20 @@ MonoBehaviour:
   upwardBonus: 0
   tightenBonus: 0
   defaultPool:
-  - fish: {fileID: 11400000, guid: ddb8c01e6d8b86543aff1678f9447ba3, type: 2}
-    weight: 0
-  - fish: {fileID: 11400000, guid: f2058f625ea285a47ba403d49f29c41c, type: 2}
-    weight: 0
-  - fish: {fileID: 11400000, guid: 233ebdf371c15f2428ab0a35b66230a2, type: 2}
-    weight: 0
-  - fish: {fileID: 11400000, guid: e237dd420c1618347bcba39aad95b6d0, type: 2}
+  - fish: {fileID: 11400000, guid: a076141311f469943918990b39989813, type: 2}
     weight: 0
   lakes:
   - lakeId: Lake 1
     displayName: Lake Chunky
     unlockCost: 0
-    maxAlive: 20
+    maxAlive: 10
     backdropOverride: {fileID: -1736461626, guid: cd6aa555b05731a409f85026a2f0b54b, type: 3}
     addUpwardBonus: 0
     addTightenBonus: 0
     quantityScale: 1
     usePoolOverride: 1
     poolOverride:
-    - fish: {fileID: 11400000, guid: 501afda3c672bed4186c521277def32a, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 78707534cf8280442889650e8e9304cb, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 37f3b94b7918d7c46885ff7991647516, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 32bf851b86f59bf4d8dcd3b6ca57b076, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 7a3dba6f9aa5178468367c237a573966, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: a076141311f469943918990b39989813, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 4a66f9f69cff80248825b768d2413b0b, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 8fb4c4b72ac18014bb2322658347b888, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 3dfb9ad992a192841a591db754708015, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: be3ee316697fe4047b694a71b63d7b3a, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: cda38f50b5f2f8f4c87477fa282e470e, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 39ffd63b280ffc0408be6343a2de47af, type: 2}
-      weight: 0
-    - fish: {fileID: 11400000, guid: 3609aea0d6be06e4abc902d1fa9d537c, type: 2}
-      weight: 0
-    - fish: {fileID: 0}
-      weight: 0
-    - fish: {fileID: 0}
+    - fish: {fileID: 11400000, guid: e098d2304e72c414b83d1e54b2b7c470, type: 2}
       weight: 0
     isBossLake: 0
     bossFish: {fileID: 0}

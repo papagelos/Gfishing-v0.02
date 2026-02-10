@@ -22,7 +22,7 @@ namespace GalacticFishing
             public Tilemap unlockMap;      // locked overlay
             public Tilemap unlockedMap;    // optional placeholder layer
             public Tilemap terrainMap;     // grass/industrial
-            public Tilemap buildingMap;    // lumbermill etc
+            public Tilemap buildingMap;    // forestry station etc
             public Tilemap highlightMap;   // selection
         }
 
@@ -45,7 +45,7 @@ namespace GalacticFishing
         [SerializeField] private TileBase tileHighlight;
         [SerializeField] private TileBase tileGrass;
         [SerializeField] private TileBase tileIndustrial;
-        [SerializeField] private TileBase tileLumbermill;
+        [SerializeField] private TileBase tileForestry;
 
         [Header("Background (four quadrants)")]
         [SerializeField] private SpriteRenderer bgBL;
@@ -75,7 +75,7 @@ namespace GalacticFishing
         [SerializeField] private int unlockCost = 1000;
         [SerializeField] private int grassCost = 500;
         [SerializeField] private int industrialCost = 800;
-        [SerializeField] private int lumbermillCost = 2500;
+        [SerializeField] private int forestryCost = 2500;
         [SerializeField] private bool debugFreeBuild = true; // ignores costs
 
         [Header("Camera controls")]
@@ -645,9 +645,9 @@ namespace GalacticFishing
     {
         if (kb.bKey.wasPressedThisFrame)
         {
-            if (tileLumbermill != null && TrySpend(lumbermillCost) && mapsSel.buildingMap)
+            if (tileForestry != null && TrySpend(forestryCost) && mapsSel.buildingMap)
             {
-                mapsSel.buildingMap.SetTile(c, tileLumbermill);
+                mapsSel.buildingMap.SetTile(c, tileForestry);
                 ClearUnlockedPlaceholder(selQ, c);
             }
             UpdateInfoText();
@@ -1126,7 +1126,7 @@ private Vector3Int ClampToBounds(Vector3Int cell, BoundsInt b)
 
             if (terrain != null)
             {
-                infoText.text = cellPrefix + $"Terrain: {terrain.name} — Place Lumbermill: {lumbermillCost:n0} (press B) — Delete removes terrain (Del)";
+                infoText.text = cellPrefix + $"Terrain: {terrain.name} — Place Forestry Station: {forestryCost:n0} (press B) — Delete removes terrain (Del)";
                 return;
             }
 

@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: Building_Loom
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingDefinition
   displayName: Loom
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 0e5e0f95be7b0e04a9acb4b27246df44, type: 3}
   prefab: {fileID: 8689533182396043018, guid: c5936a83512481648a5458bd90cbb887, type: 3}
   localOffset: {x: 0, y: 0.02, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
   localScale: {x: 0.09, y: 0.09, z: 0.09}
   kind: 3
+  unlockTownTier: 1
+  requiredBuildingPlacementNames: []
   consumesActiveSlot: 1
   defaultActive: 1
   preferredTerrainType: 3
@@ -26,4 +28,5 @@ MonoBehaviour:
   availableUpgrades: []
   properties: []
   synergyRules: []
+  rarity: 0
   ipReward: 10

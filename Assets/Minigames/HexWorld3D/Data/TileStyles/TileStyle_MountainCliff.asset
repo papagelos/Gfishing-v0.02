@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
+  m_Name: TileStyle_MountainCliff
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
+  displayName: Mountain
+  edgeTint: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  thumbnail: {fileID: -6728009185561095339, guid: 9f380d16de6eccc468d13f378da78754, type: 3}
+  materials:
+  - {fileID: 2100000, guid: 5554e8908b4f7c34883c483cbceaed3b, type: 2}
+  decorations:
+  - prefab: {fileID: 4463885650309427618, guid: 5acbf5f8da8e4a04d833951e24b99582, type: 3}
+    scale: 5.01
+    randomScaleRange: {x: 0, y: 0}
+  - prefab: {fileID: 4463885650309427618, guid: 506e445a96139ee4dbfe01b91494feff, type: 3}
+    scale: 4.98
+    randomScaleRange: {x: 0, y: 0}
+  pickRandomlyPerInstance: 1
+  minCount: 1
+  maxCount: 1
+  terrainType: 2
+  properties: []

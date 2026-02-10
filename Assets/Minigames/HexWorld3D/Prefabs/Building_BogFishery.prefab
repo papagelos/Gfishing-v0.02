@@ -82,12 +82,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -989487521171790309, guid: 240f4ed4c8255d94bb85a03ab95dbf89, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 240f4ed4c8255d94bb85a03ab95dbf89, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 10.14, y: 9.87}
+  m_Size: {x: 10.24, y: 10.24}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -107,6 +107,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
+  spriteRenderer: {fileID: 0}
+  forcePivotSortPoint: 1
+  driveSortingOrder: 1
+  sortingOrderScale: 50
+  sortingOrderBias: 0
+  depthOffset: 0
 --- !u!114 &3843024632647779096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124,6 +130,9 @@ MonoBehaviour:
   buildingName: 
   Level: 1
   IsActive: 1
+  extractorState: 
+  productQuality: 1
+  relocationCooldown: 0
   ConsumesActiveSlot: 1
 --- !u!114 &-8930232624753510078
 MonoBehaviour:

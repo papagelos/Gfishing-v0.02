@@ -53,7 +53,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
         }
 
-        private static readonly string[] LumberyardNames = { "Building_Lumberyard", "ForestryStation", "Lumberyard" };
+        private static readonly string[] LumberyardNames = { "ForestryStation", "Building_Lumberyard", "Lumberyard" };
 
         private static void ApplyMvpOutputs(HexWorldBuildingInstance inst, HexWorldBuildingProductionProfile prod)
         {
@@ -86,7 +86,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // MVP producer mapping by name
-            // Lumberyard: +6 Wood
+            // Forestry Station: +6 Wood
             bool matchesForestryInternal = false;
             for (int i = 0; i < LumberyardNames.Length; i++)
             {
@@ -97,7 +97,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
             }
 
-            if (matchesForestryInternal || n.Contains("lumber") || n.Contains("wood"))
+            if (matchesForestryInternal || n.Contains("forestry") || n.Contains("lumber") || n.Contains("wood"))
             {
                 prod.consumesActiveSlot = true;
                 prod.baseOutputPerTick = new List<HexWorldResourceStack>

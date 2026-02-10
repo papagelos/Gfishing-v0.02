@@ -12,6 +12,8 @@ namespace GalacticFishing.Minigames.HexWorld
     public sealed class HexWorld3DController : MonoBehaviour
     {
         private const int CurrentSaveVersion = 3;
+        private const string MuseumSealMilestoneToken = "Milestone_MuseumEnrollmentSeal";
+        private const string MuseumSealPendingToken = "Pending_MuseumEnrollmentSeal";
         private static HexWorldBalanceConfig _defaultBalanceConfig;
         [Header("Refs")]
         [SerializeField] private Transform cursorGhostParent;
@@ -145,6 +147,7 @@ namespace GalacticFishing.Minigames.HexWorld
         public event Action ExitRequested;
         public event Action BlueprintUnlocksChanged;
         public event Action OnProgressionUnlocksChanged;
+        public event Action<string, string> MilestoneReached;
         public event Action RoadNetworkRecomputed;
 
         public HexWorldTileStyle SelectedStyle { get; private set; }
@@ -245,20 +248,42 @@ namespace GalacticFishing.Minigames.HexWorld
             return string.IsNullOrWhiteSpace(id) ? def.name : id;
         }
 
-        private static bool IsAlwaysUnlockedBlueprint(HexWorldBuildingDefinition def)
+        private bool IsAlwaysUnlockedBlueprint(HexWorldBuildingDefinition def)
         {
             if (def == null) return false;
 
-            if (def.kind == HexWorldBuildingDefinition.BuildingKind.TownHall ||
-                def.kind == HexWorldBuildingDefinition.BuildingKind.Warehouse)
+            string id = GetCanonicalBuildingId(def);
+            if (def.kind == HexWorldBuildingDefinition.BuildingKind.TownHall)
             {
                 return true;
             }
 
-            string id = GetCanonicalBuildingId(def);
-            return string.Equals(id, "Building_Townhall", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(id, "Building_TownHall", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(id, "Building_Warehouse", StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(id, "Building_Townhall", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, "Building_TownHall", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, "Building_Lumberyard", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(id, "Building_Quarry", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Fail-safe: once startup producers + milestone resources are present,
+            // Warehouse should no longer brick behind a missing blueprint flag.
+            if (string.Equals(id, WarehouseBlueprintId, StringComparison.OrdinalIgnoreCase))
+            {
+                bool hasForestry = _placedBuildingNamesThisSession.Contains("Building_Forestry") ||
+                                   _placedBuildingNamesThisSession.Contains("Building_Lumberyard") ||
+                                   _placedBuildingNamesThisSession.Contains("ForestryStation") ||
+                                   _placedBuildingNamesThisSession.Contains("Lumberyard");
+                bool hasQuarry = _placedBuildingNamesThisSession.Contains("Building_Quarry") ||
+                                 _placedBuildingNamesThisSession.Contains("Quarry");
+                var globalWarehouse = FindGlobalWarehouseForWarehouseUnlockMilestone();
+                bool hasResources = globalWarehouse != null &&
+                                    globalWarehouse.Get(HexWorldResourceId.Wood) >= 50 &&
+                                    globalWarehouse.Get(HexWorldResourceId.Stone) >= 50;
+                return hasForestry && hasQuarry && hasResources;
+            }
+
+            return false;
         }
 
         public bool IsBlueprintUnlocked(HexWorldBuildingDefinition def)
@@ -292,7 +317,28 @@ namespace GalacticFishing.Minigames.HexWorld
                 if (string.IsNullOrWhiteSpace(requiredName))
                     continue;
 
-                if (!_placedBuildingNamesThisSession.Contains(requiredName.Trim()))
+                string required = requiredName.Trim();
+                bool requiresForestryAlias =
+                    string.Equals(required, "Building_Forestry", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(required, "Building_Lumberyard", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(required, "ForestryStation", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(required, "Lumberyard", StringComparison.OrdinalIgnoreCase);
+
+                if (requiresForestryAlias)
+                {
+                    bool hasForestry =
+                        _placedBuildingNamesThisSession.Contains("Building_Forestry") ||
+                        _placedBuildingNamesThisSession.Contains("Building_Lumberyard") ||
+                        _placedBuildingNamesThisSession.Contains("ForestryStation") ||
+                        _placedBuildingNamesThisSession.Contains("Lumberyard");
+
+                    if (!hasForestry)
+                        return false;
+
+                    continue;
+                }
+
+                if (!_placedBuildingNamesThisSession.Contains(required))
                     return false;
             }
 
@@ -310,7 +356,11 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!IsBlueprintUnlocked(def))
                 return false;
 
-            return MeetsPlacementPrerequisites(def.requiredBuildingPlacementNames);
+            bool meetsPlacementPrereqs = MeetsPlacementPrerequisites(def.requiredBuildingPlacementNames);
+            if (!meetsPlacementPrereqs)
+                return false;
+
+            return true;
         }
 
         public bool IsUnlocked(HexWorldTileStyle style)
@@ -351,7 +401,10 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             if (changed)
+            {
+                TryUnlockWarehouseBlueprintFromProducerProgression();
                 OnProgressionUnlocksChanged?.Invoke();
+            }
         }
 
         public void UnlockBlueprint(string buildingId)
@@ -418,6 +471,7 @@ namespace GalacticFishing.Minigames.HexWorld
         // Road connectivity (TICKET 8)
         private readonly HashSet<HexCoord> _townHallRoadComponent = new();
         private const string RoadTag = "road";
+        private const string WarehouseBlueprintId = "Building_Warehouse";
 
         // Tile budget state
         private int _tilesLeftToPlace;
@@ -428,6 +482,7 @@ namespace GalacticFishing.Minigames.HexWorld
         // MaterialPropertyBlock for ghost tint (no allocations, no shared material edits)
         private MaterialPropertyBlock _ghostMpb;
         private float _nextUiBlockLogTime;
+        private bool _warehouseToastShownThisSession = false;
 
         private void Awake()
         {
@@ -492,6 +547,7 @@ namespace GalacticFishing.Minigames.HexWorld
                     InitializeStartingVillage(capacityForLevel);
                 }
 
+                TryClaimPendingMuseumSealReward();
                 SeedPlacedBuildingNamesFromSessionBuildings();
                 RecomputeActiveSlotsAndNotify();
                 TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
@@ -516,6 +572,10 @@ namespace GalacticFishing.Minigames.HexWorld
         private void InitializeStartingVillage(int capacityForLevel)
         {
             Debug.Log("InitializeStartingVillage: Creating new village with core tile and Town Hall");
+
+            EnsureWarehouse();
+            if (warehouse)
+                warehouse.LoadFromStacks(Array.Empty<HexWorldResourceStack>(), level: 0);
 
             // 1. Place the starting tile at (0,0)
             HexCoord coreCoord = new HexCoord(0, 0);
@@ -596,6 +656,42 @@ namespace GalacticFishing.Minigames.HexWorld
             RequestToast($"New village: 1 tile placed, {_tilesLeftToPlace} tiles left (TH L{townHallLevel})");
         }
 
+        private void TryClaimPendingMuseumSealReward()
+        {
+            var ppm = PlayerProgressManager.Instance;
+            var unlockedIds = ppm?.Data?.gear?.unlockedBlueprintIds;
+            if (unlockedIds == null || unlockedIds.Count == 0)
+                return;
+
+            if (!unlockedIds.Contains(MuseumSealMilestoneToken))
+                return;
+
+            EnsureWarehouse();
+            if (!warehouse)
+                return;
+
+            if (warehouse.Get(HexWorldResourceId.MuseumEnrollmentSeal) > 0)
+            {
+                if (unlockedIds.Contains(MuseumSealPendingToken))
+                {
+                    unlockedIds.Remove(MuseumSealPendingToken);
+                    ppm?.Save();
+                }
+                return;
+            }
+
+            if (warehouse.TryAdd(HexWorldResourceId.MuseumEnrollmentSeal, 1))
+            {
+                if (unlockedIds.Contains(MuseumSealPendingToken))
+                {
+                    unlockedIds.Remove(MuseumSealPendingToken);
+                    ppm?.Save();
+                }
+
+                Debug.Log("[Milestone] Pending Museum Seal claimed from save data.");
+            }
+        }
+
         private void OnDisable()
         {
             if (!Application.isPlaying) return;
@@ -650,6 +746,10 @@ namespace GalacticFishing.Minigames.HexWorld
 
             UpdateBuildingCooldowns();
             PropagateBalanceConfig();
+
+            // Re-check producer milestone continuously so Warehouse unlock reacts to resource growth.
+            if (enableTileBudgetPlacement)
+                TryUnlockWarehouseBlueprintFromProducerProgression();
 
             // TICKET 1: Close context menu on Escape
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
@@ -866,13 +966,28 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private static bool IsPassThroughUiHit(UnityEngine.UIElements.VisualElement root, UnityEngine.UIElements.VisualElement picked)
         {
-            if (root == null || picked == null)
-                return false;
+            if (root == null || picked == null) return false;
 
+            // 1. Whitelist specific pass-through zones by name (including the Taskbar layout bar)
+            if (picked.name == "ScreenRoot" || picked.name == "HoverZone" || picked.name == "Taskbar")
+                return true;
+
+            // 2. If the pointer is inside an actual control (Button, TextField, Toggle, etc.), it MUST block.
             if (IsInsideInteractiveElement(picked))
                 return false;
 
-            return string.Equals(picked.name, "ScreenRoot", StringComparison.Ordinal);
+            // 3. Permissive Pass-through for Info/Layout types:
+            // Informational labels and layout containers should not block the world unless they are part of a button.
+            // TemplateContainer catches the "Unknown" objects which are roots of included UXML files.
+            if (picked is UnityEngine.UIElements.Label ||
+                picked is UnityEngine.UIElements.TemplateContainer ||
+                picked.GetType() == typeof(UnityEngine.UIElements.VisualElement))
+            {
+                return true;
+            }
+
+            // 4. Default to blocking for specialized or custom UI types not covered above.
+            return false;
         }
 
         private static bool IsInsideInteractiveElement(UnityEngine.UIElements.VisualElement picked)
@@ -1587,6 +1702,13 @@ namespace GalacticFishing.Minigames.HexWorld
                 return false;
             }
 
+            var currentDef = ResolveBuildingByName(inst.buildingName);
+            if (IsTownHallBuilding(inst, currentDef))
+            {
+                RequestToast("Town Hall upgrades are handled in Infrastructure.");
+                return false;
+            }
+
             EnsureWarehouse();
             if (!warehouse)
             {
@@ -1648,14 +1770,14 @@ namespace GalacticFishing.Minigames.HexWorld
             int targetLevel = Mathf.Max(inst.Level + 1, 2);
             int ipAmount = GetBuildingUpgradeIpReward(targetLevel);
             PlayerProgressManager.Instance?.AddIP(ipAmount);
+            inst.Level = targetLevel;
 
             RequestToast("Upgrade purchased.");
 
-            var upgradedDef = ResolveBuildingByName(inst.buildingName);
             bool shouldApplyRelocationCooldown =
-                upgradedDef != null &&
-                (upgradedDef.kind == HexWorldBuildingDefinition.BuildingKind.Processor ||
-                 upgradedDef.kind == HexWorldBuildingDefinition.BuildingKind.Producer);
+                currentDef != null &&
+                (currentDef.kind == HexWorldBuildingDefinition.BuildingKind.Processor ||
+                 currentDef.kind == HexWorldBuildingDefinition.BuildingKind.Producer);
             inst.SetRelocationCooldown(shouldApplyRelocationCooldown ? 30f : 0f);
             return true;
         }
@@ -1804,7 +1926,11 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             bool hasMilestone = TryGetTownHallMilestoneRequirement(nextLevel, out var milestoneReq);
-            if (hasMilestone)
+            bool isTierTwoBootstrapMilestone = nextLevel == 2;
+            int requiredWoodForTierTwo = 0;
+            const int RequiredStoneForTierTwo = 100;
+
+            if (hasMilestone || isTierTwoBootstrapMilestone)
             {
                 EnsureWarehouse();
                 if (!warehouse)
@@ -1812,7 +1938,26 @@ namespace GalacticFishing.Minigames.HexWorld
                     RequestToast("Warehouse unavailable. Cannot verify milestone items.");
                     return false;
                 }
+            }
 
+            if (isTierTwoBootstrapMilestone)
+            {
+                requiredWoodForTierTwo = hasMilestone &&
+                                         milestoneReq.id == HexWorldResourceId.Wood &&
+                                         milestoneReq.quantity > 0
+                    ? milestoneReq.quantity
+                    : 100;
+
+                int currentWood = warehouse.Get(HexWorldResourceId.Wood);
+                int currentStone = warehouse.Get(HexWorldResourceId.Stone);
+                if (currentWood < requiredWoodForTierTwo || currentStone < RequiredStoneForTierTwo)
+                {
+                    RequestToast($"Need {requiredWoodForTierTwo} Wood and {RequiredStoneForTierTwo} Stone.");
+                    return false;
+                }
+            }
+            else if (hasMilestone)
+            {
                 int currentAmount = warehouse.Get(milestoneReq.id);
                 if (currentAmount < milestoneReq.quantity)
                 {
@@ -1829,7 +1974,16 @@ namespace GalacticFishing.Minigames.HexWorld
             int oldActiveSlots = HexWorldCapacityService.GetActiveSlots(townHallLevel);
             int newActiveSlots = HexWorldCapacityService.GetActiveSlots(nextLevel);
 
-            if (hasMilestone)
+            if (isTierTwoBootstrapMilestone)
+            {
+                if (!warehouse.TryRemove(HexWorldResourceId.Wood, requiredWoodForTierTwo) ||
+                    !warehouse.TryRemove(HexWorldResourceId.Stone, RequiredStoneForTierTwo))
+                {
+                    RequestToast($"Need {requiredWoodForTierTwo} Wood and {RequiredStoneForTierTwo} Stone.");
+                    return false;
+                }
+            }
+            else if (hasMilestone)
             {
                 if (!warehouse.TryRemove(milestoneReq.id, milestoneReq.quantity))
                 {
@@ -1891,7 +2045,7 @@ namespace GalacticFishing.Minigames.HexWorld
             return tierDef.ipRequired;
         }
 
-        private TownTierDefinition GetTownTierDefinition(int tier)
+        public TownTierDefinition GetTownTierDefinition(int tier)
         {
             if (tier <= 0) return null;
             if (townTierDefinitions == null || townTierDefinitions.Length == 0) return null;
@@ -2012,8 +2166,19 @@ namespace GalacticFishing.Minigames.HexWorld
 
             _buildings[coord] = inst;
             _buildingNameByCoord[coord] = selectedBuildingId;
+
+            if (IsWarehouseBuildingDefinition(SelectedBuilding, selectedBuildingId))
+            {
+                EnsureWarehouse();
+                if (warehouse)
+                    warehouse.WarehouseLevel = warehouse.WarehouseLevel + 1;
+            }
+
             if (TryRegisterPlacedBuildingForProgression(selectedBuildingId))
+            {
+                TryUnlockWarehouseBlueprintFromProducerProgression();
                 OnProgressionUnlocksChanged?.Invoke();
+            }
 
             if (wantsActive && !isActive)
                 RequestToast("No Active Slots available. Building placed Dormant.");
@@ -2041,6 +2206,84 @@ namespace GalacticFishing.Minigames.HexWorld
                 HexWorldBuildingDefinition.BuildingRarity.Epic => 60,
                 _ => 10
             };
+        }
+
+        private void TryUnlockWarehouseBlueprintFromProducerProgression()
+        {
+            // Milestone already processed this session: avoid per-frame UI/event spam.
+            if (_warehouseToastShownThisSession)
+                return;
+
+            // 1. Check for Buildings (using aliases).
+            bool hasForestry = _placedBuildingNamesThisSession.Contains("Building_Forestry") ||
+                               _placedBuildingNamesThisSession.Contains("ForestryStation") ||
+                               _placedBuildingNamesThisSession.Contains("Building_Lumberyard") ||
+                               _placedBuildingNamesThisSession.Contains("Lumberyard");
+            bool hasQuarry = _placedBuildingNamesThisSession.Contains("Building_Quarry") ||
+                             _placedBuildingNamesThisSession.Contains("Quarry");
+
+            if (!hasForestry || !hasQuarry)
+                return;
+
+            // 2. Check for Resources (Tier 1 milestone: 50 Wood, 50 Stone).
+            var globalWarehouse = FindGlobalWarehouseForWarehouseUnlockMilestone();
+            if (!globalWarehouse)
+                return;
+
+            const int required = 50;
+            if (globalWarehouse.Get(HexWorldResourceId.Wood) < required ||
+                globalWarehouse.Get(HexWorldResourceId.Stone) < required)
+                return;
+
+            // 3. Milestone satisfied - unlock blueprint if needed.
+            var unlockedIds = PlayerProgressManager.Instance?.Data?.gear?.unlockedBlueprintIds;
+            bool alreadyUnlocked = unlockedIds != null && unlockedIds.Contains(WarehouseBlueprintId);
+
+            if (!alreadyUnlocked)
+            {
+                UnlockBlueprint(WarehouseBlueprintId);
+                // Ensure progression-gated HUD paths refresh immediately.
+                OnProgressionUnlocksChanged?.Invoke();
+            }
+            else
+            {
+                // Already unlocked from save; force one refresh when milestone is met this session.
+                BlueprintUnlocksChanged?.Invoke();
+                OnProgressionUnlocksChanged?.Invoke();
+            }
+
+            // 4. Notify once per play session (satisfying milestone feedback without spam).
+            MilestoneReached?.Invoke(
+                "Milestone Complete",
+                "WAREHOUSE UNLOCKED!\n\nYou can now build Warehouses to increase resource storage caps.");
+            Debug.Log("[Milestone] Warehouse unlocked and player notified.");
+            _warehouseToastShownThisSession = true;
+        }
+
+        private HexWorldWarehouseInventory FindGlobalWarehouseForWarehouseUnlockMilestone()
+        {
+            HexWorldWarehouseInventory best = warehouse;
+            int bestStored = best ? best.TotalStored : -1;
+
+            var warehouses = UnityEngine.Object.FindObjectsByType<HexWorldWarehouseInventory>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (warehouses == null || warehouses.Length == 0)
+                return best;
+
+            for (int i = 0; i < warehouses.Length; i++)
+            {
+                var candidate = warehouses[i];
+                if (!candidate)
+                    continue;
+
+                int candidateStored = candidate.TotalStored;
+                if (best == null || candidateStored > bestStored)
+                {
+                    best = candidate;
+                    bestStored = candidateStored;
+                }
+            }
+
+            return best;
         }
 
         public void TryToggleBuildingActiveAtCoord(HexCoord coord)
@@ -2148,6 +2391,9 @@ namespace GalacticFishing.Minigames.HexWorld
                 return false;
 
             var buildingDef = ResolveBuildingByName(inst.buildingName);
+            string buildingId = !string.IsNullOrWhiteSpace(inst.buildingName)
+                ? inst.buildingName
+                : GetCanonicalBuildingId(buildingDef);
 
             if (IsTownHallBuilding(inst, buildingDef))
             {
@@ -2155,9 +2401,17 @@ namespace GalacticFishing.Minigames.HexWorld
                 return true;
             }
 
-            bool canRemoveWarehouse = CanRemoveWarehouseBuilding(buildingDef);
+            bool canRemoveWarehouse = CanRemoveWarehouseBuilding(buildingDef, buildingId);
             if (!canRemoveWarehouse)
                 return true;
+
+            bool isWarehouseBuilding = IsWarehouseBuildingDefinition(buildingDef, buildingId);
+            if (isWarehouseBuilding)
+            {
+                EnsureWarehouse();
+                if (warehouse)
+                    warehouse.WarehouseLevel = Mathf.Max(0, warehouse.WarehouseLevel - 1);
+            }
 
             UnityEngine.Object.Destroy(inst.gameObject);
             _buildings.Remove(coord);
@@ -2273,6 +2527,15 @@ namespace GalacticFishing.Minigames.HexWorld
                 return true;
 
             return false;
+        }
+
+        private static bool IsWarehouseBuildingDefinition(HexWorldBuildingDefinition def, string canonicalId = null)
+        {
+            if (def != null && def.kind == HexWorldBuildingDefinition.BuildingKind.Warehouse)
+                return true;
+
+            string id = !string.IsNullOrWhiteSpace(canonicalId) ? canonicalId : GetCanonicalBuildingId(def);
+            return string.Equals(id, "Building_Warehouse", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -2784,7 +3047,7 @@ namespace GalacticFishing.Minigames.HexWorld
                     tilesLeft = _tilesLeftToPlace,
                     credits = _credits,
                     townHallLevel = townHallLevel,
-                    warehouseLevel = warehouse ? warehouse.WarehouseLevel : 1,
+                    warehouseLevel = warehouse ? warehouse.WarehouseLevel : 0,
                     warehouse = warehouse ? warehouse.ToStacks() : new List<HexWorldResourceStack>()
                 };
 
@@ -2857,7 +3120,15 @@ namespace GalacticFishing.Minigames.HexWorld
 
                 EnsureWarehouse();
                 if (warehouse)
-                    warehouse.LoadFromStacks(level: (save.warehouseLevel <= 0 ? 1 : save.warehouseLevel), stacks: save.warehouse);
+                {
+                    int loadedWarehouseLevel = save.warehouseLevel;
+                    if (save.saveVersion <= 2 && loadedWarehouseLevel <= 0)
+                        loadedWarehouseLevel = 1;
+                    else if (loadedWarehouseLevel < 0)
+                        loadedWarehouseLevel = 0;
+
+                    warehouse.LoadFromStacks(level: loadedWarehouseLevel, stacks: save.warehouse);
+                }
 
                 // 1) Tiles
                 for (int i = 0; i < save.tiles.Count; i++)
@@ -2960,16 +3231,16 @@ namespace GalacticFishing.Minigames.HexWorld
                 warehouse = gameObject.AddComponent<HexWorldWarehouseInventory>();
         }
 
-        private bool CanRemoveWarehouseBuilding(HexWorldBuildingDefinition buildingDef)
+        private bool CanRemoveWarehouseBuilding(HexWorldBuildingDefinition buildingDef, string buildingId)
         {
-            if (buildingDef == null || buildingDef.kind != HexWorldBuildingDefinition.BuildingKind.Warehouse)
+            if (!IsWarehouseBuildingDefinition(buildingDef, buildingId))
                 return true;
 
             EnsureWarehouse();
             if (!warehouse) return true;
 
-            int newLevel = Mathf.Max(1, warehouse.WarehouseLevel - 1);
-            int newCapacity = HexWorldWarehouseInventory.GetCapacityForLevel(newLevel);
+            int newLevel = Mathf.Max(0, warehouse.WarehouseLevel - 1);
+            int newCapacity = warehouse.GetCapacityForLevel(newLevel);
 
             if (warehouse.TotalStored > newCapacity)
             {

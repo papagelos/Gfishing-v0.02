@@ -8,7 +8,8 @@ public sealed class GlobalSystemsBootstrap : MonoBehaviour
     {
         if (_instance != null && _instance != this)
         {
-            Destroy(gameObject);
+            Debug.LogWarning($"[Singleton] Duplicate {GetType().Name} found on {gameObject.name}. Removing component only to preserve container.", this);
+            Destroy(this);
             return;
         }
 

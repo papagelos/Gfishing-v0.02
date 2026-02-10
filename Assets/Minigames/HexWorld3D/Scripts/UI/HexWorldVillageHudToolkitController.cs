@@ -683,12 +683,12 @@ namespace GalacticFishing.Minigames.HexWorld
                 var style = tileList[dataIndex];
                 bool unlocked = controller != null && controller.IsUnlocked(style);
                 string styleName = string.IsNullOrWhiteSpace(style.displayName) ? style.name : style.displayName;
-                btn.text = styleName;
+                btn.text = unlocked ? styleName : "???";
 
                 // Build tooltip with cost and tags for Gameplay tiles
                 btn.tooltip = unlocked
                     ? BuildTileTooltip(style)
-                    : $"LOCKED\n{styleName}";
+                    : "LOCKED";
 
                 // Visual distinction for gameplay tiles
                 btn.EnableInClassList(GameplaySlotClass, unlocked && style.category == TileCategory.Gameplay);
@@ -763,7 +763,7 @@ namespace GalacticFishing.Minigames.HexWorld
             {
                 for (int i = 0; i < catalog.Length; i++)
                 {
-                    if (catalog[i] != null)
+                    if (catalog[i] != null && catalog[i].kind != HexWorldBuildingDefinition.BuildingKind.TownHall)
                         buildingList.Add(catalog[i]);
                 }
             }
@@ -796,8 +796,8 @@ namespace GalacticFishing.Minigames.HexWorld
                 var def = buildingList[dataIndex];
                 bool unlocked = controller != null && controller.IsUnlocked(def);
                 string displayName = string.IsNullOrWhiteSpace(def.displayName) ? def.name : def.displayName;
-                btn.text = displayName;
-                btn.tooltip = unlocked ? displayName : $"LOCKED\n{displayName}";
+                btn.text = unlocked ? displayName : "???";
+                btn.tooltip = unlocked ? displayName : "LOCKED";
 
                 if (unlocked)
                 {

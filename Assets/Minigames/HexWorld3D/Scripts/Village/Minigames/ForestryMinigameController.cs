@@ -70,6 +70,9 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private string forestTileTag = "forest";
 
         [Header("Harvest Outputs")]
+        [Tooltip("Passive amount of Wood produced every production tick, even when no tree is harvested.")]
+        [SerializeField, Min(0)] private int passiveWoodPerTick = 1;
+
         [Tooltip("Amount of Wood produced when harvesting a mature tree.")]
         [SerializeField, Min(1)] private int woodPerHarvest = 3;
 
@@ -246,15 +249,18 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (!productionProfile) return;
 
+            int totalWood = Mathf.Max(0, passiveWoodPerTick) + Mathf.Max(0, wood);
+            int totalFiber = Mathf.Max(0, fiber);
+
             // Clear existing outputs
             productionProfile.baseOutputPerTick.Clear();
 
-            // Only add outputs if we actually harvested something
-            if (wood > 0)
-                productionProfile.baseOutputPerTick.Add(new HexWorldResourceStack(HexWorldResourceId.Wood, wood));
+            // Always emit passive wood baseline, plus any harvest burst on top.
+            if (totalWood > 0)
+                productionProfile.baseOutputPerTick.Add(new HexWorldResourceStack(HexWorldResourceId.Wood, totalWood));
 
-            if (fiber > 0)
-                productionProfile.baseOutputPerTick.Add(new HexWorldResourceStack(HexWorldResourceId.Fiber, fiber));
+            if (totalFiber > 0)
+                productionProfile.baseOutputPerTick.Add(new HexWorldResourceStack(HexWorldResourceId.Fiber, totalFiber));
         }
 
         // ─────────────────────────────────────────────────────────────────

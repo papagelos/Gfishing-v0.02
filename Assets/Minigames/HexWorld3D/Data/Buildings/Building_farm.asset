@@ -10,14 +10,26 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f37660ff0b52fdf418d7663053823d62, type: 3}
-  m_Name: Building_farm
+  m_Name: Building_Farm
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldBuildingDefinition
-  displayName: Blacksmith
-  icon: {fileID: -8337281393119725202, guid: 41cbe599b935397428da4922d9ee2cf2, type: 3}
-  prefab: {fileID: 8689533182396043018, guid: 4c86a6cdcb4154047a4a921db65354b7, type: 3}
-  localOffset: {x: 0, y: 0.02, z: 0}
+  displayName: Farm
+  icon: {fileID: 21300000, guid: ee177ac6cb3ecc14799764cdf6db7a2d, type: 3}
+  prefab: {fileID: 8689533182396043018, guid: 5e562cd07e5b35d4593fc3e416565f2e, type: 3}
+  localOffset: {x: 0, y: 0, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
+  localScale: {x: 1, y: 1, z: 1}
   kind: 0
+  unlockTownTier: 1
+  requiredBuildingPlacementNames: []
   consumesActiveSlot: 1
   defaultActive: 1
-  preferredTerrainType: 3
+  preferredTerrainType: 1
+  toolSlotType: 
+  availableUpgrades:
+  - {fileID: 11400000, guid: 23df1191d7fcc5a479c3d0e1d768c9df, type: 2}
+  properties:
+  - label: Property in Stats Display
+    value: 1
+  synergyRules: []
+  rarity: 0
+  ipReward: 10

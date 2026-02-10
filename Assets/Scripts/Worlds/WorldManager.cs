@@ -104,6 +104,11 @@ namespace GalacticFishing
             WorldChanged?.Invoke(world, lakeIndex);
         }
 
+        private void OnDestroy()
+        {
+            Debug.LogWarning($"[Diagnostic] WorldManager on {gameObject.name} is being DESTROYED. StackTrace: {System.Environment.StackTrace}");
+        }
+
         /// <summary>
         /// External systems (boat upgrades etc.) can call this to change the active boat.
         /// For now you can just set the initial value in the inspector.

@@ -21,6 +21,7 @@ MonoBehaviour:
   baselineMQCap: 15
   qpGranted: 20
   ipRequired: 150
-  milestoneResourceId: 60
-  milestoneQuantity: 1
-  milestoneLabel: Museum Enrollment Seal
+  milestoneResourceId: 10
+  milestoneQuantity: 100
+  milestoneLabel: 100 Wood / 100 Stone
+  townHallSprite: {fileID: 21300000, guid: 394bb287215b1ac4fa3cc8ae256f3609, type: 3}

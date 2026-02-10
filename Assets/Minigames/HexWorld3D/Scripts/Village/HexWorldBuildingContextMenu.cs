@@ -29,6 +29,9 @@ namespace GalacticFishing.Minigames.HexWorld
         [Tooltip("Reference to the warehouse inventory (for storage display).")]
         [SerializeField] private HexWorldWarehouseInventory warehouse;
 
+        [Tooltip("Reference to the Town Infrastructure panel controller.")]
+        [SerializeField] private TownInfraController townInfraController;
+
         [Tooltip("Reference to the Quarry Minigame UI panel.")]
         [SerializeField] private QuarryMinigameUI quarryMinigameUI;
 
@@ -1568,6 +1571,17 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (_currentBuildingDef == null) return;
 
+            if (IsTownHallBuilding())
+            {
+                if (_button1 != null)
+                {
+                    _button1.text = "UPGRADE";
+                    _button1.SetEnabled(true);
+                    _button1.style.display = DisplayStyle.Flex;
+                }
+                return;
+            }
+
             // Check if building is a Quarry - show OPEN DRILL button
             if (IsQuarryBuilding())
             {
@@ -1723,6 +1737,12 @@ namespace GalacticFishing.Minigames.HexWorld
             return _currentTarget.GetComponent<HexWorldProcessorController>() != null;
         }
 
+        private bool IsTownHallBuilding()
+        {
+            return _currentBuildingDef != null &&
+                   _currentBuildingDef.kind == HexWorldBuildingDefinition.BuildingKind.TownHall;
+        }
+
         /// <summary>
         /// Gets the HexWorldProcessorController from the current building (if any).
         /// </summary>
@@ -1758,7 +1778,7 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (_button1 == null) return;
 
-            _button1.text = "MANAGE PLOTS";
+            _button1.text = "FORESTRY PLOTS";
             _button1.style.display = DisplayStyle.Flex;
         }
 
@@ -2158,6 +2178,24 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void OnButton1Clicked(ClickEvent evt)
         {
+            if (IsTownHallBuilding())
+            {
+                if (townInfraController == null)
+                    townInfraController = UnityEngine.Object.FindAnyObjectByType<TownInfraController>(FindObjectsInactive.Include);
+
+                if (townInfraController != null)
+                {
+                    townInfraController.Show();
+                    Hide();
+                }
+                else
+                {
+                    Debug.LogWarning($"[{nameof(HexWorldBuildingContextMenu)}] Town Hall upgrade panel not wired (TownInfraController missing).");
+                }
+
+                return;
+            }
+
             // Check if this is a Quarry building - open drill UI instead of purchasing upgrade
             if (IsQuarryBuilding())
             {

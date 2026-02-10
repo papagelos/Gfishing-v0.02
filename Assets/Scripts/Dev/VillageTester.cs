@@ -26,11 +26,23 @@ public sealed class VillageTester : MonoBehaviour
         if (keyboard == null)
             return;
 
+        bool f10Pressed = keyboard.f10Key != null && keyboard.f10Key.wasPressedThisFrame;
+        var injectControl = keyboard[injectHotkey];
+        bool injectPressed = injectControl != null && injectControl.wasPressedThisFrame;
+        bool altPressed =
+            (keyboard.leftAltKey != null && keyboard.leftAltKey.isPressed) ||
+            (keyboard.rightAltKey != null && keyboard.rightAltKey.isPressed);
+
+        if (altPressed && f10Pressed)
+        {
+            RunFullReset();
+            return;
+        }
+
         if (enableTierHotkeys && TryHandleTierHotkeys(keyboard))
             return;
 
-        var injectControl = keyboard[injectHotkey];
-        if (injectControl != null && injectControl.wasPressedThisFrame)
+        if (injectPressed)
         {
             RunFullInjection();
         }
@@ -85,6 +97,56 @@ public sealed class VillageTester : MonoBehaviour
         InjectWarehouseResources();
 
         Debug.Log("[VillageTester] Injection complete: +999,999 Credits/IP/QP, catalog blueprints unlocked, warehouse resource pass applied.");
+    }
+
+    private void RunFullReset()
+    {
+        ResolveReferences();
+
+        if (controller == null)
+        {
+            Debug.LogWarning("[VillageTester] Could not run reset because HexWorld3DController was not found.");
+            return;
+        }
+
+        controller.DebugResetToFreshVillage();
+
+        if (warehouse != null)
+        {
+            warehouse.WarehouseLevel = 0;
+            warehouse.ClearAll();
+        }
+        else
+        {
+            Debug.LogWarning("[VillageTester] HexWorldWarehouseInventory not found. Warehouse reset skipped.");
+        }
+
+        var ppm = PlayerProgressManager.Instance;
+        if (ppm != null)
+        {
+            ppm.Load();
+
+            if (ppm.Data == null)
+            {
+                Debug.LogWarning("[VillageTester] PlayerProgress data unavailable after Load(). IP/QP reset skipped.");
+            }
+            else
+            {
+                if (ppm.Data.currency == null)
+                    ppm.Data.currency = new PlayerCurrencyData();
+
+                ppm.Data.currency.infrastructurePoints = 0;
+                ppm.Data.currency.unspentQP = 0;
+                ppm.Save();
+                Debug.Log("[VillageTester] IP/QP reset to 0.");
+            }
+        }
+        else
+        {
+            Debug.Log("[VillageTester] Note: IP/QP reset skipped (Manager not found in this scene).");
+        }
+
+        Debug.Log("[VillageTester] Alt+F10 nuke-and-reset complete: fresh village, warehouse cleared, IP/QP reset.");
     }
 
     private void InjectCurrencies()

@@ -62,6 +62,7 @@ public class TaskbarMaxAliveText : MonoBehaviour
     private float _nextRefresh;
     private string _prefixCached;
     private string _last;
+    private bool _worldManagerDockedLogged;
 
     private void Reset()
     {
@@ -74,8 +75,8 @@ public class TaskbarMaxAliveText : MonoBehaviour
         if (label) label.richText = true;
 
         // Optional auto-find
-        if (!spawner) spawner = FindFirstObjectByType<GFishSpawner>();
-        if (!worldManager) worldManager = FindFirstObjectByType<WorldManager>();
+        TryAutoDiscoverSpawner();
+        TryAutoDiscoverWorldManager();
 
         CachePrefix();
         Apply(true);
@@ -86,8 +87,8 @@ public class TaskbarMaxAliveText : MonoBehaviour
         if (!label) label = GetComponent<TMP_Text>();
         if (label) label.richText = true;
 
-        if (!spawner) spawner = FindFirstObjectByType<GFishSpawner>();
-        if (!worldManager) worldManager = FindFirstObjectByType<WorldManager>();
+        TryAutoDiscoverSpawner();
+        TryAutoDiscoverWorldManager();
 
         CachePrefix();
         Apply(true);
@@ -118,8 +119,8 @@ public class TaskbarMaxAliveText : MonoBehaviour
         if (!label) return;
 
         // Best-effort to keep references alive
-        if (!spawner) spawner = FindFirstObjectByType<GFishSpawner>();
-        if (!worldManager) worldManager = FindFirstObjectByType<WorldManager>();
+        if (!spawner) TryAutoDiscoverSpawner();
+        if (!worldManager) TryAutoDiscoverWorldManager();
 
         // Prefer worldManager from spawner if available (keeps it in sync with lake switching)
         var wm = ResolveWorldManager();
@@ -136,6 +137,27 @@ public class TaskbarMaxAliveText : MonoBehaviour
         {
             _last = msg;
             label.text = msg;
+        }
+    }
+
+    private void TryAutoDiscoverSpawner()
+    {
+        if (spawner) return;
+
+        spawner = UnityEngine.Object.FindAnyObjectByType<GFishSpawner>(FindObjectsInactive.Include);
+    }
+
+    private void TryAutoDiscoverWorldManager()
+    {
+        if (worldManager) return;
+
+        worldManager = UnityEngine.Object.FindAnyObjectByType<WorldManager>(FindObjectsInactive.Include);
+        if (!worldManager) return;
+
+        if (!_worldManagerDockedLogged)
+        {
+            Debug.Log($"[UI] {gameObject.name} successfully docked to WorldManager.");
+            _worldManagerDockedLogged = true;
         }
     }
 
