@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1554436442385077874}
   m_Layer: 0
-  m_Name: Prop_Mill
+  m_Name: Prop_Mill 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -82,11 +82,15 @@ namespace GalacticFishing.Minigames.HexWorld
         // ============================
         // Buildings (NEW)
         // ============================
-        public enum PaletteMode { Tiles, Roads, Buildings, TileUpgrade, Delete }
+        public enum PaletteMode { Tiles, Roads, Props, Buildings, TileUpgrade, Delete }
 
         [Header("Buildings")]
         [Tooltip("Catalog used to resolve saved building names back to assets.")]
         [SerializeField] private HexWorldBuildingDefinition[] buildingCatalog;
+
+        [Header("Props")]
+        [Tooltip("Catalog of manually placeable decorative props for Props mode.")]
+        [SerializeField] private HexWorldPropDefinition[] propCatalog;
 
         [Tooltip("Optional parent for spawned buildings. If empty, creates/uses child named 'Buildings' under this controller.")]
         [SerializeField] private Transform buildingsParent;
@@ -135,6 +139,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         // Events for UI
         public event Action<HexWorldTileStyle> SelectedStyleChanged;
+        public event Action<HexWorldPropDefinition> SelectedPropChanged;
         public event Action<HexWorldBuildingDefinition> SelectedBuildingChanged;
         public event Action<PaletteMode> PaletteModeChanged;
 
@@ -151,6 +156,7 @@ namespace GalacticFishing.Minigames.HexWorld
         public event Action RoadNetworkRecomputed;
 
         public HexWorldTileStyle SelectedStyle { get; private set; }
+        public HexWorldPropDefinition SelectedProp { get; private set; }
         public HexWorldBuildingDefinition SelectedBuilding { get; private set; }
         public PaletteMode CurrentPaletteMode => _paletteMode;
 
@@ -177,6 +183,9 @@ namespace GalacticFishing.Minigames.HexWorld
 
         // Public accessor for style catalog (used by TileBar sync)
         public HexWorldTileStyle[] GetStyleCatalog() => styleCatalog;
+
+        // Public accessor for prop catalog (used by HUD props mode)
+        public HexWorldPropDefinition[] GetPropCatalog() => propCatalog;
 
         // Public accessor for building catalog (used by UI Toolkit HUD)
         public HexWorldBuildingDefinition[] GetBuildingCatalog() => buildingCatalog;
@@ -764,9 +773,9 @@ namespace GalacticFishing.Minigames.HexWorld
             if (enableTileBudgetPlacement)
             {
                 // UNIFIED BUILDING INTERACTION:
-                // If nothing is selected (SelectedStyle == null AND SelectedBuilding == null),
+                // If nothing is selected (SelectedStyle == null AND SelectedProp == null AND SelectedBuilding == null),
                 // left-click always attempts building interaction regardless of PaletteMode.
-                bool nothingSelected = (SelectedStyle == null && SelectedBuilding == null);
+                bool nothingSelected = (SelectedStyle == null && SelectedProp == null && SelectedBuilding == null);
 
                 // Handle left-click input
                 if (Mouse.current.leftButton.wasPressedThisFrame)
@@ -870,6 +879,29 @@ namespace GalacticFishing.Minigames.HexWorld
                                     _dragHasLast = true;
                                     _dragLastCoord = coord;
                                     TryRemoveBuildingOrTileAtCoord(coord);
+                                }
+                            }
+                        }
+                    }
+
+                    if (Mouse.current.leftButton.wasReleasedThisFrame)
+                        _dragHasLast = false;
+                }
+                else if (_paletteMode == PaletteMode.Props)
+                {
+                    if (_cursorGhost) _cursorGhost.SetActive(false);
+
+                    if (SelectedProp != null && Mouse.current.leftButton.isPressed)
+                    {
+                        if (!ShouldBlockWorldInputByUI())
+                        {
+                            if (TryGetCursorCoord(out var coord))
+                            {
+                                if (!_dragHasLast || coord.q != _dragLastCoord.q || coord.r != _dragLastCoord.r)
+                                {
+                                    _dragHasLast = true;
+                                    _dragLastCoord = coord;
+                                    TryPlacePropAtCoord(coord, SelectedProp);
                                 }
                             }
                         }
@@ -1104,11 +1136,42 @@ namespace GalacticFishing.Minigames.HexWorld
             return mode == PaletteMode.Tiles || mode == PaletteMode.Roads;
         }
 
+        public void SetPaletteMode(PaletteMode mode)
+        {
+            switch (mode)
+            {
+                case PaletteMode.Tiles:
+                    SetPaletteModeTiles();
+                    break;
+                case PaletteMode.Roads:
+                    SetPaletteModeRoads();
+                    break;
+                case PaletteMode.Props:
+                    SetPaletteModeProps();
+                    break;
+                case PaletteMode.Buildings:
+                    SetPaletteModeBuildings();
+                    break;
+                case PaletteMode.TileUpgrade:
+                    SetPaletteModeTileUpgrade();
+                    break;
+                case PaletteMode.Delete:
+                    SetPaletteModeDelete();
+                    break;
+            }
+        }
+
         public void SetPaletteModeTiles()
         {
             if (_paletteMode == PaletteMode.Tiles) return;
             _paletteMode = PaletteMode.Tiles;
             PaletteModeChanged?.Invoke(_paletteMode);
+
+            if (SelectedProp != null)
+            {
+                SelectedProp = null;
+                SelectedPropChanged?.Invoke(null);
+            }
 
             // Clear stale building selection when switching to Tiles mode
             if (SelectedBuilding != null)
@@ -1130,6 +1193,12 @@ namespace GalacticFishing.Minigames.HexWorld
             {
                 _paletteMode = PaletteMode.Roads;
                 PaletteModeChanged?.Invoke(_paletteMode);
+            }
+
+            if (SelectedProp != null)
+            {
+                SelectedProp = null;
+                SelectedPropChanged?.Invoke(null);
             }
 
             // Clear stale building selection when switching to Roads mode.
@@ -1184,6 +1253,12 @@ namespace GalacticFishing.Minigames.HexWorld
             _paletteMode = PaletteMode.Buildings;
             PaletteModeChanged?.Invoke(_paletteMode);
 
+            if (SelectedProp != null)
+            {
+                SelectedProp = null;
+                SelectedPropChanged?.Invoke(null);
+            }
+
             // Clear stale tile style selection when switching to Buildings mode
             if (SelectedStyle != null)
             {
@@ -1197,6 +1272,31 @@ namespace GalacticFishing.Minigames.HexWorld
             if (buildingContextMenu) buildingContextMenu.Hide();
         }
 
+        public void SetPaletteModeProps()
+        {
+            if (_paletteMode == PaletteMode.Props && SelectedProp != null)
+                return;
+
+            _paletteMode = PaletteMode.Props;
+            PaletteModeChanged?.Invoke(_paletteMode);
+
+            if (SelectedStyle != null)
+            {
+                SelectedStyle = null;
+                SelectedStyleChanged?.Invoke(null);
+            }
+
+            if (SelectedBuilding != null)
+            {
+                SelectedBuilding = null;
+                SelectedBuildingChanged?.Invoke(null);
+            }
+
+            if (_cursorGhost) _cursorGhost.SetActive(false);
+
+            if (buildingContextMenu) buildingContextMenu.Hide();
+        }
+
         public void SetPaletteModeTileUpgrade()
         {
             if (_paletteMode == PaletteMode.TileUpgrade) return;
@@ -1204,6 +1304,7 @@ namespace GalacticFishing.Minigames.HexWorld
             PaletteModeChanged?.Invoke(_paletteMode);
 
             SetSelectedStyle(null);
+            SetSelectedProp(null);
             SetSelectedBuilding(null);
 
             if (_cursorGhost) _cursorGhost.SetActive(false);
@@ -1218,6 +1319,7 @@ namespace GalacticFishing.Minigames.HexWorld
             _paletteMode = PaletteMode.Delete;
 
             SetSelectedStyle(null);
+            SetSelectedProp(null);
             SetSelectedBuilding(null);
 
             PaletteModeChanged?.Invoke(_paletteMode);
@@ -1247,6 +1349,12 @@ namespace GalacticFishing.Minigames.HexWorld
                 SelectedBuildingChanged?.Invoke(null);
             }
 
+            if (style != null && SelectedProp != null)
+            {
+                SelectedProp = null;
+                SelectedPropChanged?.Invoke(null);
+            }
+
             SelectedStyle = style;
             SelectedStyleChanged?.Invoke(SelectedStyle);
 
@@ -1260,6 +1368,38 @@ namespace GalacticFishing.Minigames.HexWorld
                 EnsureCursorGhost();
                 ApplyStyleToGhost();
                 UpdateCursorGhostVisibility();
+            }
+        }
+
+        public void SetSelectedProp(HexWorldPropDefinition prop)
+        {
+            if (SelectedProp == prop)
+                prop = null;
+
+            if (prop != null && prop.prefab == null)
+            {
+                RequestToast("Prop prefab missing.");
+                return;
+            }
+
+            if (prop != null && SelectedStyle != null)
+            {
+                SelectedStyle = null;
+                SelectedStyleChanged?.Invoke(null);
+            }
+
+            if (prop != null && SelectedBuilding != null)
+            {
+                SelectedBuilding = null;
+                SelectedBuildingChanged?.Invoke(null);
+            }
+
+            SelectedProp = prop;
+            SelectedPropChanged?.Invoke(SelectedProp);
+
+            if (enableTileBudgetPlacement && prop != null)
+            {
+                SetPaletteModeProps();
             }
         }
 
@@ -1282,6 +1422,12 @@ namespace GalacticFishing.Minigames.HexWorld
                 SelectedStyleChanged?.Invoke(null);
             }
 
+            if (def != null && SelectedProp != null)
+            {
+                SelectedProp = null;
+                SelectedPropChanged?.Invoke(null);
+            }
+
             SelectedBuilding = def;
             SelectedBuildingChanged?.Invoke(SelectedBuilding);
 
@@ -1299,17 +1445,20 @@ namespace GalacticFishing.Minigames.HexWorld
         // Exit Mode helpers
         // ============================
         public void ExitPaintMode() => SetSelectedStyle(null);
+        public void ExitPropsMode() => SetSelectedProp(null);
         public void ExitBuildMode() => SetSelectedBuilding(null);
 
         public void OnExitModeClicked()
         {
-            if (_paletteMode == PaletteMode.Delete || _paletteMode == PaletteMode.TileUpgrade)
+            if (_paletteMode == PaletteMode.Delete || _paletteMode == PaletteMode.TileUpgrade || _paletteMode == PaletteMode.Props)
             {
                 // Exit utility modes by switching to tiles mode.
                 SetPaletteModeTiles();
             }
             else if (SelectedStyle != null)
                 SetSelectedStyle(null);
+            else if (SelectedProp != null)
+                SetSelectedProp(null);
             else if (SelectedBuilding != null)
                 SetSelectedBuilding(null);
         }
@@ -2746,6 +2895,28 @@ namespace GalacticFishing.Minigames.HexWorld
                 deco.transform.localScale = Vector3.one * finalScale;
                 deco.name = $"Deco_{entry.prefab.name}_{i}";
             }
+        }
+
+        /// <summary>
+        /// Places one manual prop on an owned tile (Props mode).
+        /// Existing decorations/props on the tile are cleared first.
+        /// </summary>
+        public void TryPlacePropAtCoord(HexCoord coord, HexWorldPropDefinition prop)
+        {
+            if (prop == null || prop.prefab == null)
+                return;
+
+            if (!_owned.TryGetValue(coord, out var tile) || !tile)
+                return;
+
+            ClearDecorationsAtTile(coord);
+
+            Transform decorRoot = GetOrCreateDecorRoot(tile.transform);
+            var placed = Instantiate(prop.prefab, decorRoot);
+            placed.transform.localPosition = Vector3.zero;
+            placed.transform.localRotation = Quaternion.identity;
+            placed.transform.localScale = Vector3.one;
+            placed.name = $"Prop_{(string.IsNullOrWhiteSpace(prop.id) ? prop.prefab.name : prop.id)}";
         }
 
         /// <summary>

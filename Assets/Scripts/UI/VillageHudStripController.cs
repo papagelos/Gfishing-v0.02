@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
+using GalacticFishing.Minigames.HexWorld;
 
 public class VillageHudStripController : MonoBehaviour
 {
-    public enum TabKind { Tiles, Buildings }
+    public enum TabKind { Tiles, Props, Buildings }
 
     [Serializable]
     public class Entry
@@ -20,7 +21,11 @@ public class VillageHudStripController : MonoBehaviour
 
     [Header("Data")]
     public List<Entry> tiles = new();
+    public List<Entry> props = new();
     public List<Entry> buildings = new();
+
+    [Header("Gameplay Wiring")]
+    public HexWorld3DController controller;
 
     [Header("Paging")]
     public int itemsPerPage = 5;
@@ -31,8 +36,10 @@ public class VillageHudStripController : MonoBehaviour
     private UIDocument _doc;
 
     private Button _tabTiles, _tabBuildings;
+    private Button _btnPropsMode;
     private Button _prev, _next;
     private Label _pageLabel;
+    private VisualElement _propPager;
 
     private Button[] _slots;
 
@@ -42,11 +49,13 @@ public class VillageHudStripController : MonoBehaviour
         var root = _doc.rootVisualElement;
 
         _tabTiles = root.Q<Button>("Tab_Tiles");
+        _btnPropsMode = root.Q<Button>("BtnPropsMode");
         _tabBuildings = root.Q<Button>("Tab_Buildings");
 
         _prev = root.Q<Button>("PrevPage");
         _next = root.Q<Button>("NextPage");
         _pageLabel = root.Q<Label>("PageLabel");
+        _propPager = root.Q<VisualElement>("PropPager");
 
         _slots = new[]
         {
@@ -61,21 +70,47 @@ public class VillageHudStripController : MonoBehaviour
         if (tilesTabIcon != null) _tabTiles.style.backgroundImage = new StyleBackground(tilesTabIcon);
         if (buildingsTabIcon != null) _tabBuildings.style.backgroundImage = new StyleBackground(buildingsTabIcon);
 
-        _tabTiles.clicked += () => SwitchTab(TabKind.Tiles);
-        _tabBuildings.clicked += () => SwitchTab(TabKind.Buildings);
-        _prev.clicked += PrevPage;
-        _next.clicked += NextPage;
+        if (_tabTiles != null) _tabTiles.clicked += () => SwitchTab(TabKind.Tiles);
+        if (_btnPropsMode != null) _btnPropsMode.clicked += () => SwitchTab(TabKind.Props);
+        if (_tabBuildings != null) _tabBuildings.clicked += () => SwitchTab(TabKind.Buildings);
+        if (_prev != null) _prev.clicked += PrevPage;
+        if (_next != null) _next.clicked += NextPage;
 
         Refresh();
     }
 
-    private List<Entry> CurrentList() => _tab == TabKind.Tiles ? tiles : buildings;
+    private List<Entry> CurrentList()
+    {
+        return _tab switch
+        {
+            TabKind.Tiles => tiles,
+            TabKind.Props => props,
+            _ => buildings
+        };
+    }
 
     private void SwitchTab(TabKind tab)
     {
         if (_tab == tab) return;
         _tab = tab;
         _page = 0;
+
+        if (controller != null)
+        {
+            switch (tab)
+            {
+                case TabKind.Tiles:
+                    controller.SetPaletteMode(HexWorld3DController.PaletteMode.Tiles);
+                    break;
+                case TabKind.Props:
+                    controller.SetPaletteMode(HexWorld3DController.PaletteMode.Props);
+                    break;
+                case TabKind.Buildings:
+                    controller.SetPaletteMode(HexWorld3DController.PaletteMode.Buildings);
+                    break;
+            }
+        }
+
         Refresh();
     }
 
@@ -90,7 +125,11 @@ public class VillageHudStripController : MonoBehaviour
         _page = Mathf.Clamp(_page, 0, totalPages - 1);
 
         SetActiveClass(_tabTiles, _tab == TabKind.Tiles);
+        SetActiveClass(_btnPropsMode, _tab == TabKind.Props);
         SetActiveClass(_tabBuildings, _tab == TabKind.Buildings);
+
+        if (_propPager != null)
+            _propPager.style.display = _tab == TabKind.Props ? DisplayStyle.Flex : DisplayStyle.None;
 
         _pageLabel.text = $"{_page + 1}/{totalPages}";
         _prev.SetEnabled(_page > 0);
@@ -121,6 +160,7 @@ public class VillageHudStripController : MonoBehaviour
 
     private static void SetActiveClass(VisualElement el, bool active)
     {
+        if (el == null) return;
         const string cls = "is-active";
         if (active) el.AddToClassList(cls);
         else el.RemoveFromClassList(cls);

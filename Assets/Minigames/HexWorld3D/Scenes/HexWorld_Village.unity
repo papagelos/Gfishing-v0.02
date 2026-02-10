@@ -477,6 +477,7 @@ MonoBehaviour:
   controller: {fileID: 1268877275}
   productionTicker: {fileID: 0}
   warehouse: {fileID: 0}
+  townInfraController: {fileID: 922497759}
   quarryMinigameUI: {fileID: 0}
   forestryMinigameUI: {fileID: 0}
   hunterMinigameUI: {fileID: 0}
@@ -1605,6 +1606,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 695e13ba4dbc436c8aa2c7ff1f860e8a, type: 2}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
+      propertyPath: propCatalog.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: styleCatalog.Array.size
       value: 13
       objectReference: {fileID: 0}
@@ -1612,6 +1617,10 @@ PrefabInstance:
       propertyPath: worldProgressionProvider
       value: 
       objectReference: {fileID: 1479000110}
+    - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
+      propertyPath: 'propCatalog.Array.data[0]'
+      value: 
+      objectReference: {fileID: 11400000, guid: 34fb5bfea822af640929e628e7f57151, type: 2}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: buildingCatalog.Array.size
       value: 16
