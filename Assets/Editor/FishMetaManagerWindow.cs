@@ -65,7 +65,7 @@ namespace GalacticFishing.EditorTools
         private string _defString = "";
 
         // -------------- Menu --------------
-        [MenuItem("Galactic Fishing/Unified Fish Meta Manager", priority = 3000)]
+        [MenuItem("Galactic Fishing/Data/Unified Fish Meta Manager", priority = 3000)]
         public static void Open()
         {
             var w = GetWindow<FishMetaManagerWindow>("Unified Fish Meta Manager");

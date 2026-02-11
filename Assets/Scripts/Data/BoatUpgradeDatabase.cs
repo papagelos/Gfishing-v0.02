@@ -5,7 +5,7 @@ using UnityEngine;
 namespace GalacticFishing.Data
 {
     [CreateAssetMenu(
-        menuName = "GalacticFishing/Gear/Boat Upgrade Database",
+        menuName = "Galactic Fishing/Gear/Boat Upgrade Database",
         fileName = "BoatUpgradeDB")]
     public class BoatUpgradeDatabase : ScriptableObject
     {

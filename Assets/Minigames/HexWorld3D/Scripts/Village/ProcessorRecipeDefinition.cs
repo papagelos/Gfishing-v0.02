@@ -8,7 +8,7 @@ namespace GalacticFishing.Minigames.HexWorld
     /// Used by Processor buildings (e.g., Sawmill converts Wood to Planks).
     /// Supports multiple inputs for crafting recipes (TICKET 23).
     /// </summary>
-    [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Processor Recipe", fileName = "Recipe_")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Village/Processor Recipe", fileName = "Recipe_")]
     public sealed class ProcessorRecipeDefinition : ScriptableObject
     {
         [Header("Input (Legacy - single input)")]

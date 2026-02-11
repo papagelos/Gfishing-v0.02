@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(menuName = "GalacticFishing/Fish Registry", fileName = "FishRegistry")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Data/Fish Registry", fileName = "FishRegistry")]
     public sealed class FishRegistry : ScriptableObject
     {
         public List<Fish> fishes = new();

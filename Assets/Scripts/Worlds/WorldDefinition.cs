@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(menuName = "GalacticFishing/World Definition", fileName = "WorldDefinition")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Worlds/World Definition", fileName = "WorldDefinition")]
     public sealed class WorldDefinition : ScriptableObject
     {
         [Header("Identity")]

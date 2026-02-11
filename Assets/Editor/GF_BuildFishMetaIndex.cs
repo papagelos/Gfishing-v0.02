@@ -10,7 +10,7 @@ public static class GF_BuildFishMetaIndex
 {
     const string DefaultAssetPath = "Assets/Data/FishMetaIndex.asset";
 
-    [MenuItem("GF/Build/Fish Meta Index")]
+    [MenuItem("Galactic Fishing/Data/Rebuild Fish Index")]
     public static void Build()
     {
         var metaGuids = AssetDatabase.FindAssets("t:FishMeta");

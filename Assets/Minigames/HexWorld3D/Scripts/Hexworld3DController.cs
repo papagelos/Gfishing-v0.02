@@ -2915,7 +2915,7 @@ namespace GalacticFishing.Minigames.HexWorld
             var placed = Instantiate(prop.prefab, decorRoot);
             placed.transform.localPosition = Vector3.zero;
             placed.transform.localRotation = Quaternion.identity;
-            placed.transform.localScale = Vector3.one;
+            placed.transform.localScale = Vector3.one * prop.scale;
             placed.name = $"Prop_{(string.IsNullOrWhiteSpace(prop.id) ? prop.prefab.name : prop.id)}";
         }
 

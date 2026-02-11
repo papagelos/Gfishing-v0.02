@@ -15,7 +15,7 @@ namespace GalacticFishing
     {
         private FishCatalogSettings settings;
 
-        [MenuItem("Tools/GalacticFishing/Fish Catalog Settings")]
+        [MenuItem("Galactic Fishing/Catalogs/Fish/Fish Catalog Settings")]
         public static void CreateOrSelectSettings()
         {
             var path = "Assets/Editor/FishCatalogSettings.asset";
@@ -31,7 +31,7 @@ namespace GalacticFishing
             EditorGUIUtility.PingObject(s);
         }
 
-        [MenuItem("Tools/GalacticFishing/Build Fish Catalog")]
+        [MenuItem("Galactic Fishing/Catalogs/Fish/Build Fish Catalog")]
         public static void Open()
         {
             GetWindow<FishCatalogBuilder>("Fish Catalog");

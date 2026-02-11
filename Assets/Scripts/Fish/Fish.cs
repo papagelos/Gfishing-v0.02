@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(menuName = "GalacticFishing/Fish", fileName = "Fish_")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Data/Fish", fileName = "Fish_")]
     public sealed class Fish : ScriptableObject
     {
         [Header("Identity")]

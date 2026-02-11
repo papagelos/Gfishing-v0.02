@@ -8,7 +8,7 @@ namespace GalacticFishing.Minigames.HexWorld
     /// Defines a single upgrade option for a building.
     /// TICKET 1: UI display fields only (purchase logic in TICKET 2).
     /// </summary>
-    [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Upgrade Definition", fileName = "Upgrade_")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Village/Upgrade Definition", fileName = "Upgrade_")]
     public sealed class HexWorldUpgradeDefinition : ScriptableObject
     {
         [Header("UI Display")]

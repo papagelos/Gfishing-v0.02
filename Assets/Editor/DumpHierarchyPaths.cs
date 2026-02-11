@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class DumpHierarchyToClipboard
 {
-    [MenuItem("Tools/GF/Copy Selected Hierarchy Paths (Clipboard)")]
+    [MenuItem("Galactic Fishing/Utilities/Hierarchy Dump/Copy Selected Hierarchy Paths (Clipboard)")]
     public static void CopyPaths()
     {
         var root = Selection.activeTransform;
@@ -23,7 +23,7 @@ public static class DumpHierarchyToClipboard
         EditorUtility.DisplayDialog("Copied!", $"Copied {count} paths to clipboard.\n\nPaste it into chat.", "OK");
     }
 
-    [MenuItem("Tools/GF/Copy Selected Hierarchy Tree (Indented)")]
+    [MenuItem("Galactic Fishing/Utilities/Hierarchy Dump/Copy Selected Hierarchy Tree (Indented)")]
     public static void CopyIndentedTree()
     {
         var root = Selection.activeTransform;

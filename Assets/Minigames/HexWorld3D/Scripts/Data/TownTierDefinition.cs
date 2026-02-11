@@ -9,7 +9,7 @@ namespace GalacticFishing.Minigames.HexWorld
     /// </summary>
     [CreateAssetMenu(
         fileName = "TownTier_T1",
-        menuName = "HexWorld/Town Tier Definition",
+        menuName = "Galactic Fishing/Village/System/Town Tier Definition",
         order = 100)]
     public class TownTierDefinition : ScriptableObject
     {

@@ -6,11 +6,9 @@ using GalacticFishing;
 
 public static class GF_InventoryMenus
 {
-    const string MenuGF    = "GF/Inventory/";
-    const string MenuTools = "Tools/GF/Inventory/";
+    const string MenuGF = "Galactic Fishing/Cheats/Inventory/";
 
     [MenuItem(MenuGF + "Show All Fish (dim zeros)")]
-    [MenuItem(MenuTools + "Show All Fish (dim zeros)")]
     public static void ShowAllFishDimZeros()
     {
         var reg = EnsureInit();
@@ -34,7 +32,6 @@ public static class GF_InventoryMenus
     }
 
     [MenuItem(MenuGF + "Add 1 of Every Fish")]
-    [MenuItem(MenuTools + "Add 1 of Every Fish")]
     public static void AddOneOfEveryFish()
     {
         var reg = EnsureInit();
@@ -56,7 +53,6 @@ public static class GF_InventoryMenus
     }
 
     [MenuItem(MenuGF + "Clear Inventory")]
-    [MenuItem(MenuTools + "Clear Inventory")]
     public static void ClearInventory()
     {
         var reg = EnsureInit();
@@ -103,4 +99,3 @@ public static class GF_InventoryMenus
     }
 }
 #endif
-

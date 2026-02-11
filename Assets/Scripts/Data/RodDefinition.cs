@@ -14,7 +14,7 @@ namespace GalacticFishing.Data
     }
 
     [CreateAssetMenu(
-        menuName = "GalacticFishing/Gear/Rod",
+        menuName = "Galactic Fishing/Gear/Rod",
         fileName = "Rod_")]
     public class RodDefinition : ScriptableObject
     {

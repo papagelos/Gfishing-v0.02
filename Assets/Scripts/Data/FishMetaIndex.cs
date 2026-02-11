@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(menuName = "GF/Data/Fish Meta Index")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Data/Fish Meta Index")]
     public class FishMetaIndex : ScriptableObject
     {
         [Serializable]

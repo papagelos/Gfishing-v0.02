@@ -15,7 +15,7 @@ namespace GalacticFishing.Minigames.HexWorld
         Gameplay = 1
     }
 
-    [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Tile Style", fileName = "TileStyle_")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Village/Tile Style", fileName = "TileStyle_")]
     public sealed class HexWorldTileStyle : ScriptableObject
     {
         [Header("UI")]
@@ -59,6 +59,9 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Header("Terrain Type")]
         public HexWorldTerrainType terrainType = HexWorldTerrainType.None;
+
+        [Header("Dungeon Generation")]
+        public string biomeGroup;
 
         [Header("Stats Display")]
         [Tooltip("Key/value properties shown in the context menu when clicking this tile.")]

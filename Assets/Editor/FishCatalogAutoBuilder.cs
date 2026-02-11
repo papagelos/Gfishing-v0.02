@@ -18,7 +18,7 @@ namespace GalacticFishing
     {
         static readonly string[] kExts = { ".png", ".psd", ".psb" };
 
-        [MenuItem("Tools/GalacticFishing/Auto-Build On Import/Enable")]
+        [MenuItem("Galactic Fishing/Catalogs/Fish/Auto-Build On Import/Enable")]
         public static void EnableAuto()
         {
             // Ensure settings asset exists
@@ -36,7 +36,7 @@ namespace GalacticFishing
             Debug.Log("[Fish Catalog] Auto-build ENABLED.");
         }
 
-        [MenuItem("Tools/GalacticFishing/Auto-Build On Import/Disable")]
+        [MenuItem("Galactic Fishing/Catalogs/Fish/Auto-Build On Import/Disable")]
         public static void DisableAuto()
         {
             var s = FishCatalogBuilder.FindSettings();

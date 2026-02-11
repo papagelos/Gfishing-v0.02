@@ -61,7 +61,7 @@ namespace GalacticFishing.EditorTools
         private UpgradeEffectsDatabase _effectsDb;
         private SerializedObject _effectsSO;
 
-        [MenuItem("Galactic Fishing/Upgrade Dashboard", priority = 3010)]
+        [MenuItem("Galactic Fishing/Data/Upgrade Dashboard", priority = 3010)]
         public static void Open()
         {
             var w = GetWindow<UpgradeDashboardWindow>("Upgrade Dashboard");

@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Town Hall
   icon: {fileID: 21300000, guid: eba54da8ab1a98545baad3b3c94098a6, type: 3}
   prefab: {fileID: 8689533182396043018, guid: d01eb4e2880f6144b840b75de8695646, type: 3}
-  localOffset: {x: 0, y: 0.2, z: 0}
+  localOffset: {x: 0, y: 0, z: 0}
   localEuler: {x: 0, y: 0, z: 0}
   localScale: {x: 0.09, y: 0.09, z: 0.09}
   kind: 1

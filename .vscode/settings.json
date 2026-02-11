@@ -60,13 +60,13 @@
         "*.asset": "yaml",
         "*.meta": "yaml",
         "*.prefab": "yaml",
-        "*.unity": "yaml",
+        "*.unity": "yaml"
     },
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {
-        "*.sln": "*.csproj",
+        "*.sln": "*.csproj"
     },
-    "dotnet.defaultSolution": "Gfishing v0.02.sln",
+    "dotnet.defaultSolution": "Gfishing v0.02.slnx",
     "local-history.saveDelay": 10,
     "local-history.path": "f:\\coding"
 }

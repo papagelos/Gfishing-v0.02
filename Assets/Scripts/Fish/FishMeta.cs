@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(fileName = "FishMeta_", menuName = "GalacticFishing/Fish Meta", order = 10)]
+    [CreateAssetMenu(fileName = "FishMeta_", menuName = "Galactic Fishing/Data/Fish Meta", order = 10)]
     public partial class FishMeta : ScriptableObject
     {
         [Header("Identity")]

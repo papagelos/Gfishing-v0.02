@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace GalacticFishing
 {
-    [CreateAssetMenu(fileName = "QualitySettings", menuName = "GalacticFishing/Quality Settings")]
+    [CreateAssetMenu(fileName = "QualitySettings", menuName = "Galactic Fishing/Data/Quality Settings")]
     public sealed class QualitySettings : ScriptableObject
     {
         [Header("Bell Curve")]

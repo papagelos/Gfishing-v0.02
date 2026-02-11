@@ -9,7 +9,7 @@ namespace GalacticFishing.EditorTools
 {
     public sealed partial class FishMetaBatchCustomWindow : EditorWindow
     {
-        [MenuItem("Galactic Fishing/Fish Meta Batch – Custom Fields", priority = 3003)]
+        [MenuItem("Galactic Fishing/Data/Fish Meta Batch – Custom Fields", priority = 3003)]
         static void Open() => GetWindow<FishMetaBatchCustomWindow>("Fish Meta Batch (Custom)");
 
         private readonly List<GalacticFishing.FishMeta> _metas = new();

@@ -270,7 +270,7 @@ public sealed class GF_AutoWire : EditorWindow
     // Caches
     private static Dictionary<string, Type> _typeCache = new();
 
-    [MenuItem("Tools/GF Auto Wire")]
+    [MenuItem("Galactic Fishing/Utilities/Auto Wire")]
     public static void Open()
     {
         var w = GetWindow<GF_AutoWire>("GF Auto Wire");

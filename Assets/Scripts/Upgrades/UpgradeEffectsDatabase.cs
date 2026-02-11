@@ -9,7 +9,7 @@ namespace GalacticFishing.Upgrades
     /// Each entry is keyed by the SAME saveKey format used by ShopListUI:
     ///   shop:<catalogId>:<itemId>
     /// </summary>
-    [CreateAssetMenu(menuName = "Galactic Fishing/Upgrades/Upgrade Effects Database", fileName = "UpgradeEffectsDatabase")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Shop/Upgrade Effects Database", fileName = "UpgradeEffectsDatabase")]
     public sealed class UpgradeEffectsDatabase : ScriptableObject
     {
         public List<UpgradeEffectEntry> entries = new();

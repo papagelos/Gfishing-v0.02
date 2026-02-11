@@ -6,7 +6,7 @@ namespace GalacticFishing
     /// Global visual calibration for fish size.
     /// Keep meters as the only semantic size; this turns meters into localScale.
     /// </summary>
-    [CreateAssetMenu(fileName = "FishSizingSettings", menuName = "GalacticFishing/Fish Sizing Settings")]
+    [CreateAssetMenu(fileName = "FishSizingSettings", menuName = "Galactic Fishing/Data/Fish Sizing Settings")]
     public sealed class FishSizingSettings : ScriptableObject
     {
         [Tooltip("Assume 1 Unity unit equals this many real-world meters (usually 1).")]

@@ -62,7 +62,7 @@ namespace GalacticFishing.Minigames.HexWorld
         public int maxStacks = 0;
     }
 
-    [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Building Definition", fileName = "Building_")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Village/Building Definition", fileName = "Building_")]
     public sealed class HexWorldBuildingDefinition : ScriptableObject
     {
         public enum BuildingRarity

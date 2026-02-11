@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace GalacticFishing.Minigames.HexWorld
 {
-    [CreateAssetMenu(menuName = "Galactic Fishing/Hex World/Balance Config", fileName = "HexWorldBalanceConfig")]
+    [CreateAssetMenu(menuName = "Galactic Fishing/Village/System/Balance Config", fileName = "HexWorldBalanceConfig")]
     public sealed class HexWorldBalanceConfig : ScriptableObject
     {
         public const float DefaultTickSeconds = 60f;
