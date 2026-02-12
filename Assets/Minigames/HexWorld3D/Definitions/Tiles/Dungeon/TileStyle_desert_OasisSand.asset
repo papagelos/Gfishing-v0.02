@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Oasissand
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 21300000, guid: 8180fbe977341c544a9f77d958528966, type: 3}
+  thumbnail: {fileID: 2800000, guid: 8180fbe977341c544a9f77d958528966, type: 3}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []

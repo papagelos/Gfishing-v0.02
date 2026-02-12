@@ -753,9 +753,9 @@ namespace GalacticFishing.Minigames.HexWorld
                 if (unlocked)
                 {
                     btn.userData = style;
-                    var sp = style.thumbnail;
-                    btn.style.backgroundImage = (sp != null)
-                        ? UnityEngine.UIElements.Background.FromSprite(sp)
+                    var tex = style.thumbnail;
+                    btn.style.backgroundImage = tex
+                        ? UnityEngine.UIElements.Background.FromTexture2D(tex)
                         : StyleKeyword.None;
                 }
                 else

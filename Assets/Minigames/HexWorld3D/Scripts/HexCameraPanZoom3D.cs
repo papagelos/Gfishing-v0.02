@@ -33,6 +33,10 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private float _yaw;
         private float _pitch;
+        private Vector3 _lastOrbitTargetPos;
+        private bool _hasLastOrbitTargetPos;
+
+        public Transform OrbitTarget => orbitTarget;
 
         private void Awake()
         {
@@ -67,6 +71,8 @@ namespace GalacticFishing.Minigames.HexWorld
                 distance = Vector3.Distance(transform.position, orbitTarget.position);
 
             ApplyOrbit();
+            _lastOrbitTargetPos = orbitTarget.position;
+            _hasLastOrbitTargetPos = true;
         }
 
         private void Update()
@@ -141,6 +147,13 @@ namespace GalacticFishing.Minigames.HexWorld
 
                 ApplyOrbit();
             }
+
+            if (orbitTarget && (!_hasLastOrbitTargetPos || orbitTarget.position != _lastOrbitTargetPos))
+            {
+                ApplyOrbit();
+                _lastOrbitTargetPos = orbitTarget.position;
+                _hasLastOrbitTargetPos = true;
+            }
         }
 
         private void ApplyOrbit()
@@ -151,6 +164,23 @@ namespace GalacticFishing.Minigames.HexWorld
             Vector3 offset = rot * new Vector3(0f, 0f, -distance);
             transform.position = orbitTarget.position + offset;
             transform.rotation = rot;
+        }
+
+        public void SetOrbitTarget(Transform target, bool snapImmediately = true)
+        {
+            if (!target)
+                return;
+
+            orbitTarget = target;
+
+            if (distance <= 0.01f)
+                distance = Vector3.Distance(transform.position, orbitTarget.position);
+
+            if (snapImmediately)
+                ApplyOrbit();
+
+            _lastOrbitTargetPos = orbitTarget.position;
+            _hasLastOrbitTargetPos = true;
         }
 
         private static float NormalizePitch(float x)

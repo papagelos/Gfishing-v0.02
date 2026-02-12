@@ -21,7 +21,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [Header("UI")]
         public string displayName = "New Tile";
         public Color edgeTint = Color.white;
-        public Sprite thumbnail;
+        public Texture2D thumbnail;
 
         [Header("Category & Cost")]
         [Tooltip("Cosmetic tiles are free visual paints. Gameplay tiles cost resources and affect mechanics.")]

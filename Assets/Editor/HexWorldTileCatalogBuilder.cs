@@ -100,13 +100,6 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
 
             texturesProcessed++;
 
-            Sprite sprite = LoadFirstSprite(texturePath);
-            if (sprite == null)
-            {
-                Debug.LogWarning($"[HexWorldTileCatalogBuilder] Could not load Sprite at: {texturePath}");
-                continue;
-            }
-
             ParseFileName(rawName, out string biomeGroup, out string displayName);
 
             Material material = CreateOrUpdateMaterial(rawName, texture, ref materialsCreated, ref materialsUpdated);
@@ -117,7 +110,7 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
                 rawName,
                 displayName,
                 biomeGroup,
-                sprite,
+                texture,
                 material,
                 ref stylesCreated,
                 ref stylesUpdated);
@@ -146,25 +139,15 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         if (importer == null)
             return null;
 
-        importer.textureType = TextureImporterType.Sprite;
+        importer.textureType = TextureImporterType.Default;
         importer.wrapMode = TextureWrapMode.Repeat;
         importer.maxTextureSize = 1024;
-        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.mipmapEnabled = true;
+        importer.anisoLevel = 16;
+        importer.mipMapBias = -0.5f;
         importer.SaveAndReimport();
 
         return AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath);
-    }
-
-    private static Sprite LoadFirstSprite(string texturePath)
-    {
-        var assets = AssetDatabase.LoadAllAssetsAtPath(texturePath);
-        for (int i = 0; i < assets.Length; i++)
-        {
-            if (assets[i] is Sprite sprite)
-                return sprite;
-        }
-
-        return null;
     }
 
     // Phase 2: Naming & Parsing
@@ -238,7 +221,7 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         string rawName,
         string displayName,
         string biomeGroup,
-        Sprite thumbnail,
+        Texture2D thumbnail,
         Material material,
         ref int created,
         ref int updated)

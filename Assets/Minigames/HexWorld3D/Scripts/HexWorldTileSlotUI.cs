@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,6 +11,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private Button button;
         [SerializeField] private Image frame;
         [SerializeField] private Image icon;
+        [SerializeField] private RawImage iconRaw;
         [SerializeField] private TMP_Text nameText;
 
         [Header("Optional locked overlay (CanvasGroup on child named 'Locked')")]
@@ -19,6 +21,7 @@ namespace GalacticFishing.Minigames.HexWorld
         public HexWorldTileStyle Style { get; private set; }
         public bool IsUnlocked { get; private set; } = true;
         public Button Button => button;
+        private static readonly Dictionary<int, Sprite> RuntimeSpriteCache = new Dictionary<int, Sprite>();
 
         private void Awake()
         {
@@ -33,6 +36,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Children by name (matches your prefab)
             if (!frame) frame = transform.Find("Frame")?.GetComponent<Image>();
             if (!icon) icon = transform.Find("Icon")?.GetComponent<Image>();
+            if (!iconRaw) iconRaw = transform.Find("Icon")?.GetComponent<RawImage>();
             if (!nameText) nameText = transform.Find("TileNameText")?.GetComponent<TMP_Text>();
 
             // Optional locked overlay
@@ -52,9 +56,15 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (icon)
             {
-                icon.sprite = style ? style.thumbnail : null;
+                icon.sprite = style ? GetOrCreateRuntimeSprite(style.thumbnail) : null;
                 icon.preserveAspect = true;
                 icon.enabled = (icon.sprite != null);
+            }
+
+            if (iconRaw)
+            {
+                iconRaw.texture = style ? style.thumbnail : null;
+                iconRaw.enabled = iconRaw.texture != null;
             }
 
             if (nameText)
@@ -90,6 +100,27 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (lockedText && !IsUnlocked)
                 lockedText.text = "LOCKED";
+        }
+
+        private static Sprite GetOrCreateRuntimeSprite(Texture2D texture)
+        {
+            if (texture == null)
+                return null;
+
+            int key = texture.GetInstanceID();
+            if (RuntimeSpriteCache.TryGetValue(key, out var cached) && cached != null)
+                return cached;
+
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0f, 0f, texture.width, texture.height),
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect);
+            sprite.name = $"{texture.name}_RuntimeSprite";
+            RuntimeSpriteCache[key] = sprite;
+            return sprite;
         }
     }
 }

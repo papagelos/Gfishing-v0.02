@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Dirtpath
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 21300000, guid: f2c84720f8bdf454fb284418e57ee665, type: 3}
+  thumbnail: {fileID: 2800000, guid: f2c84720f8bdf454fb284418e57ee665, type: 3}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []

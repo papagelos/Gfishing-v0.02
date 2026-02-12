@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Snow
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 21300000, guid: f9843116778c85e489d3ea0ddec1fcf1, type: 3}
+  thumbnail: {fileID: 2800000, guid: f9843116778c85e489d3ea0ddec1fcf1, type: 3}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
   displayName: Fprestfloor
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 21300000, guid: 32e4ecd3420823e4cae0037970a19012, type: 3}
+  thumbnail: {fileID: 2800000, guid: 32e4ecd3420823e4cae0037970a19012, type: 3}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []

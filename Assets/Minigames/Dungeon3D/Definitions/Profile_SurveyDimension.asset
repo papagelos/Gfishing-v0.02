@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37ced6c1bc2cf994c8e56ae0c25aac7a, type: 3}
+  m_Name: Profile_SurveyDimension
+  m_EditorClassIdentifier: 
+  spineMinLength: 180
+  spineMaxLength: 240
+  targetTileCount: 2000
+  minBossDistance: 160
+  bossArenaRadius: 7
+  towardBossBias: 5
+  outwardBias: 2
+  forwardDirectionBonus: 3
+  sideDirectionBonus: 1
+  pocketSeedCount: 14
+  pocketMinSize: 12
+  pocketMaxSize: 50
+  pocketStartPadding: 8
+  pocketEndPadding: 8
+  biomePatchSize: 48
+  biomeGroups:
+  - MEADOW
+  - DESERT
+  - MIRE
+  - MOUNTAIN
+  biomeStyleGroups:
+  - biomeGroup: MEADOW
+    tileStyles:
+    - {fileID: 11400000, guid: 5cdc5d6865a947146b9a7d48654d711f, type: 2}
+    - {fileID: 11400000, guid: eddb24669801409408b696aa39667422, type: 2}
+    - {fileID: 11400000, guid: bcab6454d28b3814aa8603bde2e1f934, type: 2}
+    - {fileID: 11400000, guid: 1874c40caaf45014690fce852e3783cc, type: 2}
+    - {fileID: 11400000, guid: 33fb6b1b59abd584589c21c78d14762f, type: 2}
+    - {fileID: 11400000, guid: 4d38561a2a9a9da459189d435ca06e8a, type: 2}
+    - {fileID: 11400000, guid: c0bd2670e3194b840b023eb442924ed9, type: 2}
+    - {fileID: 11400000, guid: 6e9b70f377002bb4d95f7f52cdbd51aa, type: 2}
+    - {fileID: 11400000, guid: a45d6ca067b04ef459b8359369de221b, type: 2}
+    - {fileID: 11400000, guid: f5a7faa5e7b79624f9dc9e65cea47b2c, type: 2}
+    - {fileID: 11400000, guid: 101e0cbeb62b4b240945a5e7a3637506, type: 2}
+    - {fileID: 11400000, guid: bd648e0d91ea501439b299448e60c4c1, type: 2}
+  - biomeGroup: DESERT
+    tileStyles:
+    - {fileID: 11400000, guid: a89d03cbcf710de41a932c1da39dc86c, type: 2}
+    - {fileID: 11400000, guid: 7595c86efb17e5f4b97006667d952a0b, type: 2}
+    - {fileID: 11400000, guid: 144f995fd501f5946a112213c908f520, type: 2}
+    - {fileID: 11400000, guid: 2badecf8f0009ba4bad71180f259e1c3, type: 2}
+    - {fileID: 11400000, guid: f598aae0d2ac42c4693df8df9e7715ea, type: 2}
+    - {fileID: 11400000, guid: c708def975082964a9d39bbebd540ab0, type: 2}
+    - {fileID: 11400000, guid: f7efa4d31a65403419a0556bf2acf56f, type: 2}
+    - {fileID: 11400000, guid: 9a4763c73102b4a4bbbf84ff6979db34, type: 2}
+    - {fileID: 11400000, guid: 4b2e5294ae74e6d4bab9d14bcf97498b, type: 2}
+    - {fileID: 11400000, guid: 9bdfcb0873033d44a8383b1def249514, type: 2}
+    - {fileID: 11400000, guid: d14b7d8b160daf941a7248429af9e892, type: 2}
+  - biomeGroup: MIRE
+    tileStyles:
+    - {fileID: 11400000, guid: f2df929a9c774c340ba3c649783c67e1, type: 2}
+    - {fileID: 11400000, guid: 28fb73eaac04b9340a5364e1d7d0fce4, type: 2}
+    - {fileID: 11400000, guid: 99b23ab749c22a3479d8633a39d6bed8, type: 2}
+    - {fileID: 11400000, guid: 150a4c3ed4dea9b45b5102784c58178a, type: 2}
+    - {fileID: 11400000, guid: bc2bdbd3f90852148bd1a6df1b291a30, type: 2}
+    - {fileID: 11400000, guid: 5fddbd20695c77040ad2750df467908e, type: 2}
+    - {fileID: 11400000, guid: 4a76d4cfc5e817f4da56c3a0e2bd411d, type: 2}
+    - {fileID: 11400000, guid: b82f48ea2aa789745b57d3263571e089, type: 2}
+    - {fileID: 11400000, guid: 0ba5457f3c361e842ba526a8e480db79, type: 2}
+    - {fileID: 11400000, guid: 357faabf15847674fa24731ecfd7a99d, type: 2}
+    - {fileID: 11400000, guid: 517cb10a4fd268f4da889688837ec92a, type: 2}
+  - biomeGroup: MOUNTAIN
+    tileStyles:
+    - {fileID: 11400000, guid: 3944ed9575d1f4646a97123e9bce250a, type: 2}
+    - {fileID: 11400000, guid: 045d941784a16e84e95f5af15183f8e0, type: 2}
+    - {fileID: 11400000, guid: f8eeddde614a1ae49926234f364f67c7, type: 2}
+    - {fileID: 11400000, guid: fd69ea505a8885e49a3c7615bf9b6d43, type: 2}
+    - {fileID: 11400000, guid: d62af021d279a9249816c9e9f6d016c2, type: 2}
+    - {fileID: 11400000, guid: de346ff1a11a7a647a09878308148d33, type: 2}
+    - {fileID: 11400000, guid: 28c2c6a655af3c748b284c242f100641, type: 2}
+    - {fileID: 11400000, guid: d2877e47f70fdcf46bdb5e566e63b3f7, type: 2}
+    - {fileID: 11400000, guid: 1367214fe4cdda1419e777be4c780024, type: 2}
+    - {fileID: 11400000, guid: 1beaad47f8914c34da0d45ae5e54d425, type: 2}
+    - {fileID: 11400000, guid: 55dd579535e7e3b43902b85f9936bc4a, type: 2}
+  propChance: 0.25
+  randomPropPool:
+  - Tree
+  - Rock
+  - Shrub
+  - Skull
+  - Crystal
+  - Totem
