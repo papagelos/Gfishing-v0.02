@@ -87,10 +87,4 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1beaad47f8914c34da0d45ae5e54d425, type: 2}
     - {fileID: 11400000, guid: 55dd579535e7e3b43902b85f9936bc4a, type: 2}
   propChance: 0.25
-  randomPropPool:
-  - Tree
-  - Rock
-  - Shrub
-  - Skull
-  - Crystal
-  - Totem
+  randomPropPool: []

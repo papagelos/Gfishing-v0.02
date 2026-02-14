@@ -44,7 +44,7 @@ Material:
     m_Floats:
     - _QueueControl: 0
     - _QueueOffset: 0
-    - _WorldScale: 1
+    - _WorldScale: 0.08
     m_Colors: []
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_MineEntrance2
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: MineEntrance2
+  displayName: MINEENTRANCE2
+  thumbnail: {fileID: 8509550459451208454, guid: ed4a20d465bb5854b890f1ee8dfb0c87, type: 3}
+  prefab: {fileID: 8578794841941611036, guid: fe0b5a189954aa048ba0023454f47b67, type: 3}
+  scale: 0.08

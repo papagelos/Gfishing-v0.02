@@ -177,7 +177,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73037a7ec63c4004a7728d31db5be588, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.PlayerController3D
-  moveSpeed: 5
+  moveSpeed: 2
   gamepadDeadZone: 0.2
   spriteRenderer: {fileID: 710001000100010003}
   body: {fileID: 710001000100010005}
@@ -185,9 +185,9 @@ MonoBehaviour:
   billboard: {fileID: 710001000100010006}
   north: {fileID: 21300000, guid: 7d59f12cbd06db74d9ab178ae1a12006, type: 3}
   northEast: {fileID: 21300000, guid: 29f87843309af4840ae0eb12c30af270, type: 3}
-  east: {fileID: 21300000, guid: 42c05d69a62834c498ab9a9b68244fb3, type: 3}
+  east: {fileID: 21300000, guid: 7856dd24c9726aa468228f68177f61b3, type: 3}
   southEast: {fileID: 21300000, guid: 42c05d69a62834c498ab9a9b68244fb3, type: 3}
   south: {fileID: 21300000, guid: 0f408ace2dcdcea408512361094f97b4, type: 3}
-  southWest: {fileID: 21300000, guid: 7856dd24c9726aa468228f68177f61b3, type: 3}
-  west: {fileID: 21300000, guid: 7856dd24c9726aa468228f68177f61b3, type: 3}
+  southWest: {fileID: 21300000, guid: 91551b3cd96f00f40af1ddc09398f7c3, type: 3}
+  west: {fileID: 21300000, guid: 42c05d69a62834c498ab9a9b68244fb3, type: 3}
   northWest: {fileID: 21300000, guid: 7d59f12cbd06db74d9ab178ae1a12006, type: 3}

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_fishingStand
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: fishingStand
+  displayName: FISHINGSTAND
+  thumbnail: {fileID: 8509550459451208454, guid: 64c34be0124247f4fab875ccbf2d4fd7, type: 3}
+  prefab: {fileID: 8397508407151932327, guid: d350d6deb792d3944b5680e3758d6db4, type: 3}
+  scale: 0.08

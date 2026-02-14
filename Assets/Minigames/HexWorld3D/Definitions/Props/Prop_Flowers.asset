@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_Flowers
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: flowers
+  id: Flowers
   displayName: FLOWERS
   thumbnail: {fileID: 21300000, guid: a2d5ce631fcd6b54fa00248d74c4f6c5, type: 3}
   prefab: {fileID: 867525925734776127, guid: 5983634e79cc31d43b1ac528125deb4e, type: 3}

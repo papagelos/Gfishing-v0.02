@@ -12,6 +12,13 @@ namespace GalacticFishing.Minigames.HexWorld
         [Tooltip("If true, only rotates around Y so it stays upright.")]
         public bool yAxisOnly = true;
 
+        [Header("Facing Fix")]
+        [Tooltip("Extra yaw applied after billboarding. If your sprite looks rotated wrong, try 180.")]
+        public float yawOffsetDegrees = 0f;
+
+        [Tooltip("If your sprite still looks mirrored after fixing facing, toggle this (it flips which side is considered 'front').")]
+        public bool invertFacing = false;
+
         [Header("Sorting (recommended for 360° camera rotation)")]
         [Tooltip("If empty, will try to auto-find a SpriteRenderer on this GameObject.")]
         public SpriteRenderer spriteRenderer;
@@ -55,17 +62,28 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!cam) return;
 
             // ---------- 1) Billboard rotation ----------
-            Vector3 toCam = cam.transform.position - transform.position;
-            if (yAxisOnly) toCam.y = 0f;
+            Vector3 toCamera = cam.transform.position - transform.position;
+            if (yAxisOnly) toCamera.y = 0f;
 
-            if (toCam.sqrMagnitude > 0.000001f)
-                transform.rotation = Quaternion.LookRotation(toCam.normalized, Vector3.up);
+            if (toCamera.sqrMagnitude > 0.000001f)
+            {
+                toCamera.Normalize();
+
+                // FIX: default should face TOWARD the camera, not away.
+                Vector3 facing = invertFacing ? -toCamera : toCamera;
+
+                var rot = Quaternion.LookRotation(facing, Vector3.up);
+
+                if (Mathf.Abs(yawOffsetDegrees) > 0.0001f)
+                    rot = rot * Quaternion.Euler(0f, yawOffsetDegrees, 0f);
+
+                transform.rotation = rot;
+            }
 
             // ---------- 2) Optional depth nudge (no drift) ----------
-            // Apply offset relative to current position so we don’t accumulate drift over time.
             if (depthOffset > 0f)
             {
-                Vector3 dir = cam.transform.position - transform.position;
+                Vector3 dir = toCamera; // reuse the same direction we already computed
                 if (yAxisOnly) dir.y = 0f;
 
                 if (dir.sqrMagnitude > 0.000001f)
@@ -88,7 +106,6 @@ namespace GalacticFishing.Minigames.HexWorld
             // ---------- 3) Sorting order driven by camera direction ----------
             if (driveSortingOrder && spriteRenderer)
             {
-                // Use camera forward projected onto “ground” (world up) if yAxisOnly.
                 Vector3 axis = cam.transform.forward;
                 if (yAxisOnly)
                 {
@@ -97,13 +114,8 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
                 axis.Normalize();
 
-                // Depth along camera forward axis (bigger = farther away).
                 float depth = Vector3.Dot(transform.position - cam.transform.position, axis);
-
-                // We want closer objects to have HIGHER sortingOrder (draw later / on top).
                 int order = sortingOrderBias - Mathf.RoundToInt(depth * sortingOrderScale);
-
-                // Keep inside a sane range.
                 order = Mathf.Clamp(order, -32000, 32000);
 
                 spriteRenderer.sortingOrder = order;

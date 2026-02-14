@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_Sapling
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: sapling
+  id: Sapling
   displayName: SAPLING
   thumbnail: {fileID: 21300000, guid: ea6db0fd65fdc2e418a31f1805ff8e11, type: 3}
   prefab: {fileID: 8245651603794664355, guid: 62fa8b74f4ebda8409f0417003588de2, type: 3}

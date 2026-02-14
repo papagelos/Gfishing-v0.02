@@ -167,6 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   profile: {fileID: 11400000, guid: f983686548f24a4e92d564794a63509a, type: 2}
+  registry: {fileID: 0}
   useFixedSeed: 1
   fixedSeed: 133777
   latestLayout:
@@ -8200,28 +8201,13 @@ MonoBehaviour:
   profile: {fileID: 11400000, guid: f983686548f24a4e92d564794a63509a, type: 2}
   ownedPrefab: {fileID: 6792186948070173689, guid: 562d777fc9c6f1a4a91208f97f4fe70f, type: 3}
   playerPrefab: {fileID: 710001000100010001, guid: 62fdbf32e28943fb8f55d8d2712ec90b, type: 3}
+  voidGuardPrefab: {fileID: 820001000100010001, guid: 57ca1313740e4e64894f4f2a6371231c, type: 3}
   tilesRoot: {fileID: 110001}
   propsRoot: {fileID: 120001}
-  propDefinitions:
-  - {fileID: 11400000, guid: 01cb0520ad2970943afa97a6fc11182b, type: 2}
-  - {fileID: 11400000, guid: 27625fdda81f65a4f896d7a8109c4027, type: 2}
-  - {fileID: 11400000, guid: 34fb5bfea822af640929e628e7f57151, type: 2}
-  - {fileID: 11400000, guid: 4ba2160751069874b95fb31dfe1e9069, type: 2}
-  - {fileID: 11400000, guid: 53a01813ec8c3e149a23ec1f1d42215a, type: 2}
-  - {fileID: 11400000, guid: 591705d20400ece419e82eac90b15a04, type: 2}
-  - {fileID: 11400000, guid: 62830e4eaadf0df49961471e86193c16, type: 2}
-  - {fileID: 11400000, guid: 7e99c5542853bca4999c3ff63b59fbda, type: 2}
-  - {fileID: 11400000, guid: 883d0e0a6e6e7534da3d98dbc8cf67d6, type: 2}
-  - {fileID: 11400000, guid: 8baa64baff348cd409b4e1ca28fc9160, type: 2}
-  - {fileID: 11400000, guid: a14956de8a1dc8d43a9278c38acf502c, type: 2}
-  - {fileID: 11400000, guid: aa1791d87801e3549ab40936045cdec6, type: 2}
-  - {fileID: 11400000, guid: b449ce4533a6da247b81e872b7c0a6cd, type: 2}
-  - {fileID: 11400000, guid: b7e84e3652f5cd74bb5082f9d96bf179, type: 2}
-  - {fileID: 11400000, guid: cb16264c20b9ebe45857da46152defd9, type: 2}
-  - {fileID: 11400000, guid: db53a74903110824f82e430322f4a6b2, type: 2}
-  - {fileID: 11400000, guid: f0e4970e8236c754db36e8ac0755e3f9, type: 2}
+  boundariesRoot: {fileID: 0}
+  registry: {fileID: 0}
   hexSize: 0.5
-  regenerateOnEnable: 0
+  regenerateOnEnable: 1
   renderCurrentOnEnable: 1
   clearOnDisable: 0
   deterministicStylePick: 1
@@ -8365,11 +8351,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexCameraPanZoom3D
   orbitTarget: {fileID: 0}
-  panSpeed: 1
+  panSpeed: 5
   rotateSpeed: 0.15
-  minPitch: 15
+  minPitch: 20
   maxPitch: 75
-  zoomSpeed: 1
+  zoomSpeed: 25
   minOrthoSize: 0.8
   maxOrthoSize: 80
   distance: 8
@@ -8416,7 +8402,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 30
+  orthographic size: 3
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -8440,13 +8426,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 160630282}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.38268346, y: 0, z: 0, w: 0.9238795}
+  m_LocalRotation: {x: 0.1524251, y: -0.22218153, z: 0.035190105, w: 0.9623739}
   m_LocalPosition: {x: 0, y: 10, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 45, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 18, y: -26, z: 0}
 --- !u!1 &241392978
 GameObject:
   m_ObjectHideFlags: 0

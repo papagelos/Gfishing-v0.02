@@ -12,13 +12,15 @@ namespace GalacticFishing.Minigames.Dungeon3D
         [SerializeField] private DimensionGenProfile profile;
         [SerializeField] private GameObject ownedPrefab;
         [SerializeField] private GameObject playerPrefab;
+        [SerializeField] private GameObject voidGuardPrefab;
         [SerializeField] private Transform tilesRoot;
         [SerializeField] private Transform propsRoot;
-        [SerializeField] private HexWorldPropDefinition[] propDefinitions;
+        [SerializeField] private Transform boundariesRoot;
+        [SerializeField] private PropRegistry registry;
 
         [Header("Layout")]
         [SerializeField, Min(0.05f)] private float hexSize = 1f;
-        [SerializeField] private bool regenerateOnEnable;
+        [SerializeField] private bool regenerateOnEnable = true;
         [SerializeField] private bool renderCurrentOnEnable = true;
         [SerializeField] private bool clearOnDisable;
         [SerializeField] private bool deterministicStylePick = true;
@@ -28,24 +30,33 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private readonly List<GameObject> _spawnedProps = new();
         private readonly Dictionary<string, List<HexWorldTileStyle>> _stylesByBiome = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HexWorldPropDefinition> _propsByKey = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _missingPropIdsLogged = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _missingPropPrefabLogged = new(StringComparer.OrdinalIgnoreCase);
+        private bool _missingRegistryWarned;
         private GameObject _spawnedPlayer;
+
+        public PropRegistry Registry => registry;
 
         private void OnEnable()
         {
             if (!generator)
                 generator = GetComponent<DimensionGenerator>();
 
+            EnsureRegistryReference();
             EnsureRoots();
             RebuildPropCache();
 
             if (generator)
                 generator.OnGenerated += HandleGenerated;
 
-            if (renderCurrentOnEnable && generator && generator.Layout != null && generator.Layout.tiles != null && generator.Layout.tiles.Count > 0)
-                RenderLayout(generator.Layout);
-
-            if (regenerateOnEnable && generator && (generator.Layout == null || generator.Layout.tiles == null || generator.Layout.tiles.Count == 0))
+            if (generator && regenerateOnEnable)
+            {
                 generator.Regenerate();
+            }
+            else if (renderCurrentOnEnable && generator && generator.Layout != null && generator.Layout.tiles != null && generator.Layout.tiles.Count > 0)
+            {
+                RenderLayout(generator.Layout);
+            }
         }
 
         private void OnDisable()
@@ -75,6 +86,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             EnsureRoots();
             ClearRootChildren(tilesRoot);
             ClearRootChildren(propsRoot);
+            ClearRootChildren(boundariesRoot);
             _spawnedTiles.Clear();
             _spawnedProps.Clear();
             _spawnedPlayer = null;
@@ -124,8 +136,19 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 if (!tile.hasProp)
                     continue;
 
-                if (!TryResolveProp(tile.propId, out HexWorldPropDefinition propDef) || !propDef || !propDef.prefab)
+                if (!TryResolveProp(tile.propId, out HexWorldPropDefinition propDef) || !propDef)
                     continue;
+
+                if (!propDef.prefab)
+                {
+                    if (_missingPropPrefabLogged.Add(propDef.name))
+                    {
+                        Debug.LogWarning(
+                            $"[{nameof(DimensionRenderer)}] Prop '{tile.propId}' resolved to '{propDef.name}' but has no prefab assigned.",
+                            this);
+                    }
+                    continue;
+                }
 
                 float angle = HashTo01(tile.coord, layout.seedUsed) * 360f;
                 GameObject propGo = Instantiate(propDef.prefab, tilePos, Quaternion.Euler(0f, angle, 0f), propsRoot);
@@ -134,6 +157,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 _spawnedProps.Add(propGo);
             }
 
+            SpawnPerimeterGuards(layout);
             SpawnPlayerAt(layout.startCoord);
             FocusMainCameraOnTile(layout.startCoord);
 
@@ -170,6 +194,18 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     found = go.transform;
                 }
                 propsRoot = found;
+            }
+
+            if (!boundariesRoot)
+            {
+                Transform found = transform.Find("Boundaries");
+                if (!found)
+                {
+                    var go = new GameObject("Boundaries");
+                    go.transform.SetParent(transform, false);
+                    found = go.transform;
+                }
+                boundariesRoot = found;
             }
         }
 
@@ -224,12 +260,16 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private void RebuildPropCache()
         {
             _propsByKey.Clear();
-            if (propDefinitions == null)
+            _missingPropIdsLogged.Clear();
+            _missingPropPrefabLogged.Clear();
+            EnsureRegistryReference();
+
+            if (registry == null || registry.allProps == null || registry.allProps.Count == 0)
                 return;
 
-            for (int i = 0; i < propDefinitions.Length; i++)
+            for (int i = 0; i < registry.allProps.Count; i++)
             {
-                HexWorldPropDefinition def = propDefinitions[i];
+                HexWorldPropDefinition def = registry.allProps[i];
                 if (!def)
                     continue;
 
@@ -257,18 +297,57 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
             string key = Normalize(propId);
             if (_propsByKey.TryGetValue(key, out def))
-                return def;
+                return def != null;
+
+            // Extra hardening: direct case-insensitive comparisons against serialized fields.
+            if (registry != null && registry.allProps != null)
+            {
+                for (int i = 0; i < registry.allProps.Count; i++)
+                {
+                    HexWorldPropDefinition candidate = registry.allProps[i];
+                    if (!candidate)
+                        continue;
+
+                    if (string.Equals(candidate.id, propId, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(candidate.displayName, propId, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(candidate.name, propId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        def = candidate;
+                        return true;
+                    }
+                }
+            }
 
             foreach (var kv in _propsByKey)
             {
                 if (kv.Key.Contains(key) || key.Contains(kv.Key))
                 {
                     def = kv.Value;
-                    return def;
+                    return def != null;
                 }
             }
 
+            if (_missingPropIdsLogged.Add(propId))
+                Debug.LogWarning($"[{nameof(DimensionRenderer)}] No prop definition/prefab found for propId '{propId}'.", this);
+
             return false;
+        }
+
+        private void EnsureRegistryReference()
+        {
+            if (registry != null)
+                return;
+
+#if UNITY_EDITOR
+            registry = UnityEditor.AssetDatabase.LoadAssetAtPath<PropRegistry>(
+                "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset");
+#endif
+
+            if (registry == null && !_missingRegistryWarned)
+            {
+                Debug.LogWarning($"[{nameof(DimensionRenderer)}] Missing PropRegistry reference; prop spawning will be disabled.");
+                _missingRegistryWarned = true;
+            }
         }
 
         private HexWorldTileStyle ResolveStyle(string biomeGroup, HexCoord coord, int seed)
@@ -383,6 +462,36 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     if (focus != null)
                         focus.transform.position = spawnPos;
                 }
+            }
+        }
+
+        private void SpawnPerimeterGuards(DimensionLayout layout)
+        {
+            if (layout == null || voidGuardPrefab == null)
+                return;
+
+            EnsureRoots();
+
+            HashSet<HexCoord> walkableSet = layout.BuildWalkableSet();
+            if (walkableSet == null || walkableSet.Count == 0)
+                return;
+
+            var boundaryCoords = new HashSet<HexCoord>();
+            foreach (HexCoord coord in walkableSet)
+            {
+                for (int i = 0; i < HexCoord.NeighborDirs.Length; i++)
+                {
+                    HexCoord neighbor = coord.Neighbor(i);
+                    if (!walkableSet.Contains(neighbor))
+                        boundaryCoords.Add(neighbor);
+                }
+            }
+
+            foreach (HexCoord coord in boundaryCoords)
+            {
+                Vector3 pos = AxialToWorld(coord);
+                GameObject guard = Instantiate(voidGuardPrefab, pos, Quaternion.identity, boundariesRoot);
+                guard.name = $"VoidGuard_{coord.q}_{coord.r}";
             }
         }
 

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_Fencegate
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: fencegate
+  id: Fencegate
   displayName: FENCEGATE
   thumbnail: {fileID: 21300000, guid: 7117f54b15523db47ad64d2ce6e99665, type: 3}
   prefab: {fileID: 1696314329938058692, guid: 0e7e73c6511bc014fbbead707137bf05, type: 3}

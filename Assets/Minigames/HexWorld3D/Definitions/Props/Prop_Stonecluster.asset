@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_Stonecluster
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: stonecluster
+  id: Stonecluster
   displayName: STONECLUSTER
   thumbnail: {fileID: 21300000, guid: 33f801fd0a4a28f498d99938f0c5238f, type: 3}
   prefab: {fileID: 1733936671308926888, guid: b255280361ab79648a24d148af197b6b, type: 3}

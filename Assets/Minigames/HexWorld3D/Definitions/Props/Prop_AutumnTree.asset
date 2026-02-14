@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_AutumnTree
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: AutumnTree
+  displayName: AUTUMNTREE
+  thumbnail: {fileID: 8509550459451208454, guid: 7e9adfba94234914e966f65523350093, type: 3}
+  prefab: {fileID: 4014498184671038483, guid: ec34d4f8cbbe5794e9bd6f4849c1f9db, type: 3}
+  scale: 0.08

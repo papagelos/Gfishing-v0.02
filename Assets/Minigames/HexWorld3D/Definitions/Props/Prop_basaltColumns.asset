@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_basaltColumns
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: basaltColumns
+  displayName: BASALTCOLUMNS
+  thumbnail: {fileID: 8509550459451208454, guid: 01cadbfb6c566e0449e3a69da9650cf5, type: 3}
+  prefab: {fileID: 3408853275542139726, guid: ba7144574f5e04049b508cde2eb48546, type: 3}
+  scale: 0.08

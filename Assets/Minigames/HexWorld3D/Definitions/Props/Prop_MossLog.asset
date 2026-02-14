@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_MossLog
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: mosslog
+  id: MossLog
   displayName: MOSSLOG
   thumbnail: {fileID: 21300000, guid: 7b74d774a23f4694f9e644b1c70ef2f8, type: 3}
   prefab: {fileID: 1801105663237668, guid: 0b3cd9a403e3c6b49880f4f7c2411590, type: 3}

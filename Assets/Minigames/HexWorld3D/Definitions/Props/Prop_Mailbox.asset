@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_Mailbox
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: mailbox
+  id: Mailbox
   displayName: MAILBOX
   thumbnail: {fileID: 21300000, guid: 45758b864e492d34cae2275ca3b305bc, type: 3}
   prefab: {fileID: 3966725831678496346, guid: 708961450bfd6814189f4c2668021d4c, type: 3}

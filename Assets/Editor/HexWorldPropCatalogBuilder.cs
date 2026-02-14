@@ -13,6 +13,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private const string SpritesFolder = "Assets/Sprites/Props";
     private const string PropPrefabsFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props";
     private const string PropDefinitionsFolder = "Assets/Minigames/HexWorld3D/Definitions/Props";
+    private const string PropRegistryAssetPath = "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset";
     private const string VillageControllerPrefabPath = "Assets/Minigames/Prefabs/Prefab_HexWorld3D_Village.prefab";
     private const string PropScalePrefKey = "HexWorldPropCatalogBuilder.PropScale";
     private const byte AlphaThreshold = 10;
@@ -41,6 +42,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         EditorGUILayout.LabelField("Sprites Folder", SpritesFolder);
         EditorGUILayout.LabelField("Prefabs Folder", PropPrefabsFolder);
         EditorGUILayout.LabelField("Definitions Folder", PropDefinitionsFolder);
+        EditorGUILayout.LabelField("Registry Asset", PropRegistryAssetPath);
         EditorGUILayout.LabelField("Controller Prefab", VillageControllerPrefabPath);
 
         EditorGUILayout.Space();
@@ -113,7 +115,6 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                     continue;
 
                 string safeName = MakeSafeAssetName(rawName);
-                string propId = MakePropId(rawName);
                 string displayName = rawName.ToUpperInvariant();
 
                 Sprite sprite = ConfigureAndLoadSprite(texturePath, rawName, ref texturesProcessed);
@@ -130,7 +131,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                     continue;
                 }
 
-                CreateOrUpdateDefinition(safeName, propId, displayName, sprite, propPrefab, propScale, ref defsCreated, ref defsUpdated);
+                CreateOrUpdateDefinition(safeName, displayName, sprite, propPrefab, propScale, ref defsCreated, ref defsUpdated);
             }
             catch (Exception ex)
             {
@@ -142,13 +143,15 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         AssetDatabase.Refresh();
 
         var defs = LoadPropDefinitions();
+        var registry = GetOrCreatePropRegistry();
+        int wiredRegistryCount = WireRegistry(registry, defs);
         int wiredPrefabCount = WireCatalogToVillageControllerPrefab(defs);
         int wiredSceneCount = WireCatalogToSceneInstance(defs);
 
         Debug.Log(
             $"[HexWorldPropCatalogBuilder] Done. PNGs: {texturePaths.Count}, processed: {texturesProcessed}, " +
             $"prefabs created/updated: {prefabsCreated}/{prefabsUpdated}, definitions created/updated: {defsCreated}/{defsUpdated}, " +
-            $"catalog wired prefab/scene: {wiredPrefabCount}/{wiredSceneCount}.");
+            $"registry/prefab/scene wired: {wiredRegistryCount}/{wiredPrefabCount}/{wiredSceneCount}.");
     }
 
     private static Sprite ConfigureAndLoadSprite(string texturePath, string rawName, ref int texturesProcessed)
@@ -242,6 +245,11 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 if (assets[i] is Sprite s)
                     return s;
             }
+
+            // Direct fallback in case sub-asset enumeration lags behind import.
+            Sprite direct = AssetDatabase.LoadAssetAtPath<Sprite>(texturePath);
+            if (direct != null)
+                return direct;
 
             return null;
         }
@@ -368,7 +376,6 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
     private static void CreateOrUpdateDefinition(
         string safeName,
-        string propId,
         string displayName,
         Sprite sprite,
         GameObject propPrefab,
@@ -386,7 +393,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             AssetDatabase.CreateAsset(def, defPath);
         }
 
-        def.id = propId;
+        // Keep IDs aligned with generated asset filenames for deterministic registry lookup.
+        def.id = safeName;
         def.displayName = displayName;
         def.thumbnail = sprite;
         def.prefab = propPrefab;
@@ -412,6 +420,47 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         return defs
             .OrderBy(d => d.name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static PropRegistry GetOrCreatePropRegistry()
+    {
+        var registry = AssetDatabase.LoadAssetAtPath<PropRegistry>(PropRegistryAssetPath);
+        if (registry != null)
+            return registry;
+
+        string folder = Path.GetDirectoryName(PropRegistryAssetPath)?.Replace("\\", "/");
+        if (!string.IsNullOrEmpty(folder))
+            EnsureFolder(folder);
+
+        registry = ScriptableObject.CreateInstance<PropRegistry>();
+        AssetDatabase.CreateAsset(registry, PropRegistryAssetPath);
+        EditorUtility.SetDirty(registry);
+        AssetDatabase.SaveAssets();
+        return registry;
+    }
+
+    private static int WireRegistry(PropRegistry registry, List<HexWorldPropDefinition> defs)
+    {
+        if (registry == null)
+        {
+            Debug.LogWarning("[HexWorldPropCatalogBuilder] PropRegistry asset missing; skipping registry wiring.");
+            return 0;
+        }
+
+        if (defs == null)
+            defs = new List<HexWorldPropDefinition>();
+
+        registry.allProps.Clear();
+        for (int i = 0; i < defs.Count; i++)
+        {
+            HexWorldPropDefinition def = defs[i];
+            if (def != null && !registry.allProps.Contains(def))
+                registry.allProps.Add(def);
+        }
+
+        EditorUtility.SetDirty(registry);
+        AssetDatabase.SaveAssets();
+        return registry.allProps.Count;
     }
 
     private static int WireCatalogToVillageControllerPrefab(List<HexWorldPropDefinition> defs)
@@ -603,13 +652,6 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         value = value.Replace(' ', '_');
         value = value.Replace('.', '_');
-        return value;
-    }
-
-    private static string MakePropId(string raw)
-    {
-        string value = raw.Trim().ToLowerInvariant();
-        value = value.Replace(' ', '_');
         return value;
     }
 

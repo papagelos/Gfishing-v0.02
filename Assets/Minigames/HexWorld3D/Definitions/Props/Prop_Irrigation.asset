@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_Irrigation
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: Irrigation
+  displayName: IRRIGATION
+  thumbnail: {fileID: 8509550459451208454, guid: fec3f091ca1e2b7469e734d8e08ec1c3, type: 3}
+  prefab: {fileID: 810617046496501595, guid: 0faa5b5f43f8ed142ad8c81d8767a84f, type: 3}
+  scale: 0.08

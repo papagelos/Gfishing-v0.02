@@ -9,7 +9,8 @@ namespace GalacticFishing.Minigames.Dungeon3D
     public sealed class PlayerController3D : MonoBehaviour
     {
         [Header("Movement")]
-        [SerializeField, Min(0.1f)] private float moveSpeed = 5f;
+        [SerializeField, Min(0.1f)] private float moveSpeed = 2.0f;
+        [SerializeField, Range(1f, 2f)] private float verticalCompensation = 1.41f;
         [SerializeField, Range(0f, 1f)] private float gamepadDeadZone = 0.2f;
 
         [Header("Refs")]
@@ -60,7 +61,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 return;
 
             Vector3 worldMove = ComputeCameraRelativeMove(_moveInput);
-            body.velocity = worldMove * moveSpeed;
+            body.linearVelocity = worldMove * moveSpeed;
         }
 
         private Vector2 ReadMoveInput()
@@ -113,9 +114,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             camRight.Normalize();
             camForward.Normalize();
 
-            Vector3 worldMove = camRight * input.x + camForward * input.y;
-            if (worldMove.sqrMagnitude > 1f)
-                worldMove.Normalize();
+            Vector3 worldMove = camRight * input.x + (camForward * verticalCompensation * input.y);
 
             return worldMove;
         }

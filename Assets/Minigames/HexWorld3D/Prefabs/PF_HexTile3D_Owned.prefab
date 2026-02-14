@@ -647,6 +647,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &4737692752585628136
 MeshFilter:
@@ -671,7 +672,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
@@ -692,6 +693,8 @@ MonoBehaviour:
   Q: 0
   R: 0
   IsFrontier: 0
+  TerrainTier: 0
+  TerrainType: 0
 --- !u!114 &-3593530087407225636
 MonoBehaviour:
   m_ObjectHideFlags: 0

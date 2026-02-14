@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_RopeBridge
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: RopeBridge
+  displayName: ROPEBRIDGE
+  thumbnail: {fileID: 8509550459451208454, guid: 2dd3e2ac7c4c6c3459ebd24a14cb9796, type: 3}
+  prefab: {fileID: 1637340953575361054, guid: 4b5a8b2d783a5e045870149aad56f183, type: 3}
+  scale: 0.08

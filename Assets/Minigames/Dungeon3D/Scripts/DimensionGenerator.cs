@@ -9,6 +9,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
     {
         [Header("Config")]
         [SerializeField] private DimensionGenProfile profile;
+        [SerializeField] private PropRegistry registry;
         [SerializeField] private bool useFixedSeed = true;
         [SerializeField] private int fixedSeed = 1337;
 
@@ -39,8 +40,10 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 return;
             }
 
+            EnsureRegistryReference();
+
             int seed = useFixedSeed ? fixedSeed : Environment.TickCount;
-            latestLayout = GenerateWithRetries(seed, profile);
+            latestLayout = GenerateWithRetries(seed, profile, registry);
 
             Debug.Log(
                 $"[{nameof(DimensionGenerator)}] Seed={latestLayout.seedUsed} " +
@@ -51,7 +54,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             OnGenerated?.Invoke(latestLayout);
         }
 
-        private static DimensionLayout GenerateWithRetries(int seed, DimensionGenProfile genProfile)
+        private static DimensionLayout GenerateWithRetries(int seed, DimensionGenProfile genProfile, PropRegistry propRegistry)
         {
             const int MaxAttempts = 4;
             DimensionLayout best = null;
@@ -59,7 +62,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             for (int i = 0; i < MaxAttempts; i++)
             {
                 int attemptSeed = seed + i * 7919;
-                var attempt = GenerateOnce(attemptSeed, genProfile);
+                var attempt = GenerateOnce(attemptSeed, genProfile, propRegistry);
                 if (best == null || attempt.WalkableCount > best.WalkableCount)
                     best = attempt;
 
@@ -71,7 +74,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return best ?? new DimensionLayout();
         }
 
-        private static DimensionLayout GenerateOnce(int seed, DimensionGenProfile genProfile)
+        private static DimensionLayout GenerateOnce(int seed, DimensionGenProfile genProfile, PropRegistry propRegistry)
         {
             var rng = new System.Random(seed);
 
@@ -102,6 +105,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
             var sortedWalkable = new List<HexCoord>(walkableList);
             sortedWalkable.Sort(CompareCoords);
+            List<string> resolvedPropPool = ResolvePropPool(genProfile, propRegistry);
 
             layout.tiles.Clear();
             for (int i = 0; i < sortedWalkable.Count; i++)
@@ -112,7 +116,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     : pocketSet.Contains(coord) ? DimensionTileKind.Pocket : DimensionTileKind.Filler;
 
                 bool hasProp = rng.NextDouble() < genProfile.propChance;
-                string prop = hasProp ? PickRandomProp(rng, genProfile) : string.Empty;
+                string prop = hasProp ? PickRandomProp(rng, resolvedPropPool) : string.Empty;
                 string biome = biomeByCoord.TryGetValue(coord, out string b) ? b : "DEFAULT";
 
                 layout.tiles.Add(new DimensionTileData
@@ -431,13 +435,63 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return result;
         }
 
-        private static string PickRandomProp(System.Random rng, DimensionGenProfile genProfile)
+        private static List<string> ResolvePropPool(DimensionGenProfile genProfile, PropRegistry propRegistry)
         {
-            var pool = genProfile.randomPropPool;
+            var result = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (genProfile != null && genProfile.randomPropPool != null)
+            {
+                for (int i = 0; i < genProfile.randomPropPool.Count; i++)
+                {
+                    string id = genProfile.randomPropPool[i]?.Trim();
+                    if (!string.IsNullOrWhiteSpace(id) && seen.Add(id))
+                        result.Add(id);
+                }
+            }
+
+            if (result.Count == 0 && propRegistry != null && propRegistry.allProps != null)
+            {
+                for (int i = 0; i < propRegistry.allProps.Count; i++)
+                {
+                    HexWorldPropDefinition def = propRegistry.allProps[i];
+                    if (!def)
+                        continue;
+
+                    // Registry fallback uses IDs as authoritative keys.
+                    string id = def.id;
+                    if (string.IsNullOrWhiteSpace(id))
+                        id = def.name;
+
+                    id = id?.Trim();
+                    if (!string.IsNullOrWhiteSpace(id) && seen.Add(id))
+                        result.Add(id);
+                }
+            }
+
+            if (result.Count == 0)
+                result.Add("RandomProp");
+
+            return result;
+        }
+
+        private static string PickRandomProp(System.Random rng, List<string> pool)
+        {
             if (pool == null || pool.Count == 0)
                 return "RandomProp";
 
             return pool[rng.Next(pool.Count)];
+        }
+
+        private void EnsureRegistryReference()
+        {
+            if (registry != null)
+                return;
+
+#if UNITY_EDITOR
+            registry = UnityEditor.AssetDatabase.LoadAssetAtPath<PropRegistry>(
+                "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset");
+#endif
         }
 
         private static bool IsReachable(HexCoord start, HexCoord boss, HashSet<HexCoord> walkable)

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_RockSlab
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: RockSlab
+  displayName: ROCKSLAB
+  thumbnail: {fileID: 8509550459451208454, guid: 66e47857d7325704dbc8b0b63b1c96ec, type: 3}
+  prefab: {fileID: 1900507982237161198, guid: 027fc4042a2185543b85723afcd32568, type: 3}
+  scale: 0.08

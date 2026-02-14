@@ -106,6 +106,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
+  yawOffsetDegrees: 0
+  invertFacing: 0
   spriteRenderer: {fileID: 0}
   forcePivotSortPoint: 1
   driveSortingOrder: 1

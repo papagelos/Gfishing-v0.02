@@ -14,7 +14,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Header("Rotate (RMB drag)")]
         [SerializeField] private float rotateSpeed = 0.15f;
-        [SerializeField] private float minPitch = 15f;
+        [SerializeField] private float minPitch = 20f;
         [SerializeField] private float maxPitch = 75f;
 
         [Header("Zoom (Mouse wheel -> Orthographic Size)")]
@@ -64,6 +64,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Initialize yaw/pitch from current camera rotation
             var e = transform.rotation.eulerAngles;
             _pitch = NormalizePitch(e.x);
+            _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
             _yaw = e.y;
 
             // If distance not set, infer it
@@ -158,6 +159,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void ApplyOrbit()
         {
+            _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
             Quaternion rot = Quaternion.Euler(_pitch, _yaw, 0f);
 
             // Orbit position: behind the target in camera-forward direction
