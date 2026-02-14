@@ -95,7 +95,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 0
+  m_SpriteSortPoint: 1
 --- !u!114 &5357598431521104900
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -110,7 +110,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
-  spriteRenderer: {fileID: 0}
+  yawOffsetDegrees: 0
+  invertFacing: 0
+  spriteRenderer: {fileID: 314741702006749111}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
   sortingOrderScale: 50

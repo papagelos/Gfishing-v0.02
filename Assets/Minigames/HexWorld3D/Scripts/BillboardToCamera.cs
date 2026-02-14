@@ -41,10 +41,14 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private Vector3 _appliedWorldOffset = Vector3.zero;
 
-        private void Awake()
+        private void Reset()
         {
-            if (!spriteRenderer)
-                spriteRenderer = GetComponent<SpriteRenderer>();
+            AutoAssignSpriteRenderer();
+        }
+
+        private void OnValidate()
+        {
+            AutoAssignSpriteRenderer();
 
             if (forcePivotSortPoint && spriteRenderer)
                 spriteRenderer.spriteSortPoint = SpriteSortPoint.Pivot;
@@ -54,6 +58,26 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (depthOffset < 0f)
                 depthOffset = 0f;
+        }
+
+        private void Awake()
+        {
+            AutoAssignSpriteRenderer();
+
+            if (forcePivotSortPoint && spriteRenderer)
+                spriteRenderer.spriteSortPoint = SpriteSortPoint.Pivot;
+
+            if (sortingOrderScale < 0.001f)
+                sortingOrderScale = 0.001f;
+
+            if (depthOffset < 0f)
+                depthOffset = 0f;
+        }
+
+        private void AutoAssignSpriteRenderer()
+        {
+            if (!spriteRenderer)
+                spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
         private void LateUpdate()

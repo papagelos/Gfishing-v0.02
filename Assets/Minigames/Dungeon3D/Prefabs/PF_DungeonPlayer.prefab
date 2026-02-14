@@ -159,6 +159,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
   targetCamera: {fileID: 0}
   yAxisOnly: 1
+  yawOffsetDegrees: 0
+  invertFacing: 0
   spriteRenderer: {fileID: 710001000100010003}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
@@ -178,6 +180,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.PlayerController3D
   moveSpeed: 2
+  verticalCompensation: 1.41
   gamepadDeadZone: 0.2
   spriteRenderer: {fileID: 710001000100010003}
   body: {fileID: 710001000100010005}

@@ -59,9 +59,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4848110432606035900}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.6532815, y: -0.27059808, z: 0.27059808, w: 0.6532815}
-  m_LocalPosition: {x: 0, y: 0.03, z: 0}
-  m_LocalScale: {x: 1, y: 2, z: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3090526644099821213}
@@ -152,7 +152,7 @@ MonoBehaviour:
   castDistanceInHeights: 0
   widthScale: 1
   lengthScale: 2
-  alpha: 0.682
+  alpha: 0.65
   groundTiltX: 90
   followMainSprite: 1
 --- !u!1 &7348174568417045767
@@ -246,7 +246,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 0
+  m_SpriteSortPoint: 1
 --- !u!114 &1696681917574130252
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -263,7 +263,7 @@ MonoBehaviour:
   yAxisOnly: 1
   yawOffsetDegrees: 0
   invertFacing: 1
-  spriteRenderer: {fileID: 0}
+  spriteRenderer: {fileID: 8267793978738125221}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
   sortingOrderScale: 50

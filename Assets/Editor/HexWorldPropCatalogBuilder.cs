@@ -15,6 +15,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private const string PropDefinitionsFolder = "Assets/Minigames/HexWorld3D/Definitions/Props";
     private const string PropRegistryAssetPath = "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset";
     private const string VillageControllerPrefabPath = "Assets/Minigames/Prefabs/Prefab_HexWorld3D_Village.prefab";
+    private const string ShadowMaterialPath = "Assets/Minigames/HexWorld3D/Materials/Props/Mat_ShadowSilhouette.mat";
     private const string PropScalePrefKey = "HexWorldPropCatalogBuilder.PropScale";
     private const byte AlphaThreshold = 10;
     private float _propScale = 0.1f;
@@ -44,6 +45,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         EditorGUILayout.LabelField("Definitions Folder", PropDefinitionsFolder);
         EditorGUILayout.LabelField("Registry Asset", PropRegistryAssetPath);
         EditorGUILayout.LabelField("Controller Prefab", VillageControllerPrefabPath);
+        EditorGUILayout.LabelField("Shadow Material", ShadowMaterialPath);
 
         EditorGUILayout.Space();
         _propScale = Mathf.Max(0.001f, EditorGUILayout.FloatField("PROP SCALE", _propScale));
@@ -105,6 +107,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         int prefabsUpdated = 0;
         int defsCreated = 0;
         int defsUpdated = 0;
+        Material shadowMaterial = AssetDatabase.LoadAssetAtPath<Material>(ShadowMaterialPath);
+        if (shadowMaterial == null)
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Shadow material not found: {ShadowMaterialPath}");
 
         foreach (string texturePath in texturePaths)
         {
@@ -124,7 +129,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                     continue;
                 }
 
-                GameObject propPrefab = CreateOrUpdatePropPrefab(safeName, sprite, ref prefabsCreated, ref prefabsUpdated);
+                GameObject propPrefab = CreateOrUpdatePropPrefab(safeName, sprite, shadowMaterial, ref prefabsCreated, ref prefabsUpdated);
                 if (propPrefab == null)
                 {
                     Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not create prefab for '{texturePath}', skipped.");
@@ -295,7 +300,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         return found;
     }
 
-    private static GameObject CreateOrUpdatePropPrefab(string safeName, Sprite sprite, ref int created, ref int updated)
+    private static GameObject CreateOrUpdatePropPrefab(string safeName, Sprite sprite, Material shadowMaterial, ref int created, ref int updated)
     {
         if (string.IsNullOrWhiteSpace(safeName))
             return null;
@@ -313,15 +318,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 if (go == null)
                     return null;
 
-                var sr = EnsureComponent<SpriteRenderer>(go);
-                if (sr == null)
+                if (!ConfigurePropPrefabHierarchy(go, sprite, shadowMaterial))
                     return null;
-                sr.sprite = sprite;
-
-                var billboard = EnsureComponent<BillboardToCamera>(go);
-                if (billboard == null)
-                    return null;
-                billboard.yAxisOnly = true;
 
                 EditorUtility.SetDirty(go);
                 var savedPrefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
@@ -345,18 +343,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         try
         {
-            var sr = EnsureComponent<SpriteRenderer>(root);
-            if (sr == null)
+            if (!ConfigurePropPrefabHierarchy(root, sprite, shadowMaterial))
                 return null;
-            sr.sprite = sprite;
-
-            var billboard = EnsureComponent<BillboardToCamera>(root);
-            if (billboard == null)
-                return null;
-            billboard.yAxisOnly = true;
-
-            EditorUtility.SetDirty(sr);
-            EditorUtility.SetDirty(billboard);
             EditorUtility.SetDirty(root);
 
             var savedPrefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -372,6 +360,86 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         }
 
         return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+    }
+
+    private static bool ConfigurePropPrefabHierarchy(GameObject root, Sprite sprite, Material shadowMaterial)
+    {
+        if (root == null || sprite == null)
+            return false;
+
+        var rootSpriteRenderer = root.GetComponent<SpriteRenderer>();
+        var rootBillboard = root.GetComponent<BillboardToCamera>();
+
+        // New structure: Root -> Visual + Shadow
+        Transform visual = EnsureChild(root.transform, "Visual");
+        Transform shadow = EnsureChild(root.transform, "Shadow");
+
+        visual.localPosition = Vector3.zero;
+        visual.localRotation = Quaternion.identity;
+        visual.localScale = Vector3.one;
+
+        shadow.localPosition = Vector3.zero;
+        shadow.localRotation = Quaternion.identity;
+        shadow.localScale = Vector3.one;
+
+        var visualSr = EnsureComponent<SpriteRenderer>(visual.gameObject);
+        if (visualSr == null)
+            return false;
+
+        if (rootSpriteRenderer != null && rootSpriteRenderer != visualSr)
+        {
+            CopySpriteRendererSettings(rootSpriteRenderer, visualSr);
+            UnityEngine.Object.DestroyImmediate(rootSpriteRenderer);
+        }
+        visualSr.sprite = sprite;
+
+        var billboard = EnsureComponent<BillboardToCamera>(visual.gameObject);
+        if (billboard == null)
+            return false;
+
+        if (rootBillboard != null && rootBillboard != billboard)
+        {
+            CopyBillboardSettings(rootBillboard, billboard);
+            UnityEngine.Object.DestroyImmediate(rootBillboard);
+        }
+
+        billboard.yAxisOnly = true;
+        billboard.spriteRenderer = visualSr;
+
+        var shadowSr = EnsureComponent<SpriteRenderer>(shadow.gameObject);
+        if (shadowSr == null)
+            return false;
+        shadowSr.sprite = sprite;
+        if (shadowMaterial != null)
+            shadowSr.sharedMaterial = shadowMaterial;
+
+        var shadowCast = EnsureComponent<GroundCastShadow2D>(shadow.gameObject);
+        if (shadowCast == null)
+            return false;
+
+        shadowCast.mainRenderer = visualSr;
+        shadowCast.shadowRenderer = shadowSr;
+        shadowCast.screenSpaceDirection = false;
+        shadowCast.anchorMode = GroundCastShadow2D.AnchorMode.MainRendererPivot;
+        shadowCast.useYawOverride = true;
+        shadowCast.yawDegrees = -45f;
+        shadowCast.castDistanceInHeights = 0f;
+        shadowCast.groundTiltX = 90f;
+        shadowCast.groundLift = 0.03f;
+        shadowCast.lengthScale = 2.0f;
+        shadowCast.alpha = 0.65f;
+
+        // Root should be a container only.
+        RemoveComponentIfExists<SpriteRenderer>(root);
+        RemoveComponentIfExists<BillboardToCamera>(root);
+        RemoveComponentIfExists<GroundCastShadow2D>(root);
+        RemoveObsoleteRootShadowScripts(root);
+
+        EditorUtility.SetDirty(visualSr);
+        EditorUtility.SetDirty(billboard);
+        EditorUtility.SetDirty(shadowSr);
+        EditorUtility.SetDirty(shadowCast);
+        return true;
     }
 
     private static void CreateOrUpdateDefinition(
@@ -665,6 +733,82 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             return existing;
 
         return gameObject.AddComponent<T>();
+    }
+
+    private static void CopySpriteRendererSettings(SpriteRenderer source, SpriteRenderer destination)
+    {
+        if (source == null || destination == null)
+            return;
+
+        destination.sortingLayerID = source.sortingLayerID;
+        destination.sortingOrder = source.sortingOrder;
+        destination.spriteSortPoint = source.spriteSortPoint;
+        destination.color = source.color;
+        destination.flipX = source.flipX;
+        destination.flipY = source.flipY;
+        destination.drawMode = source.drawMode;
+        destination.size = source.size;
+        destination.maskInteraction = source.maskInteraction;
+        destination.sharedMaterial = source.sharedMaterial;
+    }
+
+    private static void CopyBillboardSettings(BillboardToCamera source, BillboardToCamera destination)
+    {
+        if (source == null || destination == null)
+            return;
+
+        destination.targetCamera = source.targetCamera;
+        destination.yAxisOnly = source.yAxisOnly;
+        destination.yawOffsetDegrees = source.yawOffsetDegrees;
+        destination.invertFacing = source.invertFacing;
+        destination.forcePivotSortPoint = source.forcePivotSortPoint;
+        destination.driveSortingOrder = source.driveSortingOrder;
+        destination.sortingOrderScale = source.sortingOrderScale;
+        destination.sortingOrderBias = source.sortingOrderBias;
+        destination.depthOffset = source.depthOffset;
+    }
+
+    private static void RemoveComponentIfExists<T>(GameObject gameObject) where T : Component
+    {
+        if (gameObject == null)
+            return;
+
+        T[] components = gameObject.GetComponents<T>();
+        for (int i = 0; i < components.Length; i++)
+        {
+            if (components[i] != null)
+                UnityEngine.Object.DestroyImmediate(components[i]);
+        }
+    }
+
+    private static void RemoveObsoleteRootShadowScripts(GameObject root)
+    {
+        if (root == null)
+            return;
+
+        MonoBehaviour[] components = root.GetComponents<MonoBehaviour>();
+        for (int i = 0; i < components.Length; i++)
+        {
+            MonoBehaviour component = components[i];
+            if (component == null)
+                continue;
+
+            string typeName = component.GetType().Name;
+            if (string.Equals(typeName, "BillboardCastShadow", StringComparison.Ordinal))
+                UnityEngine.Object.DestroyImmediate(component);
+        }
+    }
+
+    private static Transform EnsureChild(Transform parent, string childName)
+    {
+        Transform child = parent.Find(childName);
+        if (child != null)
+            return child;
+
+        var go = new GameObject(childName);
+        child = go.transform;
+        child.SetParent(parent, false);
+        return child;
     }
 }
 #endif
