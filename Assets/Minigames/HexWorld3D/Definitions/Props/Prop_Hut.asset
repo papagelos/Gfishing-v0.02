@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Hut
   displayName: HUT
-  thumbnail: {fileID: 8509550459451208454, guid: ac1382e24e919884695ef0764a41bf1d, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: ac1382e24e919884695ef0764a41bf1d, type: 3}
   prefab: {fileID: 1357402547135660319, guid: 84cf5fb6f74c39148ae817dc13cad2d7, type: 3}
   scale: 0.08

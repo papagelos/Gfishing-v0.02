@@ -7,6 +7,7 @@ namespace GalacticFishing.Minigames.HexWorld
     {
         public string id = "Prop_Id";
         public string displayName = "New Prop";
+        public string biomeGroup = "ALL";
         public Sprite thumbnail;
         public GameObject prefab;
         [Min(0.001f)] public float scale = 1.0f;

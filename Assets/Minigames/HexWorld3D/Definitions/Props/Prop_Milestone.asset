@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Milestone
   displayName: MILESTONE
-  thumbnail: {fileID: 8509550459451208454, guid: 913f0de513c9f42438ce6bd7ed9d1a5e, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 913f0de513c9f42438ce6bd7ed9d1a5e, type: 3}
   prefab: {fileID: 265115782070416487, guid: 30e90fdef9a0a6d4ba84a8fc2af68dcf, type: 3}
   scale: 0.08

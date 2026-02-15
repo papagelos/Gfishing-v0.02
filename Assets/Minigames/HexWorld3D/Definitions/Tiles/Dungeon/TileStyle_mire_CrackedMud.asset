@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
   m_Name: TileStyle_mire_CrackedMud
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
-  displayName: Crackedmud
+  displayName: New Tile
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 2800000, guid: f8782745eb87ae44bb6975115002b5b0, type: 3}
+  thumbnail: {fileID: 0}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []
   paintCost: []
   demolitionFeeFactor: 0.3
   gameplayTags: []
-  materials:
-  - {fileID: 2100000, guid: 413a444b579cbe64b96cffcb678d9337, type: 2}
+  materials: []
   decorations: []
   pickRandomlyPerInstance: 1
   minCount: 3
   maxCount: 5
   terrainType: 0
-  biomeGroup: MIRE
+  biomeGroup: 
   properties: []

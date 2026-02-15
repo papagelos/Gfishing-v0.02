@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   profile: {fileID: 11400000, guid: f983686548f24a4e92d564794a63509a, type: 2}
-  registry: {fileID: 0}
+  registry: {fileID: 11400000, guid: f2b4eaf3f2a848148e6d3e34f51a4d22, type: 2}
   useFixedSeed: 1
   fixedSeed: 133777
   latestLayout:
@@ -8176,7 +8176,7 @@ MonoBehaviour:
       hasProp: 0
       propId: 
       kind: 2
-  drawGizmos: 1
+  drawGizmos: 0
   gizmoHexSize: 0.8
   gizmoY: 0.05
   spineTileColor: {r: 0.98, g: 0.62, b: 0.2, a: 0.9}
@@ -8350,6 +8350,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75389b7f4c449674da9abe45055494b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexCameraPanZoom3D
+  lockRotation: 0
+  lockedYaw: 45
+  lockedPitch: 45
   orbitTarget: {fileID: 0}
   panSpeed: 5
   rotateSpeed: 0.15

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Pines
   displayName: PINES
-  thumbnail: {fileID: 8509550459451208454, guid: 673a05e7f890e7449babcb89fedc9180, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 673a05e7f890e7449babcb89fedc9180, type: 3}
   prefab: {fileID: 8124598336632165260, guid: 1179fb37f57408345b1a0f9b2e10923c, type: 3}
   scale: 0.08

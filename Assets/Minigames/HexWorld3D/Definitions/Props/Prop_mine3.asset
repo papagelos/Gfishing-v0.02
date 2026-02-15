@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: mine3
   displayName: MINE3
-  thumbnail: {fileID: 8509550459451208454, guid: 7b1ed22b9be392e4a8949fdc93cf8d51, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 7b1ed22b9be392e4a8949fdc93cf8d51, type: 3}
   prefab: {fileID: 3518223324981453781, guid: 1b6623b229c887340bd1bc596527feeb, type: 3}
   scale: 0.08

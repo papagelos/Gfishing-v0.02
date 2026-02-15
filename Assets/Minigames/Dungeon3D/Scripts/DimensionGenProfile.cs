@@ -59,6 +59,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             "Crystal",
             "Totem",
         };
+        public List<string> globalPropPool = new();
 
         public int EffectiveTargetTileCount => Mathf.Max(targetTileCount, spineMinLength + 2);
 

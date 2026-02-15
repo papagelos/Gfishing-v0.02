@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: DeadTree
   displayName: DEADTREE
-  thumbnail: {fileID: 8509550459451208454, guid: 5720980e7cfad9d498ac328711e47145, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 5720980e7cfad9d498ac328711e47145, type: 3}
   prefab: {fileID: 6433605044513356068, guid: df1a1ee78d0732641a2455c5bd12b073, type: 3}
   scale: 0.08

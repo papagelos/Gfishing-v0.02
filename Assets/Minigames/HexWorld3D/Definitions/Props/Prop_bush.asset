@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: bush
   displayName: BUSH
+  biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: b066eddc324892f4bb8f850038aa5da0, type: 3}
   prefab: {fileID: 3500796859615581486, guid: ace430f08ccee2547bc71bed9699121b, type: 3}
   scale: 0.08

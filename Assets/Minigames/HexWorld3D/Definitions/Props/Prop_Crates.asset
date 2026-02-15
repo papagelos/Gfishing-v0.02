@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Crates
   displayName: CRATES
-  thumbnail: {fileID: 8509550459451208454, guid: e675db20005d95741ad847a049235e27, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: e675db20005d95741ad847a049235e27, type: 3}
   prefab: {fileID: 6737941855846464184, guid: 8cf5bdf2092437e408f53195a3826c34, type: 3}
   scale: 0.08

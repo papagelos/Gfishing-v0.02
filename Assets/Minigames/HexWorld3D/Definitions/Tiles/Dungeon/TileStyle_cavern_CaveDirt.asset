@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
   m_Name: TileStyle_cavern_CaveDirt
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
-  displayName: Cavedirt
+  displayName: New Tile
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 2800000, guid: fd81a08daa299744f817d6d626e66fd3, type: 3}
+  thumbnail: {fileID: 0}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []
   paintCost: []
   demolitionFeeFactor: 0.3
   gameplayTags: []
-  materials:
-  - {fileID: 2100000, guid: dcea895e9ff41cc4fa35512a168429fe, type: 2}
+  materials: []
   decorations: []
   pickRandomlyPerInstance: 1
   minCount: 3
   maxCount: 5
   terrainType: 0
-  biomeGroup: CAVERN
+  biomeGroup: 
   properties: []

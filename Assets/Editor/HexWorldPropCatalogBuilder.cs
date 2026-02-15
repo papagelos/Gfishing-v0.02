@@ -10,15 +10,19 @@ using GalacticFishing.Minigames.HexWorld;
 
 public sealed class HexWorldPropCatalogBuilder : EditorWindow
 {
-    private const string SpritesFolder = "Assets/Sprites/Props";
+    private const string SpritesFolder = "Assets/Sprites/Biomes";
     private const string PropPrefabsFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props";
     private const string PropDefinitionsFolder = "Assets/Minigames/HexWorld3D/Definitions/Props";
     private const string PropRegistryAssetPath = "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset";
     private const string VillageControllerPrefabPath = "Assets/Minigames/Prefabs/Prefab_HexWorld3D_Village.prefab";
     private const string ShadowMaterialPath = "Assets/Minigames/HexWorld3D/Materials/Props/Mat_ShadowSilhouette.mat";
     private const string PropScalePrefKey = "HexWorldPropCatalogBuilder.PropScale";
+    private const string ShadowYawPrefKey = "HexWorldPropCatalogBuilder.ShadowYaw";
+    private const string ShadowUseSunPrefKey = "HexWorldPropCatalogBuilder.ShadowUseSun";
     private const byte AlphaThreshold = 10;
     private float _propScale = 0.1f;
+    private float _shadowYaw = -45f;
+    private bool _useSun = true;
     private string _utilityPath = "Assets/Sprites/Buildings";
 
     [MenuItem("Galactic Fishing/Catalogs/HexWorld Props")]
@@ -30,13 +34,15 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private void OnEnable()
     {
         _propScale = EditorPrefs.GetFloat(PropScalePrefKey, _propScale);
+        _shadowYaw = EditorPrefs.GetFloat(ShadowYawPrefKey, _shadowYaw);
+        _useSun = EditorPrefs.GetBool(ShadowUseSunPrefKey, _useSun);
     }
 
     private void OnGUI()
     {
         EditorGUILayout.LabelField("HexWorld Prop Catalog Builder", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox(
-            "Processes PNGs in Assets/Sprites/Props, creates/updates prop prefabs and definitions, then rewires propCatalog on the village controller prefab.",
+            "Processes PNGs recursively in Assets/Sprites/Biomes/**/Props, creates/updates prop prefabs and definitions, then rewires propCatalog on the village controller prefab.",
             MessageType.Info);
 
         EditorGUILayout.Space();
@@ -52,11 +58,18 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         EditorPrefs.SetFloat(PropScalePrefKey, _propScale);
 
         EditorGUILayout.Space();
+        EditorGUILayout.LabelField("GLOBAL SHADOW SETTINGS", EditorStyles.boldLabel);
+        _shadowYaw = EditorGUILayout.FloatField("Shadow Yaw (Degrees)", _shadowYaw);
+        _useSun = EditorGUILayout.Toggle("Use Sun If Available", _useSun);
+        EditorPrefs.SetFloat(ShadowYawPrefKey, _shadowYaw);
+        EditorPrefs.SetBool(ShadowUseSunPrefKey, _useSun);
+
+        EditorGUILayout.Space();
         using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
         {
             if (GUILayout.Button("Rebuild Prop Catalog", GUILayout.Height(34f)))
             {
-                RebuildCatalog(_propScale);
+                RebuildCatalog(_propScale, _shadowYaw, _useSun);
             }
         }
 
@@ -75,10 +88,13 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
     public static void RebuildCatalog()
     {
-        RebuildCatalog(EditorPrefs.GetFloat(PropScalePrefKey, 0.1f));
+        RebuildCatalog(
+            EditorPrefs.GetFloat(PropScalePrefKey, 0.1f),
+            EditorPrefs.GetFloat(ShadowYawPrefKey, -45f),
+            EditorPrefs.GetBool(ShadowUseSunPrefKey, true));
     }
 
-    private static void RebuildCatalog(float propScale)
+    private static void RebuildCatalog(float propScale, float shadowYaw, bool useSun)
     {
         if (!AssetDatabase.IsValidFolder(SpritesFolder))
         {
@@ -92,7 +108,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { SpritesFolder });
         var texturePaths = textureGuids
             .Select(AssetDatabase.GUIDToAssetPath)
-            .Where(path => path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .Where(path =>
+                path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) &&
+                IsBiomePropPath(path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -119,6 +137,10 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 if (string.IsNullOrEmpty(rawName))
                     continue;
 
+                string biomeGroup = ExtractBiomeGroupFromBiomePropPath(texturePath);
+                if (string.IsNullOrEmpty(biomeGroup))
+                    continue;
+
                 string safeName = MakeSafeAssetName(rawName);
                 string displayName = rawName.ToUpperInvariant();
 
@@ -129,14 +151,21 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                     continue;
                 }
 
-                GameObject propPrefab = CreateOrUpdatePropPrefab(safeName, sprite, shadowMaterial, ref prefabsCreated, ref prefabsUpdated);
+                GameObject propPrefab = CreateOrUpdatePropPrefab(
+                    safeName,
+                    sprite,
+                    shadowMaterial,
+                    shadowYaw,
+                    useSun,
+                    ref prefabsCreated,
+                    ref prefabsUpdated);
                 if (propPrefab == null)
                 {
                     Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not create prefab for '{texturePath}', skipped.");
                     continue;
                 }
 
-                CreateOrUpdateDefinition(safeName, displayName, sprite, propPrefab, propScale, ref defsCreated, ref defsUpdated);
+                CreateOrUpdateDefinition(safeName, displayName, biomeGroup, sprite, propPrefab, propScale, ref defsCreated, ref defsUpdated);
             }
             catch (Exception ex)
             {
@@ -224,6 +253,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                         Vector2 newPivot = new Vector2(Mathf.Clamp01(pivotX), Mathf.Clamp01(pivotY));
 
                         // Apply settings via the settings object to bypass CS1061 [1]
+                        settings.spriteMode = (int)SpriteImportMode.Single;
                         settings.spriteAlignment = (int)SpriteAlignment.Custom;
                         settings.spritePivot = newPivot;
                         importer.SetTextureSettings(settings);
@@ -300,7 +330,14 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         return found;
     }
 
-    private static GameObject CreateOrUpdatePropPrefab(string safeName, Sprite sprite, Material shadowMaterial, ref int created, ref int updated)
+    private static GameObject CreateOrUpdatePropPrefab(
+        string safeName,
+        Sprite sprite,
+        Material shadowMaterial,
+        float shadowYaw,
+        bool useSun,
+        ref int created,
+        ref int updated)
     {
         if (string.IsNullOrWhiteSpace(safeName))
             return null;
@@ -318,7 +355,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 if (go == null)
                     return null;
 
-                if (!ConfigurePropPrefabHierarchy(go, sprite, shadowMaterial))
+                if (!ConfigurePropPrefabHierarchy(go, sprite, shadowMaterial, shadowYaw, useSun))
                     return null;
 
                 EditorUtility.SetDirty(go);
@@ -343,7 +380,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         try
         {
-            if (!ConfigurePropPrefabHierarchy(root, sprite, shadowMaterial))
+            if (!ConfigurePropPrefabHierarchy(root, sprite, shadowMaterial, shadowYaw, useSun))
                 return null;
             EditorUtility.SetDirty(root);
 
@@ -362,7 +399,12 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
     }
 
-    private static bool ConfigurePropPrefabHierarchy(GameObject root, Sprite sprite, Material shadowMaterial)
+    private static bool ConfigurePropPrefabHierarchy(
+        GameObject root,
+        Sprite sprite,
+        Material shadowMaterial,
+        float shadowYaw,
+        bool useSun)
     {
         if (root == null || sprite == null)
             return false;
@@ -393,18 +435,16 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         }
         visualSr.sprite = sprite;
 
-        var billboard = EnsureComponent<BillboardToCamera>(visual.gameObject);
-        if (billboard == null)
+        BillboardToCamera visualBillboard = visual.GetComponent<BillboardToCamera>();
+        BillboardToCamera billboardSource = visualBillboard ? visualBillboard : rootBillboard;
+        var tracker = EnsureComponent<DistanceToCameraTracker>(visual.gameObject);
+        if (tracker == null)
             return false;
-
-        if (rootBillboard != null && rootBillboard != billboard)
-        {
-            CopyBillboardSettings(rootBillboard, billboard);
-            UnityEngine.Object.DestroyImmediate(rootBillboard);
-        }
-
-        billboard.yAxisOnly = true;
-        billboard.spriteRenderer = visualSr;
+        tracker.spriteRenderer = visualSr;
+        if (billboardSource != null)
+            CopyBillboardSettingsToTracker(billboardSource, tracker);
+        RemoveComponentIfExists<BillboardToCamera>(visual.gameObject);
+        RemoveComponentIfExists<BillboardToCamera>(root);
 
         var shadowSr = EnsureComponent<SpriteRenderer>(shadow.gameObject);
         if (shadowSr == null)
@@ -421,8 +461,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         shadowCast.shadowRenderer = shadowSr;
         shadowCast.screenSpaceDirection = false;
         shadowCast.anchorMode = GroundCastShadow2D.AnchorMode.MainRendererPivot;
-        shadowCast.useYawOverride = true;
-        shadowCast.yawDegrees = -45f;
+        shadowCast.useSunIfAvailable = useSun;
+        shadowCast.useYawOverride = !useSun;
+        shadowCast.yawDegrees = shadowYaw;
         shadowCast.castDistanceInHeights = 0f;
         shadowCast.groundTiltX = 90f;
         shadowCast.groundLift = 0.03f;
@@ -431,12 +472,11 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         // Root should be a container only.
         RemoveComponentIfExists<SpriteRenderer>(root);
-        RemoveComponentIfExists<BillboardToCamera>(root);
         RemoveComponentIfExists<GroundCastShadow2D>(root);
         RemoveObsoleteRootShadowScripts(root);
 
         EditorUtility.SetDirty(visualSr);
-        EditorUtility.SetDirty(billboard);
+        EditorUtility.SetDirty(tracker);
         EditorUtility.SetDirty(shadowSr);
         EditorUtility.SetDirty(shadowCast);
         return true;
@@ -445,6 +485,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private static void CreateOrUpdateDefinition(
         string safeName,
         string displayName,
+        string biomeGroup,
         Sprite sprite,
         GameObject propPrefab,
         float propScale,
@@ -464,6 +505,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         // Keep IDs aligned with generated asset filenames for deterministic registry lookup.
         def.id = safeName;
         def.displayName = displayName;
+        def.biomeGroup = string.IsNullOrWhiteSpace(biomeGroup) ? "ALL" : biomeGroup.Trim().ToUpperInvariant();
         def.thumbnail = sprite;
         def.prefab = propPrefab;
         def.scale = propScale;
@@ -665,9 +707,28 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             bool oldReadable = importer.isReadable;
             try
             {
+                bool changed = false;
+
+                if (importer.textureType != TextureImporterType.Sprite)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    changed = true;
+                }
+
+                if (importer.spriteImportMode != SpriteImportMode.Single)
+                {
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    changed = true;
+                }
+
                 if (!importer.isReadable)
                 {
                     importer.isReadable = true;
+                    changed = true;
+                }
+
+                if (changed)
+                {
                     importer.SaveAndReimport();
                     AssetDatabase.ImportAsset(texturePath, ImportAssetOptions.ForceUpdate);
                 }
@@ -689,12 +750,14 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 var settings = new TextureImporterSettings();
                 importer.ReadTextureSettings(settings);
 
-                bool pivotChanged = settings.spriteAlignment != (int)SpriteAlignment.Custom ||
+                bool pivotChanged = settings.spriteMode != (int)SpriteImportMode.Single ||
+                                    settings.spriteAlignment != (int)SpriteAlignment.Custom ||
                                     !Mathf.Approximately(settings.spritePivot.x, newPivot.x) ||
                                     !Mathf.Approximately(settings.spritePivot.y, newPivot.y);
                 if (!pivotChanged)
                     continue;
 
+                settings.spriteMode = (int)SpriteImportMode.Single;
                 settings.spriteAlignment = (int)SpriteAlignment.Custom;
                 settings.spritePivot = newPivot;
                 importer.SetTextureSettings(settings);
@@ -721,6 +784,42 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         value = value.Replace(' ', '_');
         value = value.Replace('.', '_');
         return value;
+    }
+
+    private static bool IsBiomePropPath(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath))
+            return false;
+
+        string normalized = assetPath.Replace("\\", "/");
+        return normalized.StartsWith(SpritesFolder + "/", StringComparison.OrdinalIgnoreCase) &&
+               normalized.IndexOf("/Props/", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static string ExtractBiomeGroupFromBiomePropPath(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath))
+            return null;
+
+        string normalized = assetPath.Replace("\\", "/");
+        string[] parts = normalized.Split('/');
+        for (int i = 0; i < parts.Length - 2; i++)
+        {
+            if (!string.Equals(parts[i], "Biomes", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string biome = parts[i + 1];
+            string category = parts[i + 2];
+            if (!string.Equals(category, "Props", StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            if (string.Equals(biome, "GLOBAL", StringComparison.OrdinalIgnoreCase))
+                return "ALL";
+
+            return biome.Trim().ToUpperInvariant();
+        }
+
+        return null;
     }
 
     private static T EnsureComponent<T>(GameObject gameObject) where T : Component
@@ -752,15 +851,13 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         destination.sharedMaterial = source.sharedMaterial;
     }
 
-    private static void CopyBillboardSettings(BillboardToCamera source, BillboardToCamera destination)
+    private static void CopyBillboardSettingsToTracker(BillboardToCamera source, DistanceToCameraTracker destination)
     {
         if (source == null || destination == null)
             return;
 
         destination.targetCamera = source.targetCamera;
-        destination.yAxisOnly = source.yAxisOnly;
-        destination.yawOffsetDegrees = source.yawOffsetDegrees;
-        destination.invertFacing = source.invertFacing;
+        destination.flattenAxisToXZ = source.yAxisOnly;
         destination.forcePivotSortPoint = source.forcePivotSortPoint;
         destination.driveSortingOrder = source.driveSortingOrder;
         destination.sortingOrderScale = source.sortingOrderScale;

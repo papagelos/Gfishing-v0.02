@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Beehive
   displayName: BEEHIVE
-  thumbnail: {fileID: 8509550459451208454, guid: ba7a18f8cd77a06448f239c688ced4f2, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: ba7a18f8cd77a06448f239c688ced4f2, type: 3}
   prefab: {fileID: 5768128098266587174, guid: 136e4596d7af520449d25ef98741dae2, type: 3}
   scale: 0.08

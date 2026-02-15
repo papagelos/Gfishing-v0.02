@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Irrigation
   displayName: IRRIGATION
-  thumbnail: {fileID: 8509550459451208454, guid: fec3f091ca1e2b7469e734d8e08ec1c3, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: fec3f091ca1e2b7469e734d8e08ec1c3, type: 3}
   prefab: {fileID: 810617046496501595, guid: 0faa5b5f43f8ed142ad8c81d8767a84f, type: 3}
   scale: 0.08

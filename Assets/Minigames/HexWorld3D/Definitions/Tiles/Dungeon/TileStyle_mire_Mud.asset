@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
   m_Name: TileStyle_mire_Mud
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
-  displayName: Mud
+  displayName: New Tile
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 2800000, guid: a231c56c635057b4fbe4a5dfe393b2c7, type: 3}
+  thumbnail: {fileID: 0}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []
   paintCost: []
   demolitionFeeFactor: 0.3
   gameplayTags: []
-  materials:
-  - {fileID: 2100000, guid: f0b835f3f1e9d10449d2cc57b0dc0359, type: 2}
+  materials: []
   decorations: []
   pickRandomlyPerInstance: 1
   minCount: 3
   maxCount: 5
   terrainType: 0
-  biomeGroup: MIRE
+  biomeGroup: 
   properties: []

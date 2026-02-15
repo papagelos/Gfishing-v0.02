@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Pumpkins
   displayName: PUMPKINS
-  thumbnail: {fileID: 8509550459451208454, guid: 6a6e5bfe68cb83743935621bac003bc2, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 6a6e5bfe68cb83743935621bac003bc2, type: 3}
   prefab: {fileID: 8556041298878827558, guid: ef4156ee8b6efd34194573b0e93b6dbe, type: 3}
   scale: 0.08

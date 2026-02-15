@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: MineEntrance
   displayName: MINEENTRANCE
-  thumbnail: {fileID: 8509550459451208454, guid: 48512a599346b684b82fcc5ebcc76cbc, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 48512a599346b684b82fcc5ebcc76cbc, type: 3}
   prefab: {fileID: 1233591328511649083, guid: d494d9da3ed38ca40ab49293802813b8, type: 3}
   scale: 0.08

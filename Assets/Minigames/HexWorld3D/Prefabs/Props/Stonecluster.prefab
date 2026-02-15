@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5775407090308428105}
   - component: {fileID: 9083326967653270624}
-  - component: {fileID: 542316099152988510}
+  - component: {fileID: 8214200137505908641}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -92,7 +92,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 1
---- !u!114 &542316099152988510
+--- !u!114 &8214200137505908641
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -101,19 +101,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 1516334770616205353}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c91d5499e0e841a4cb65f317f8439466, type: 3}
+  m_Script: {fileID: 11500000, guid: c86e01858cf94244a7c4ea2973159d66, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.BillboardToCamera
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.DistanceToCameraTracker
   targetCamera: {fileID: 0}
-  yAxisOnly: 1
-  yawOffsetDegrees: 0
-  invertFacing: 0
+  trackingRoot: {fileID: 1687060840689059677}
+  sortingGroup: {fileID: 0}
   spriteRenderer: {fileID: 9083326967653270624}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
   sortingOrderScale: 50
   sortingOrderBias: 0
+  flattenAxisToXZ: 1
   depthOffset: 0
+  autoDriveNamedChildren: 1
+  visualName: Visual
+  backVisualName: BackVisual
+  shadowName: Shadow
+  thickName: Thick
+  faceOrderOffset: 1
+  shadowOrderOffset: -5
+  thickOrderOffset: 0
+  extraRenderers: []
 --- !u!1 &1733936671308926888
 GameObject:
   m_ObjectHideFlags: 0
@@ -257,9 +266,9 @@ MonoBehaviour:
   customAnchor: {fileID: 0}
   anchorOffset: {x: 0, y: 0, z: 0}
   screenSpaceDirection: 0
-  yawDegrees: -45
+  yawDegrees: 0
   useYawOverride: 1
-  useSunIfAvailable: 1
+  useSunIfAvailable: 0
   invertSunDirection: 0
   screenSpaceCamera: {fileID: 0}
   groundLift: 0.03

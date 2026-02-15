@@ -6,6 +6,11 @@ namespace GalacticFishing.Minigames.HexWorld
     [RequireComponent(typeof(Camera))]
     public sealed class HexCameraPanZoom3D : MonoBehaviour
     {
+        [Header("Rotation Lock")]
+        [SerializeField] private bool lockRotation = false;
+        [SerializeField] private float lockedYaw = 45f;
+        [SerializeField] private float lockedPitch = 45f;
+
         [Header("Target (orbit/pan around this)")]
         [SerializeField] private Transform orbitTarget;
 
@@ -81,6 +86,11 @@ namespace GalacticFishing.Minigames.HexWorld
             var mouse = Mouse.current;
             if (mouse == null) return;
 
+            if (lockRotation && (!Mathf.Approximately(_yaw, lockedYaw) || !Mathf.Approximately(_pitch, lockedPitch)))
+            {
+                ApplyOrbit();
+            }
+
             // ---- Zoom ----
             float scrollY = mouse.scroll.ReadValue().y;
             if (Mathf.Abs(scrollY) > 0.01f)
@@ -126,27 +136,34 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // ---- Rotate (RMB) ----
-            if (mouse.rightButton.wasPressedThisFrame)
+            if (!lockRotation)
             {
-                _rotating = true;
-                _lastMousePos = mouse.position.ReadValue();
+                if (mouse.rightButton.wasPressedThisFrame)
+                {
+                    _rotating = true;
+                    _lastMousePos = mouse.position.ReadValue();
+                }
+                else if (mouse.rightButton.wasReleasedThisFrame)
+                {
+                    _rotating = false;
+                }
+
+                if (_rotating && mouse.rightButton.isPressed)
+                {
+                    Vector2 cur = mouse.position.ReadValue();
+                    Vector2 delta = cur - _lastMousePos;
+                    _lastMousePos = cur;
+
+                    _yaw += delta.x * rotateSpeed;
+                    _pitch -= delta.y * rotateSpeed;
+                    _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
+
+                    ApplyOrbit();
+                }
             }
-            else if (mouse.rightButton.wasReleasedThisFrame)
+            else
             {
                 _rotating = false;
-            }
-
-            if (_rotating && mouse.rightButton.isPressed)
-            {
-                Vector2 cur = mouse.position.ReadValue();
-                Vector2 delta = cur - _lastMousePos;
-                _lastMousePos = cur;
-
-                _yaw += delta.x * rotateSpeed;
-                _pitch -= delta.y * rotateSpeed;
-                _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
-
-                ApplyOrbit();
             }
 
             if (orbitTarget && (!_hasLastOrbitTargetPos || orbitTarget.position != _lastOrbitTargetPos))
@@ -159,6 +176,12 @@ namespace GalacticFishing.Minigames.HexWorld
 
         private void ApplyOrbit()
         {
+            if (lockRotation)
+            {
+                _yaw = lockedYaw;
+                _pitch = lockedPitch;
+            }
+
             _pitch = Mathf.Clamp(_pitch, minPitch, maxPitch);
             Quaternion rot = Quaternion.Euler(_pitch, _yaw, 0f);
 

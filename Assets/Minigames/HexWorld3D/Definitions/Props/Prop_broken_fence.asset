@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: broken_fence
   displayName: BROKEN FENCE
-  thumbnail: {fileID: 8509550459451208454, guid: f752d768a1514194f8c75d9ce3454429, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: f752d768a1514194f8c75d9ce3454429, type: 3}
   prefab: {fileID: 5201411594858554557, guid: 50445f2b88facf74da3a22d272a14c7e, type: 3}
   scale: 0.08

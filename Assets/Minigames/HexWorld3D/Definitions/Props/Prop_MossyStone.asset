@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: MossyStone
   displayName: MOSSYSTONE
-  thumbnail: {fileID: 8509550459451208454, guid: a0d5aaab8f4ffae49b88382e7c268843, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: a0d5aaab8f4ffae49b88382e7c268843, type: 3}
   prefab: {fileID: 6876701696835454145, guid: cdd73c6f3e6fd30418599895faecbd90, type: 3}
   scale: 0.08

@@ -150,8 +150,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     continue;
                 }
 
-                float angle = HashTo01(tile.coord, layout.seedUsed) * 360f;
-                GameObject propGo = Instantiate(propDef.prefab, tilePos, Quaternion.Euler(0f, angle, 0f), propsRoot);
+                GameObject propGo = Instantiate(propDef.prefab, tilePos, Quaternion.identity, propsRoot);
                 propGo.transform.localScale = Vector3.one * Mathf.Max(0.001f, propDef.scale);
                 propGo.name = $"Prop_{propDef.name}_{tile.coord.q}_{tile.coord.r}";
                 _spawnedProps.Add(propGo);

@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
   m_Name: TileStyle_mountain_RiverStones
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
-  displayName: Riverstones
+  displayName: New Tile
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 2800000, guid: d812baddae094614a8b613d8ef9eb93a, type: 3}
+  thumbnail: {fileID: 0}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []
   paintCost: []
   demolitionFeeFactor: 0.3
   gameplayTags: []
-  materials:
-  - {fileID: 2100000, guid: da0bdbca7da30704bb75ec136002b199, type: 2}
+  materials: []
   decorations: []
   pickRandomlyPerInstance: 1
   minCount: 3
   maxCount: 5
   terrainType: 0
-  biomeGroup: MOUNTAIN
+  biomeGroup: 
   properties: []

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: ForestFloor
   displayName: FORESTFLOOR
+  biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 45684405121f8f34cb6f595092cd7b36, type: 3}
   prefab: {fileID: 3752121889497535453, guid: e1c6ff93bc1eeaa4b96e5ea087e633d2, type: 3}
   scale: 0.08

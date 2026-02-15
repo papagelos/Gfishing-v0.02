@@ -12,21 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b9a6ecc16ca3b748bcdaa00052aa251, type: 3}
   m_Name: TileStyle_meadow_drygrass
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldTileStyle
-  displayName: Drygrass
+  displayName: New Tile
   edgeTint: {r: 1, g: 1, b: 1, a: 1}
-  thumbnail: {fileID: 2800000, guid: af9b8852203716445943682a2bc6e952, type: 3}
+  thumbnail: {fileID: 0}
   category: 0
   unlockTownTier: 1
   requiredBuildingPlacementNames: []
   paintCost: []
   demolitionFeeFactor: 0.3
   gameplayTags: []
-  materials:
-  - {fileID: 2100000, guid: c7b8d4a93de9ae84898aa9defe9b8c73, type: 2}
+  materials: []
   decorations: []
   pickRandomlyPerInstance: 1
   minCount: 3
   maxCount: 5
   terrainType: 0
-  biomeGroup: MEADOW
+  biomeGroup: 
   properties: []

@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: SkreeMound
   displayName: SKREEMOUND
-  thumbnail: {fileID: 8509550459451208454, guid: 16f4a1d72fff58a4d8d887d0411e29f6, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 16f4a1d72fff58a4d8d887d0411e29f6, type: 3}
   prefab: {fileID: 3298995688984745719, guid: 94d28ad476afd2949b2008aa68111502, type: 3}
   scale: 0.08

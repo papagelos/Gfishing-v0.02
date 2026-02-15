@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: Frog
   displayName: FROG
-  thumbnail: {fileID: 8509550459451208454, guid: cc69ac6cb69ff1b4597a651fa3a4ffb0, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: cc69ac6cb69ff1b4597a651fa3a4ffb0, type: 3}
   prefab: {fileID: 5729861474013512595, guid: 9740060de0deac14a987f96bdfe37b7c, type: 3}
   scale: 0.08

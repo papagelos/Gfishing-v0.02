@@ -8,6 +8,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using GalacticFishing.Minigames.HexWorld;
+using GalacticFishing.Minigames.Dungeon3D;
 
 public sealed class HexWorldTileCatalogBuilder : EditorWindow
 {
@@ -17,8 +18,9 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
     private const string MaterialFolder = "Assets/Minigames/HexWorld3D/Materials/Tiles/Dungeon";
     private const string DefinitionFolder = "Assets/Minigames/HexWorld3D/Definitions/Tiles/Dungeon";
 
-    private string _sourceFolder = "Assets/Sprites/Tiles/Dungeon";
+    private string _sourceFolder = "Assets/Sprites/Biomes";
     private bool _appendToSceneCatalog = true;
+    private DimensionGenProfile _genProfile;
 
     [MenuItem(WindowMenuPath)]
     public static void Open()
@@ -36,8 +38,20 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
             MessageType.Info);
 
         EditorGUILayout.Space();
-        _sourceFolder = EditorGUILayout.TextField("Source PNG Folder", _sourceFolder);
-        _appendToSceneCatalog = EditorGUILayout.ToggleLeft("Append generated styles to current scene styleCatalog", _appendToSceneCatalog);
+        var sourceFolderLabel = new GUIContent(
+            "Source PNG Folder",
+            "Directory-driven mode: scans recursively for .png files under Assets/Sprites/Biomes/[GROUP]/Tiles and tags each generated TileStyle with [GROUP].");
+        _sourceFolder = EditorGUILayout.TextField(sourceFolderLabel, _sourceFolder);
+
+        var appendLabel = new GUIContent(
+            "Append generated styles to current scene styleCatalog",
+            "If enabled, the tool will automatically fill the Tile Bar in your current Village scene with the tiles found in the source folder.");
+        _appendToSceneCatalog = EditorGUILayout.ToggleLeft(appendLabel, _appendToSceneCatalog);
+
+        var profileLabel = new GUIContent(
+            "Dungeon Gen Profile",
+            "Assign your 'DimensionGenProfile' here. The tool will automatically sort your new tiles into the correct biome groups so the procedural dungeon renderer can find them.");
+        _genProfile = (DimensionGenProfile)EditorGUILayout.ObjectField(profileLabel, _genProfile, typeof(DimensionGenProfile), false);
 
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Material Shader", TargetShaderName);
@@ -48,11 +62,17 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
         {
             if (GUILayout.Button("Build Tile Catalog", GUILayout.Height(34f)))
-                BuildCatalog();
+                BuildCatalog(destructive: false);
+
+            var destructiveContent = new GUIContent(
+                "Clear and Rebuild Catalog",
+                "DESTRUCTIVE: Deletes ALL existing generated tile materials and assets, wipes the current scene's tile list, and resets the Dungeon Profile before rebuilding from the source folder.");
+            if (GUILayout.Button(destructiveContent, GUILayout.Height(34f)))
+                BuildCatalog(destructive: true);
         }
     }
 
-    private void BuildCatalog()
+    private void BuildCatalog(bool destructive)
     {
         if (!AssetDatabase.IsValidFolder(_sourceFolder))
         {
@@ -63,10 +83,27 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         EnsureFolder(MaterialFolder);
         EnsureFolder(DefinitionFolder);
 
+        int deletedMaterials = 0;
+        int deletedDefinitions = 0;
+        int clearedSceneStyles = 0;
+        int clearedProfileGroups = 0;
+
+        if (destructive)
+        {
+            deletedMaterials = DeleteAllAssetsInFolder(MaterialFolder);
+            deletedDefinitions = DeleteAllAssetsInFolder(DefinitionFolder);
+            clearedSceneStyles = ClearSceneStyleCatalog();
+            clearedProfileGroups = ResetGenProfileBiomeGroups(_genProfile);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
         string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { _sourceFolder });
         var texturePaths = textureGuids
             .Select(AssetDatabase.GUIDToAssetPath)
-            .Where(path => path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .Where(path =>
+                path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) &&
+                IsBiomeTilePath(path))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -91,6 +128,9 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
             if (string.IsNullOrEmpty(rawName))
                 continue;
 
+            if (!TryExtractBiomeGroupFromTilePath(texturePath, out string biomeGroup))
+                continue;
+
             Texture2D texture = ConfigureTextureImporter(texturePath);
             if (texture == null)
             {
@@ -100,7 +140,7 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
 
             texturesProcessed++;
 
-            ParseFileName(rawName, out string biomeGroup, out string displayName);
+            string displayName = ParseDisplayName(rawName);
 
             Material material = CreateOrUpdateMaterial(rawName, texture, ref materialsCreated, ref materialsUpdated);
             if (material == null)
@@ -123,13 +163,20 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         AssetDatabase.Refresh();
 
         int appendedCount = 0;
-        if (_appendToSceneCatalog && generatedStyles.Count > 0)
+        bool shouldAppendToScene = destructive || _appendToSceneCatalog;
+        if (shouldAppendToScene && generatedStyles.Count > 0)
             appendedCount = AppendStylesToSceneCatalog(generatedStyles);
+
+        int syncedToProfile = SyncStylesToGenProfile(_genProfile, generatedStyles, destructive);
 
         Debug.Log(
             $"[HexWorldTileCatalogBuilder] Done. PNGs: {texturePaths.Count}, processed: {texturesProcessed}, " +
             $"materials created/updated: {materialsCreated}/{materialsUpdated}, styles created/updated: {stylesCreated}/{stylesUpdated}, " +
-            $"appended to scene styleCatalog: {appendedCount}.");
+            $"appended to scene styleCatalog: {appendedCount}, " +
+            $"synced to dungeon profile: {syncedToProfile}" +
+            (destructive
+                ? $", deleted materials/definitions: {deletedMaterials}/{deletedDefinitions}, cleared scene styles: {clearedSceneStyles}, cleared profile groups: {clearedProfileGroups}"
+                : "."));
     }
 
     // Phase 1: Texture Import Settings
@@ -151,15 +198,16 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
     }
 
     // Phase 2: Naming & Parsing
-    private static void ParseFileName(string rawName, out string biomeGroup, out string displayName)
+    private static string ParseDisplayName(string rawName)
     {
+        if (string.IsNullOrWhiteSpace(rawName))
+            return "Unknown";
+
         string[] parts = rawName.Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
-
-        string biomeToken = parts.Length > 0 ? parts[0] : "Default";
-        biomeGroup = biomeToken.ToUpperInvariant();
-
-        string displayToken = parts.Length > 1 ? parts[1] : biomeToken;
-        displayName = ToTitleCase(displayToken.Replace('-', ' ').Replace('.', ' '));
+        string displayToken = parts.Length > 1
+            ? string.Join(" ", parts.Skip(1))
+            : rawName;
+        return ToTitleCase(displayToken.Replace('-', ' ').Replace('.', ' '));
     }
 
     private static string ToTitleCase(string value)
@@ -207,7 +255,7 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
 
         // World-UV tiles must have a valid non-zero scale to render.
         if (material.HasProperty("_WorldScale"))
-            material.SetFloat("_WorldScale", 1.0f);
+            material.SetFloat("_WorldScale", 0.3f);
 
         EditorUtility.SetDirty(material);
         if (isNew) created++;
@@ -315,6 +363,189 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
 
         EditorUtility.SetDirty(controller);
         return merged.Count;
+    }
+
+    private static int ClearSceneStyleCatalog()
+    {
+        var controller = UnityEngine.Object.FindAnyObjectByType<HexWorld3DController>(FindObjectsInactive.Include);
+        if (controller == null)
+            return 0;
+
+        var so = new SerializedObject(controller);
+        var styleCatalog = so.FindProperty("styleCatalog");
+        if (styleCatalog == null || !styleCatalog.isArray)
+            return 0;
+
+        int previousCount = styleCatalog.arraySize;
+        styleCatalog.arraySize = 0;
+        so.ApplyModifiedProperties();
+
+        PrefabUtility.RecordPrefabInstancePropertyModifications(controller);
+        if (controller.gameObject.scene.IsValid())
+            EditorSceneManager.MarkSceneDirty(controller.gameObject.scene);
+        EditorUtility.SetDirty(controller);
+        return previousCount;
+    }
+
+    private static int ResetGenProfileBiomeGroups(DimensionGenProfile profile)
+    {
+        if (profile == null)
+            return 0;
+
+        if (profile.biomeStyleGroups == null)
+            profile.biomeStyleGroups = new List<BiomeTileStyleGroup>();
+
+        int count = profile.biomeStyleGroups.Count;
+        profile.biomeStyleGroups.Clear();
+        EditorUtility.SetDirty(profile);
+        return count;
+    }
+
+    private static int SyncStylesToGenProfile(DimensionGenProfile profile, List<HexWorldTileStyle> styles, bool groupsAlreadyCleared)
+    {
+        if (profile == null || styles == null || styles.Count == 0)
+            return 0;
+
+        if (profile.biomeStyleGroups == null)
+            profile.biomeStyleGroups = new List<BiomeTileStyleGroup>();
+
+        if (!groupsAlreadyCleared && profile.biomeStyleGroups.Count == 0)
+            profile.biomeStyleGroups = new List<BiomeTileStyleGroup>();
+
+        var groupByBiome = new Dictionary<string, BiomeTileStyleGroup>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < profile.biomeStyleGroups.Count; i++)
+        {
+            var group = profile.biomeStyleGroups[i];
+            if (group == null)
+                continue;
+
+            string key = NormalizeBiome(group.biomeGroup);
+            if (string.IsNullOrEmpty(key))
+                continue;
+
+            group.biomeGroup = key;
+            group.tileStyles ??= new List<HexWorldTileStyle>();
+            groupByBiome[key] = group;
+        }
+
+        int addedCount = 0;
+        for (int i = 0; i < styles.Count; i++)
+        {
+            HexWorldTileStyle style = styles[i];
+            if (style == null)
+                continue;
+
+            string biome = NormalizeBiome(style.biomeGroup);
+            if (!groupByBiome.TryGetValue(biome, out BiomeTileStyleGroup group))
+            {
+                group = new BiomeTileStyleGroup
+                {
+                    biomeGroup = biome,
+                    tileStyles = new List<HexWorldTileStyle>()
+                };
+                profile.biomeStyleGroups.Add(group);
+                groupByBiome[biome] = group;
+            }
+
+            if (!group.tileStyles.Contains(style))
+            {
+                group.tileStyles.Add(style);
+                addedCount++;
+            }
+        }
+
+        for (int i = 0; i < profile.biomeStyleGroups.Count; i++)
+        {
+            var group = profile.biomeStyleGroups[i];
+            if (group?.tileStyles == null)
+                continue;
+
+            var unique = new List<HexWorldTileStyle>();
+            var seen = new HashSet<HexWorldTileStyle>();
+            for (int t = 0; t < group.tileStyles.Count; t++)
+            {
+                var style = group.tileStyles[t];
+                if (style == null || !seen.Add(style))
+                    continue;
+                unique.Add(style);
+            }
+
+            group.tileStyles = unique
+                .OrderBy(s => s.name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        profile.biomeStyleGroups = profile.biomeStyleGroups
+            .Where(g => g != null)
+            .OrderBy(g => g.biomeGroup, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        EditorUtility.SetDirty(profile);
+        AssetDatabase.SaveAssets();
+        return addedCount;
+    }
+
+    private static int DeleteAllAssetsInFolder(string folder)
+    {
+        if (!AssetDatabase.IsValidFolder(folder))
+            return 0;
+
+        string[] guids = AssetDatabase.FindAssets(string.Empty, new[] { folder });
+        int deleted = 0;
+        for (int i = 0; i < guids.Length; i++)
+        {
+            string assetPath = AssetDatabase.GUIDToAssetPath(guids[i]);
+            if (string.IsNullOrEmpty(assetPath) || AssetDatabase.IsValidFolder(assetPath))
+                continue;
+
+            if (AssetDatabase.DeleteAsset(assetPath))
+                deleted++;
+        }
+
+        return deleted;
+    }
+
+    private static string NormalizeBiome(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "DEFAULT";
+
+        return value.Trim().ToUpperInvariant();
+    }
+
+    private static bool IsBiomeTilePath(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath))
+            return false;
+
+        string normalized = assetPath.Replace("\\", "/");
+        return normalized.StartsWith("Assets/Sprites/Biomes/", StringComparison.OrdinalIgnoreCase) &&
+               normalized.IndexOf("/Tiles/", StringComparison.OrdinalIgnoreCase) >= 0;
+    }
+
+    private static bool TryExtractBiomeGroupFromTilePath(string assetPath, out string biomeGroup)
+    {
+        biomeGroup = null;
+        if (string.IsNullOrEmpty(assetPath))
+            return false;
+
+        string normalized = assetPath.Replace("\\", "/");
+        string[] parts = normalized.Split('/');
+        for (int i = 0; i < parts.Length - 2; i++)
+        {
+            if (!string.Equals(parts[i], "Biomes", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string biome = parts[i + 1];
+            string category = parts[i + 2];
+            if (!string.Equals(category, "Tiles", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            biomeGroup = NormalizeBiome(biome);
+            return true;
+        }
+
+        return false;
     }
 
     private static string MakeSafeAssetName(string raw)

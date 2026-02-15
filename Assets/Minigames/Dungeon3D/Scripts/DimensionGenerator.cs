@@ -101,11 +101,11 @@ namespace GalacticFishing.Minigames.Dungeon3D
             if (!IsReachable(layout.startCoord, layout.bossCoord, walkable))
                 ForceConnectStartToBoss(layout.startCoord, layout.bossCoord, walkable, walkableList);
 
-            var biomeByCoord = AssignBiomes(rng, genProfile, walkableList);
+            List<string> selectedBiomes = SelectBiomeSubset(rng, genProfile);
+            var biomeByCoord = AssignBiomes(rng, selectedBiomes, genProfile.biomePatchSize, walkableList);
 
             var sortedWalkable = new List<HexCoord>(walkableList);
             sortedWalkable.Sort(CompareCoords);
-            List<string> resolvedPropPool = ResolvePropPool(genProfile, propRegistry);
 
             layout.tiles.Clear();
             for (int i = 0; i < sortedWalkable.Count; i++)
@@ -115,9 +115,11 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     ? DimensionTileKind.Spine
                     : pocketSet.Contains(coord) ? DimensionTileKind.Pocket : DimensionTileKind.Filler;
 
-                bool hasProp = rng.NextDouble() < genProfile.propChance;
-                string prop = hasProp ? PickRandomProp(rng, resolvedPropPool) : string.Empty;
                 string biome = biomeByCoord.TryGetValue(coord, out string b) ? b : "DEFAULT";
+                bool hasProp = rng.NextDouble() < genProfile.propChance;
+                string prop = hasProp ? PickRandomProp(rng, genProfile, propRegistry, biome) : string.Empty;
+                if (hasProp && string.IsNullOrEmpty(prop))
+                    hasProp = false;
 
                 layout.tiles.Add(new DimensionTileData
                 {
@@ -382,18 +384,18 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
         private static Dictionary<HexCoord, string> AssignBiomes(
             System.Random rng,
-            DimensionGenProfile genProfile,
+            List<string> biomePool,
+            int biomePatchSize,
             List<HexCoord> walkableList)
         {
             var result = new Dictionary<HexCoord, string>();
             if (walkableList == null || walkableList.Count == 0)
                 return result;
 
-            var pool = genProfile.biomeGroups;
-            if (pool == null || pool.Count == 0)
-                pool = new List<string> { "DEFAULT" };
+            if (biomePool == null || biomePool.Count == 0)
+                biomePool = new List<string> { "DEFAULT" };
 
-            int patchSize = Mathf.Max(1, genProfile.biomePatchSize);
+            int patchSize = Mathf.Max(1, biomePatchSize);
             int centerCount = Mathf.Clamp(
                 walkableList.Count / patchSize,
                 1,
@@ -410,7 +412,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     continue;
 
                 centers.Add(center);
-                centerBiomes.Add(pool[rng.Next(pool.Count)]);
+                centerBiomes.Add(biomePool[rng.Next(biomePool.Count)]);
             }
 
             for (int i = 0; i < walkableList.Count; i++)
@@ -435,22 +437,69 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return result;
         }
 
-        private static List<string> ResolvePropPool(DimensionGenProfile genProfile, PropRegistry propRegistry)
+        private static List<string> SelectBiomeSubset(System.Random rng, DimensionGenProfile genProfile)
         {
-            var result = new List<string>();
+            var available = new List<string>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (genProfile != null && genProfile.biomeGroups != null)
+            {
+                for (int i = 0; i < genProfile.biomeGroups.Count; i++)
+                {
+                    string biome = NormalizeBiome(genProfile.biomeGroups[i]);
+                    if (!string.IsNullOrWhiteSpace(biome) && seen.Add(biome))
+                        available.Add(biome);
+                }
+            }
+
+            if (available.Count == 0)
+                available.Add("DEFAULT");
+
+            int maxSelectable = Mathf.Min(3, available.Count);
+            int selectCount = Mathf.Clamp(rng.Next(1, 4), 1, maxSelectable);
+            var subset = new List<string>(selectCount);
+            var used = new HashSet<int>();
+            while (subset.Count < selectCount)
+            {
+                int idx = rng.Next(0, available.Count);
+                if (!used.Add(idx))
+                    continue;
+                subset.Add(available[idx]);
+            }
+
+            return subset;
+        }
+
+        private static string PickRandomProp(System.Random rng, DimensionGenProfile genProfile, PropRegistry propRegistry, string tileBiome)
+        {
+            string biome = NormalizeBiome(tileBiome);
+            var candidates = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var filteredIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var globalIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             if (genProfile != null && genProfile.randomPropPool != null)
             {
                 for (int i = 0; i < genProfile.randomPropPool.Count; i++)
                 {
-                    string id = genProfile.randomPropPool[i]?.Trim();
-                    if (!string.IsNullOrWhiteSpace(id) && seen.Add(id))
-                        result.Add(id);
+                    string id = NormalizeId(genProfile.randomPropPool[i]);
+                    if (!string.IsNullOrEmpty(id))
+                        filteredIds.Add(id);
                 }
             }
 
-            if (result.Count == 0 && propRegistry != null && propRegistry.allProps != null)
+            if (genProfile != null && genProfile.globalPropPool != null)
+            {
+                for (int i = 0; i < genProfile.globalPropPool.Count; i++)
+                {
+                    string id = NormalizeId(genProfile.globalPropPool[i]);
+                    if (!string.IsNullOrEmpty(id))
+                        globalIds.Add(id);
+                }
+            }
+
+            bool useFilteredPool = filteredIds.Count > 0;
+            if (propRegistry != null && propRegistry.allProps != null)
             {
                 for (int i = 0; i < propRegistry.allProps.Count; i++)
                 {
@@ -458,29 +507,35 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     if (!def)
                         continue;
 
-                    // Registry fallback uses IDs as authoritative keys.
-                    string id = def.id;
-                    if (string.IsNullOrWhiteSpace(id))
-                        id = def.name;
+                    string id = NormalizeId(def.id);
+                    if (string.IsNullOrEmpty(id))
+                        id = NormalizeId(def.name);
+                    if (string.IsNullOrEmpty(id))
+                        continue;
 
-                    id = id?.Trim();
-                    if (!string.IsNullOrWhiteSpace(id) && seen.Add(id))
-                        result.Add(id);
+                    if (useFilteredPool && !filteredIds.Contains(id) && !globalIds.Contains(id))
+                        continue;
+
+                    string propBiome = string.IsNullOrWhiteSpace(def.biomeGroup)
+                        ? "ALL"
+                        : NormalizeBiome(def.biomeGroup);
+                    bool matchesBiome =
+                        string.Equals(propBiome, "ALL", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(propBiome, biome, StringComparison.OrdinalIgnoreCase) ||
+                        globalIds.Contains(id);
+
+                    if (!matchesBiome)
+                        continue;
+
+                    if (seen.Add(id))
+                        candidates.Add(id);
                 }
             }
 
-            if (result.Count == 0)
-                result.Add("RandomProp");
+            if (candidates.Count == 0)
+                return string.Empty;
 
-            return result;
-        }
-
-        private static string PickRandomProp(System.Random rng, List<string> pool)
-        {
-            if (pool == null || pool.Count == 0)
-                return "RandomProp";
-
-            return pool[rng.Next(pool.Count)];
+            return candidates[rng.Next(candidates.Count)];
         }
 
         private void EnsureRegistryReference()
@@ -593,6 +648,18 @@ namespace GalacticFishing.Minigames.Dungeon3D
         {
             int q = a.q.CompareTo(b.q);
             return q != 0 ? q : a.r.CompareTo(b.r);
+        }
+
+        private static string NormalizeBiome(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return "DEFAULT";
+            return value.Trim().ToUpperInvariant();
+        }
+
+        private static string NormalizeId(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
         }
 
         private Vector3 AxialToWorld(HexCoord c)

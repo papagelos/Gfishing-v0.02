@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
   id: PineTreesSnow
   displayName: PINETREESSNOW
-  thumbnail: {fileID: 8509550459451208454, guid: 17ce88f28978a2b498718b9983a6a844, type: 3}
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 17ce88f28978a2b498718b9983a6a844, type: 3}
   prefab: {fileID: 7397859558635299702, guid: 23401ea21f10531498f4039b3d1dcde9, type: 3}
   scale: 0.08
