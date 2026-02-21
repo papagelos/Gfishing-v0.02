@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: BUTTERFLIES
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: fea8e492f63aa984597ed5fa981a41a3, type: 3}
-  prefab: {fileID: 3378330383589437256, guid: bbbf4f3b0b6c5694688098e593fefff2, type: 3}
+  prefab: {fileID: 3304505796295524132, guid: bbbf4f3b0b6c5694688098e593fefff2, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

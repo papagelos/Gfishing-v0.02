@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SANDDUNE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 2dbfcba93207f24418a460cba0f40a2a, type: 3}
-  prefab: {fileID: 1662171461821848068, guid: 88c127e216d6a2a4392181d6c6b47afd, type: 3}
+  prefab: {fileID: 5685374424457636926, guid: 88c127e216d6a2a4392181d6c6b47afd, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SCARECROW
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 88f05a06057f49d42bc65fa607d64c81, type: 3}
-  prefab: {fileID: 6456027248337337763, guid: fcca4e6ca0365f641a975112a9fbe86d, type: 3}
+  prefab: {fileID: 8025964089698991637, guid: fcca4e6ca0365f641a975112a9fbe86d, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

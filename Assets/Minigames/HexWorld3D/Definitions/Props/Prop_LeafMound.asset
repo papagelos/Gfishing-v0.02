@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: LEAFMOUND
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: a11944cbd1c596f45b8c545c13ebe22b, type: 3}
-  prefab: {fileID: 8023463531693521621, guid: 00962670d22530b43a3d33751692c819, type: 3}
+  prefab: {fileID: 3898293595973864925, guid: 00962670d22530b43a3d33751692c819, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

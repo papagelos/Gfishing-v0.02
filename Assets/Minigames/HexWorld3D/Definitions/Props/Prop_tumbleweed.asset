@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: TUMBLEWEED
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7c8c251eb9a07e146be24fc43ffc0920, type: 3}
-  prefab: {fileID: 8322785392221707031, guid: 6fea71e5dba92a448ace44dbe7be1a0f, type: 3}
+  prefab: {fileID: 8577856780108634679, guid: 6fea71e5dba92a448ace44dbe7be1a0f, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

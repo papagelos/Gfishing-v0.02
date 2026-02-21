@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SHELLS
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 39bd04c73fe866a48818d8ef97d765d8, type: 3}
-  prefab: {fileID: 2293966229062450052, guid: 227ebde88cca19b42b402cf7979dfc61, type: 3}
+  prefab: {fileID: 4561993115074049142, guid: 227ebde88cca19b42b402cf7979dfc61, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

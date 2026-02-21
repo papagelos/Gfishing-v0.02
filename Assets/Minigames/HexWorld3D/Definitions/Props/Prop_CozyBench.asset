@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: COZYBENCH
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7b3edd5649f6bee44a7fff4a54ad26a6, type: 3}
-  prefab: {fileID: 4766905610461615342, guid: 3aa7aad10b401794b8295584ff12fa48, type: 3}
+  prefab: {fileID: 722721331417573231, guid: 3aa7aad10b401794b8295584ff12fa48, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: PICNIC
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 2e84b581a29ea80468b123240af0aa9e, type: 3}
-  prefab: {fileID: 264456154016230579, guid: 14ef28260ce559a42b70b491201b6987, type: 3}
+  prefab: {fileID: 8647224719882105198, guid: 14ef28260ce559a42b70b491201b6987, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

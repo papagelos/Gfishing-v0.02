@@ -17,8 +17,10 @@ namespace GalacticFishing.Minigames.Dungeon3D
     {
         public HexCoord coord;
         public string biomeGroup;
+        public string styleId;
         public bool hasProp;
-        public string propId;
+        public List<string> propIds;
+        public List<float> propScales;
         public DimensionTileKind kind;
     }
 

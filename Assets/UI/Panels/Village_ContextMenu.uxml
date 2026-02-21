@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/Panels/Village_ContextMenu.uss?fileID=7433441132597879392&amp;guid=e7dc127068410344597c8aae1a422cee&amp;type=3#Village_ContextMenu" />
-    <ui:VisualElement name="ScreenRoot" class="cm-screen" picking-mode="Ignore">
+    <ui:VisualElement name="ROOT_ContextMenu" class="cm-screen" picking-mode="Ignore">
         <ui:VisualElement name="ContextMenuRoot" class="cm-root">
             <ui:VisualElement class="cm-header">
                 <ui:VisualElement class="cm-header-left">

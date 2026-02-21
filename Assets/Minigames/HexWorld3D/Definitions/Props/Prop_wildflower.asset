@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: WILDFLOWER
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: d56e47c1c445bcd4fb51d41d834f8c3e, type: 3}
-  prefab: {fileID: 9154125877341912798, guid: 7fb9f425a3c97644193b97d91f0feb07, type: 3}
+  prefab: {fileID: 5792708112874063464, guid: 7fb9f425a3c97644193b97d91f0feb07, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

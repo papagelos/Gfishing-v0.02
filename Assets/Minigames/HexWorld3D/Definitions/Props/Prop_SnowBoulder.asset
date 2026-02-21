@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SNOWBOULDER
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: b13b972393ea02e4eaae8ee7edb8ba6a, type: 3}
-  prefab: {fileID: 1214959715109986835, guid: 091328a288ce4f94592397449e66abed, type: 3}
+  prefab: {fileID: 4112582069868308275, guid: 091328a288ce4f94592397449e66abed, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

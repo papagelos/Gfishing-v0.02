@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: FROG
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: cc69ac6cb69ff1b4597a651fa3a4ffb0, type: 3}
-  prefab: {fileID: 5729861474013512595, guid: 9740060de0deac14a987f96bdfe37b7c, type: 3}
+  prefab: {fileID: 4608915849419298997, guid: 9740060de0deac14a987f96bdfe37b7c, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

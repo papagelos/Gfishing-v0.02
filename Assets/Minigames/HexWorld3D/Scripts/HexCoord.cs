@@ -5,10 +5,10 @@ namespace GalacticFishing.Minigames.HexWorld
 {
     /// <summary>Axial hex coordinates (q, r). Cube s = -q-r.</summary>
     [Serializable]
-    public readonly struct HexCoord : IEquatable<HexCoord>
+    public struct HexCoord : IEquatable<HexCoord>
     {
-        public readonly int q;
-        public readonly int r;
+        public int q;
+        public int r;
 
         public HexCoord(int q, int r)
         {

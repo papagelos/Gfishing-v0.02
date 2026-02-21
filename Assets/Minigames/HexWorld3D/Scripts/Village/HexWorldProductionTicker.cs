@@ -26,6 +26,7 @@ namespace GalacticFishing.Minigames.HexWorld
     {
         [Header("Refs")]
         [SerializeField] private HexWorldWarehouseInventory warehouse;
+        [SerializeField] private HexWorld3DController controller;
 
         [Header("Tick")]
         private float tickSeconds = HexWorldBalanceConfig.DefaultTickSeconds;
@@ -243,11 +244,14 @@ namespace GalacticFishing.Minigames.HexWorld
         private void Awake()
         {
             if (!warehouse) warehouse = UnityEngine.Object.FindObjectOfType<HexWorldWarehouseInventory>(true);
+            if (!controller) controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
         }
 
         private void Update()
         {
             if (!warehouse) return;
+            if (!controller) controller = UnityEngine.Object.FindObjectOfType<HexWorld3DController>(true);
+            if (controller != null && controller.IsDungeonEditorMode) return;
 
             _t += Time.deltaTime;
             if (_t < tickSeconds) return;

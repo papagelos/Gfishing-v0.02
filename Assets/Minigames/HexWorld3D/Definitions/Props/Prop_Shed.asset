@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SHED
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 28b836175d68c434b89342618ee30fa3, type: 3}
-  prefab: {fileID: 1525366290475100446, guid: 63ccc80f02c5a154f829995feccfd374, type: 3}
+  prefab: {fileID: 6338788951033627021, guid: 63ccc80f02c5a154f829995feccfd374, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

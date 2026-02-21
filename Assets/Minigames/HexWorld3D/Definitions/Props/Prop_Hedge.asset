@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: HEDGE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 9b94fc355130b79429e66cccfc7fe4ad, type: 3}
-  prefab: {fileID: 3476756253899861164, guid: ffeaf870a9e16114496b4d8e86219e8e, type: 3}
+  prefab: {fileID: 2845466322451272999, guid: ffeaf870a9e16114496b4d8e86219e8e, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

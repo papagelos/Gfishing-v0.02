@@ -105,7 +105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e293bb8623edc74592f16d3043dddc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpriteOutlineThickMesh
-  sourceRenderer: {fileID: 8225660770439026206}
+  sourceRenderer: {fileID: 0}
   sourceSprite: {fileID: 21300000, guid: 950c47eb0d961d94d97ba1555e5db2c6, type: 3}
   sidesOnly: 0
   buildBackFace: 1
@@ -120,10 +120,11 @@ MonoBehaviour:
   pushSpriteTextureToMaterial: 1
   tint: {r: 1, g: 1, b: 1, a: 1}
   enableSideAutoPatch: 1
-  sidePatchCoverage: 0.9
-  sideSafeInset: 0.028
-  sidePatchJitter: 0
+  sidePatchCoverage: 0.255
+  sideSafeInset: 0.125
+  sidePatchJitter: 0.152
   sideMaterialIndex: 1
+  rotateSideUvs: 1
   useSpriteMeshForFrontBack: 1
 --- !u!1 &5509084746465730133
 GameObject:
@@ -216,7 +217,7 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 0
+  m_SpriteSortPoint: 1
 --- !u!114 &3986438514487757193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -229,7 +230,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86f830d15ab111141a3f26532e1758d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GroundCastShadow2D
-  mainRenderer: {fileID: 8225660770439026206}
+  mainRenderer: {fileID: 0}
   shadowRenderer: {fileID: 1692704591390681879}
   anchorMode: 0
   customAnchor: {fileID: 0}
@@ -256,7 +257,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5123307690650300869}
-  - component: {fileID: 8225660770439026206}
   - component: {fileID: 3061844916444912583}
   m_Layer: 0
   m_Name: Visual
@@ -280,65 +280,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5317395521985257893}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &8225660770439026206
-SpriteRenderer:
-  serializedVersion: 2
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6430404261996367252}
-  m_Enabled: 0
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 0
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 0
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 950c47eb0d961d94d97ba1555e5db2c6, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_FlipX: 0
-  m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 10.24, y: 10.24}
-  m_AdaptiveModeThreshold: 0.5
-  m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 1
 --- !u!114 &3061844916444912583
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -354,7 +295,7 @@ MonoBehaviour:
   targetCamera: {fileID: 0}
   trackingRoot: {fileID: 5317395521985257893}
   sortingGroup: {fileID: 2902876262344217805}
-  spriteRenderer: {fileID: 8225660770439026206}
+  spriteRenderer: {fileID: 0}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
   sortingOrderScale: 50
@@ -434,7 +375,7 @@ MonoBehaviour:
   targetCamera: {fileID: 0}
   trackingRoot: {fileID: 5317395521985257893}
   sortingGroup: {fileID: 2902876262344217805}
-  spriteRenderer: {fileID: 8225660770439026206}
+  spriteRenderer: {fileID: 1692704591390681879}
   forcePivotSortPoint: 1
   driveSortingOrder: 1
   sortingOrderScale: 50

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: ROPEBRIDGE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 2dd3e2ac7c4c6c3459ebd24a14cb9796, type: 3}
-  prefab: {fileID: 1637340953575361054, guid: 4b5a8b2d783a5e045870149aad56f183, type: 3}
+  prefab: {fileID: 1239634128058412432, guid: 4b5a8b2d783a5e045870149aad56f183, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

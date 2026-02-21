@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: IRRIGATION
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: fec3f091ca1e2b7469e734d8e08ec1c3, type: 3}
-  prefab: {fileID: 810617046496501595, guid: 0faa5b5f43f8ed142ad8c81d8767a84f, type: 3}
+  prefab: {fileID: 6263590024183101998, guid: 0faa5b5f43f8ed142ad8c81d8767a84f, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

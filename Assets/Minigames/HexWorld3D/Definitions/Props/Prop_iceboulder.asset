@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: ICEBOULDER
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: ce2d2e2252ac02e40a6b4537c1a8cdd9, type: 3}
-  prefab: {fileID: 8998682822173408153, guid: c7fc0813493437a4b88598150bc34c82, type: 3}
+  prefab: {fileID: 7131400406483554937, guid: c7fc0813493437a4b88598150bc34c82, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

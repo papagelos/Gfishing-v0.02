@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SAPLING
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: ea6db0fd65fdc2e418a31f1805ff8e11, type: 3}
-  prefab: {fileID: 8245651603794664355, guid: 62fa8b74f4ebda8409f0417003588de2, type: 3}
+  prefab: {fileID: 324373408899824679, guid: 62fa8b74f4ebda8409f0417003588de2, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

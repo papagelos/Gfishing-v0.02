@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: FENCE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: f7ed1867e8035d24b91f12061626d710, type: 3}
-  prefab: {fileID: 5890415850934444618, guid: 6d2922eed32fb464cbdc03d7182b2759, type: 3}
+  prefab: {fileID: 4121534830982850531, guid: 6d2922eed32fb464cbdc03d7182b2759, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

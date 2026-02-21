@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: STONEPATH
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 759d65d777a825742b4c66b39fded8e2, type: 3}
-  prefab: {fileID: 468527994692650458, guid: d0606be8ecc768c4cadb9272215eb5ea, type: 3}
+  prefab: {fileID: 8135285564953035452, guid: d0606be8ecc768c4cadb9272215eb5ea, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

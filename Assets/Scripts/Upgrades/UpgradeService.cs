@@ -52,6 +52,46 @@ namespace GalacticFishing.Upgrades
             return GetValueBySaveKey(key, statKey, level, defaultValue);
         }
 
+        /// <summary>
+        /// Convenience evaluator used by gameplay systems that map to the standard
+        /// dungeon mining radius stat.
+        /// </summary>
+        public static float Evaluate(string catalogId, string itemId)
+        {
+            return Evaluate(catalogId, itemId, "dungeon_mining_radius", 0f);
+        }
+
+        /// <summary>
+        /// Evaluates a stat for a catalog/item pair.
+        /// Tries current ShopList key format first, then legacy flat key format.
+        /// </summary>
+        public static float Evaluate(string catalogId, string itemId, string statKey, float defaultValue = 0f)
+        {
+            if (string.IsNullOrWhiteSpace(statKey))
+                return defaultValue;
+
+            var ppm = PlayerProgressManager.Instance;
+
+            // 1) Current format: shop:<catalogId>:<itemId>
+            string shopKey = BuildSaveKey(catalogId, itemId);
+            int shopLevel = ppm != null ? Mathf.Max(0, ppm.GetWorkshopUpgradeLevel(shopKey)) : 0;
+            float value = GetValueBySaveKey(shopKey, statKey, shopLevel, float.NaN);
+            if (!float.IsNaN(value))
+                return value;
+
+            // 2) Legacy flat key fallback: <catalogId>_<itemId>
+            string legacyKey = $"{(catalogId ?? string.Empty).Trim()}_{(itemId ?? string.Empty).Trim()}";
+            if (!string.IsNullOrWhiteSpace(legacyKey) && ppm != null)
+            {
+                int legacyLevel = Mathf.Max(0, ppm.GetWorkshopUpgradeLevel(legacyKey));
+                value = GetValueBySaveKey(legacyKey, statKey, legacyLevel, float.NaN);
+                if (!float.IsNaN(value))
+                    return value;
+            }
+
+            return defaultValue;
+        }
+
         public static float GetValueBySaveKey(string saveKey, string statKey, int level, float defaultValue = 0f)
         {
             if (string.IsNullOrWhiteSpace(saveKey) || string.IsNullOrWhiteSpace(statKey))

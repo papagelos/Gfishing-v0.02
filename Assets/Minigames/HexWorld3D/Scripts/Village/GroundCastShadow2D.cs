@@ -232,45 +232,29 @@ public class GroundCastShadow2D : MonoBehaviour
 
         float castDist = castDistanceInHeights * propHeightWorld;
 
-        // 3) Compute anchor/base position
-        Vector3 basePosWorld;
-
-        switch (anchorMode)
-        {
-            case AnchorMode.BoundsBottom:
-                if (hasSpriteBounds)
-                {
-                    // Stable even if Visual rotates (billboarding): only adjust Y from pivot using local minY.
-                    float bottomOffsetY = localSpriteBounds.min.y * Mathf.Abs(mainRenderer.transform.lossyScale.y);
-                    basePosWorld = mainRenderer.transform.position + Vector3.up * bottomOffsetY;
-                }
-                else
-                {
-                    Bounds b = mainRenderer.bounds;
-                    basePosWorld = new Vector3(b.center.x, b.min.y, b.center.z);
-                }
-                break;
-
-            case AnchorMode.CustomTransform:
-                basePosWorld = (customAnchor != null) ? customAnchor.position : mainRenderer.transform.position;
-                break;
-
-            case AnchorMode.MainRendererPivot:
-            default:
-                basePosWorld = mainRenderer.transform.position;
-                break;
-        }
+        // 3) Compute anchor/base position.
+        // Force MainRendererPivot anchoring for rotation-stable shadows.
+        Vector3 basePosWorld = mainRenderer.transform.position;
 
         basePosWorld += anchorOffset;
 
         // 4) Place on ground + cast direction
         transform.position = basePosWorld + Vector3.up * groundLift + dir * castDist;
 
-        // 5) Lay flat and aim
+        // 5) Lay flat and aim in world-space.
+        // Ignore parent rotation so all shadows follow the same global light yaw.
         transform.rotation = Quaternion.Euler(groundTiltX, yaw, 0f);
 
-        // 6) Shape
-        transform.localScale = new Vector3(widthScale, lengthScale, 1f);
+        // 6) Shape profile adapts to parent orientation (stone profile fix).
+        // Keep cast length stable on Y; only squash X when parent is sideways (90/270).
+        float parentRot = 0f;
+        if (transform.parent != null)
+            parentRot = transform.parent.localEulerAngles.y;
+
+        float rotMod = Mathf.Repeat(parentRot, 180f);
+        bool isSideways = Mathf.Abs(rotMod - 90f) <= 0.5f;
+        float effectiveWidth = isSideways ? (widthScale * 0.4f) : widthScale;
+        transform.localScale = new Vector3(effectiveWidth, lengthScale, 1f);
 
         // 7) Sorting: behind prop
         shadowRenderer.sortingLayerID = mainRenderer.sortingLayerID;

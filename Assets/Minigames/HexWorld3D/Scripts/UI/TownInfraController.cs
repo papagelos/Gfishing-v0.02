@@ -91,7 +91,7 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             var root = uiDocument.rootVisualElement;
 
-            _root = root.Q<VisualElement>("TownInfraRoot");
+            _root = root.Q<VisualElement>("ROOT_TownHall") ?? root.Q<VisualElement>("TownInfraRoot");
             _backdrop = root.Q<VisualElement>("TownInfraBackdrop");
 
             // Infrastructure card

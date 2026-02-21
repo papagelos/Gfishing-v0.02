@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: BENCH
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: a081fc2ce55be2d499b3afa7cb2f1ff1, type: 3}
-  prefab: {fileID: 1874721644642080888, guid: 2dcb96be9dc024143851c182b64cb49f, type: 3}
+  prefab: {fileID: 1496307680428621587, guid: 2dcb96be9dc024143851c182b64cb49f, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

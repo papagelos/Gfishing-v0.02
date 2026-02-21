@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: BEEHIVE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: ba7a18f8cd77a06448f239c688ced4f2, type: 3}
-  prefab: {fileID: 5768128098266587174, guid: 136e4596d7af520449d25ef98741dae2, type: 3}
-  scale: 0.08
+  prefab: {fileID: 8157289581093949972, guid: 136e4596d7af520449d25ef98741dae2, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.21
+  scale: 0.21
+  randomScaleRange: {x: -10, y: 10}

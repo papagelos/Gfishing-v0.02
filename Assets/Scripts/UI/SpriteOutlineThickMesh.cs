@@ -62,6 +62,9 @@ public sealed class SpriteOutlineThickMesh : MonoBehaviour
     [Tooltip("Material index for side faces when splitFrontBackSubmeshes is OFF. Normally 1.")]
     public int sideMaterialIndex = 1;
 
+    [Tooltip("Rotates side-wall UV mapping by 90 degrees (swaps U/V) for better directional texture alignment.")]
+    public bool rotateSideUvs = false;
+
     [Header("Robust Front/Back (fixes missing letters / zoomed texture)")]
     public bool useSpriteMeshForFrontBack = true;
 
@@ -323,6 +326,7 @@ public sealed class SpriteOutlineThickMesh : MonoBehaviour
         if (hasSides)
         {
             var poly = new List<Vector2>(256);
+            Vector2 SideUv(float u, float v) => rotateSideUvs ? new Vector2(v, u) : new Vector2(u, v);
 
             for (int s = 0; s < shapeCount; s++)
             {
@@ -342,10 +346,10 @@ public sealed class SpriteOutlineThickMesh : MonoBehaviour
                     int q = verts.Count;
 
                     // Quad: p0 back -> p0 front -> p1 front -> p1 back
-                    verts.Add(new Vector3(p0.x, p0.y, zBackShell));   uvs.Add(new Vector2(0f, 0f));
-                    verts.Add(new Vector3(p0.x, p0.y, zFrontShell));  uvs.Add(new Vector2(0f, 1f));
-                    verts.Add(new Vector3(p1.x, p1.y, zFrontShell));  uvs.Add(new Vector2(1f, 1f));
-                    verts.Add(new Vector3(p1.x, p1.y, zBackShell));   uvs.Add(new Vector2(1f, 0f));
+                    verts.Add(new Vector3(p0.x, p0.y, zBackShell));   uvs.Add(SideUv(0f, 0f));
+                    verts.Add(new Vector3(p0.x, p0.y, zFrontShell));  uvs.Add(SideUv(0f, 1f));
+                    verts.Add(new Vector3(p1.x, p1.y, zFrontShell));  uvs.Add(SideUv(1f, 1f));
+                    verts.Add(new Vector3(p1.x, p1.y, zBackShell));   uvs.Add(SideUv(1f, 0f));
 
                     trisSides.Add(q + 0); trisSides.Add(q + 1); trisSides.Add(q + 2);
                     trisSides.Add(q + 0); trisSides.Add(q + 2); trisSides.Add(q + 3);
@@ -540,6 +544,13 @@ public sealed class SpriteOutlineThickMesh : MonoBehaviour
         if (enableSidePatch && hasUvBounds)
         {
             ComputeSidePatchST(sp, uvMin, uvMax, out Vector4 st);
+
+            // Side UVs can be rotated 90 degrees by swapping U/V.
+            // When that mode is enabled, rotate the side patch ST the same way
+            // so the sampled patch remains aligned with side-strip UVs.
+            if (rotateSideUvs)
+                st = new Vector4(st.y, st.x, st.w, st.z);
+
             mpb.SetVector(BaseMapStId, st);
             mpb.SetVector(MainTexStId, st);
         }

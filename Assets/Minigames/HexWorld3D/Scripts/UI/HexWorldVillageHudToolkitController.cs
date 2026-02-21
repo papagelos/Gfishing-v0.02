@@ -37,6 +37,7 @@ namespace GalacticFishing.Minigames.HexWorld
         private Button _btnPropsMode;
         private Button _tabBuildings;
         private Button _btnExitMode;
+        private Button _btnExport;
         private Button _btnDeleteMode;
         private Button _btnUpgradeMode;
         private Button _filterCosmetic;
@@ -199,6 +200,7 @@ namespace GalacticFishing.Minigames.HexWorld
             _btnExitMode = root.Q<Button>("BtnExitMode");
             if (_btnExitMode != null)
                 _btnExitMode.pickingMode = PickingMode.Position;
+            _btnExport = root.Q<Button>("BtnExportMap");
             _btnDeleteMode = root.Q<Button>("BtnDeleteMode");
             _btnUpgradeMode = root.Q<Button>("BtnUpgradeMode");
             _filterCosmetic = root.Q<Button>("Filter_Cosmetic");
@@ -242,6 +244,7 @@ namespace GalacticFishing.Minigames.HexWorld
             _btnPropsMode?.RegisterCallback<ClickEvent>(OnPropsModeClicked);
             _tabBuildings?.RegisterCallback<ClickEvent>(OnTabBuildingsClicked);
             _btnExitMode?.RegisterCallback<ClickEvent>(OnExitModeClicked);
+            _btnExport?.RegisterCallback<ClickEvent>(OnExportMapClicked);
             _btnDeleteMode?.RegisterCallback<ClickEvent>(OnDeleteModeClicked);
             _btnUpgradeMode?.RegisterCallback<ClickEvent>(OnUpgradeModeClicked);
             _filterCosmetic?.RegisterCallback<ClickEvent>(OnFilterCosmeticClicked);
@@ -263,6 +266,7 @@ namespace GalacticFishing.Minigames.HexWorld
             _btnPropsMode?.UnregisterCallback<ClickEvent>(OnPropsModeClicked);
             _tabBuildings?.UnregisterCallback<ClickEvent>(OnTabBuildingsClicked);
             _btnExitMode?.UnregisterCallback<ClickEvent>(OnExitModeClicked);
+            _btnExport?.UnregisterCallback<ClickEvent>(OnExportMapClicked);
             _btnDeleteMode?.UnregisterCallback<ClickEvent>(OnDeleteModeClicked);
             _btnUpgradeMode?.UnregisterCallback<ClickEvent>(OnUpgradeModeClicked);
             _filterCosmetic?.UnregisterCallback<ClickEvent>(OnFilterCosmeticClicked);
@@ -389,6 +393,11 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             controller.OnExitModeClicked();
             RefreshExitButton();
+        }
+
+        private void OnExportMapClicked(ClickEvent evt)
+        {
+            controller?.ExportAsDungeonMapFromInspector();
         }
 
         private void OnFilterCosmeticClicked(ClickEvent evt)
@@ -985,15 +994,22 @@ namespace GalacticFishing.Minigames.HexWorld
             int buildingCap = controller.BuildingCapacityMax;
             int activeUsed = controller.ActiveBuildingsUsed;
             int activeCap = controller.ActiveSlotsTotal;
+            bool isEditorMode = controller.IsDungeonEditorMode;
 
             if (_tilesCountLabel != null)
-                _tilesCountLabel.text = $"Tiles: {tilesPlaced} / {tileCap}";
+                _tilesCountLabel.text = isEditorMode
+                    ? $"Tiles: {tilesPlaced}"
+                    : $"Tiles: {tilesPlaced} / {tileCap}";
 
             if (_buildingsCountLabel != null)
-                _buildingsCountLabel.text = $"Buildings: {buildingsPlaced} / {buildingCap}";
+                _buildingsCountLabel.text = isEditorMode
+                    ? $"Buildings: {buildingsPlaced}"
+                    : $"Buildings: {buildingsPlaced} / {buildingCap}";
 
             if (_activeCountLabel != null)
-                _activeCountLabel.text = $"Active: {activeUsed} / {activeCap}";
+                _activeCountLabel.text = isEditorMode
+                    ? $"Active: {activeUsed}"
+                    : $"Active: {activeUsed} / {activeCap}";
 
             _lastTilesPlaced = tilesPlaced;
             _lastTileCap = tileCap;

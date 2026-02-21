@@ -14,6 +14,7 @@ namespace GalacticFishing.Minigames.HexWorld
         private const int CurrentSaveVersion = 3;
         private const string MuseumSealMilestoneToken = "Milestone_MuseumEnrollmentSeal";
         private const string MuseumSealPendingToken = "Pending_MuseumEnrollmentSeal";
+        private const string PropScaleManifestFileName = "PropScaleManifest.json";
         private static HexWorldBalanceConfig _defaultBalanceConfig;
         [Header("Refs")]
         [SerializeField] private Transform cursorGhostParent;
@@ -91,6 +92,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [Header("Props")]
         [Tooltip("Catalog of manually placeable decorative props for Props mode.")]
         [SerializeField] private HexWorldPropDefinition[] propCatalog;
+        [SerializeField] private int maxPropsPerTile = 4;
 
         [Tooltip("Optional parent for spawned buildings. If empty, creates/uses child named 'Buildings' under this controller.")]
         [SerializeField] private Transform buildingsParent;
@@ -132,6 +134,13 @@ namespace GalacticFishing.Minigames.HexWorld
 
         [Tooltip("Style catalog used to resolve saved style names back to assets (drag same list you use in the tile bar).")]
         [SerializeField] private HexWorldTileStyle[] styleCatalog;
+
+        [Header("Dungeon Export")]
+        [Tooltip("Filename used by the Inspector export button (without .json).")]
+        [SerializeField] private string dungeonExportMapName = "Village_Handmade";
+
+        [Header("Editor Settings")]
+        [SerializeField] private bool isDungeonEditorMode = false;
 
         [Header("Town Hall Tiers")]
         [Tooltip("Ordered list of Town Tier definitions (index 0 = Tier 1).")]
@@ -177,6 +186,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
         }
         public int BuildingsPlaced => _buildings.Count;
+        public bool IsDungeonEditorMode => isDungeonEditorMode;
 
         // Public accessor for district bonus calculations
         public Dictionary<HexCoord, HexWorld3DTile> OwnedTiles => _owned;
@@ -207,7 +217,7 @@ namespace GalacticFishing.Minigames.HexWorld
             if (def == null || !def.prefab)
                 return false;
 
-            if (!IsUnlocked(def))
+            if (!isDungeonEditorMode && !IsUnlocked(def))
                 return false;
 
             if (!_owned.TryGetValue(coord, out var tile) || !tile)
@@ -255,6 +265,12 @@ namespace GalacticFishing.Minigames.HexWorld
             if (def == null) return string.Empty;
             string id = def.buildingName;
             return string.IsNullOrWhiteSpace(id) ? def.name : id;
+        }
+
+        private static string GetCanonicalPropId(HexWorldPropDefinition def)
+        {
+            if (def == null) return string.Empty;
+            return string.IsNullOrWhiteSpace(def.id) ? def.name : def.id.Trim();
         }
 
         private bool IsAlwaysUnlockedBlueprint(HexWorldBuildingDefinition def)
@@ -359,6 +375,9 @@ namespace GalacticFishing.Minigames.HexWorld
             if (def == null)
                 return false;
 
+            if (isDungeonEditorMode)
+                return true;
+
             if (def.unlockTownTier > townHallLevel)
                 return false;
 
@@ -376,6 +395,9 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             if (style == null)
                 return false;
+
+            if (isDungeonEditorMode)
+                return true;
 
             if (style.unlockTownTier > townHallLevel)
                 return false;
@@ -485,8 +507,13 @@ namespace GalacticFishing.Minigames.HexWorld
         // Tile budget state
         private int _tilesLeftToPlace;
         private GameObject _cursorGhost;
+        private GameObject _propGhostVisual;
+        private HexWorldPropDefinition _propGhostDefinition;
+        private Renderer[] _tileGhostRenderers;
         private HexCoord _cursorCoord;
         private bool _cursorValid;
+        private float _currentPropRotation = 0f;
+        private float _currentPropScale = 1f;
 
         // MaterialPropertyBlock for ghost tint (no allocations, no shared material edits)
         private MaterialPropertyBlock _ghostMpb;
@@ -538,6 +565,15 @@ namespace GalacticFishing.Minigames.HexWorld
                 SetSelectedStyle(null);
                 SetSelectedBuilding(null);
 
+                if (isDungeonEditorMode)
+                {
+                    _tilesLeftToPlace = capacityForLevel;
+                    TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+                    TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+                    RecomputeActiveSlotsAndNotify();
+                    return;
+                }
+
                 if (autoLoadOnStart)
                 {
                     if (TryLoadAutosave())
@@ -567,6 +603,13 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // ---- Original prototype behavior ----
+            if (isDungeonEditorMode)
+            {
+                ClearAllTiles();
+                SetSelectedStyle(null);
+                return;
+            }
+
             AddOwned(new HexCoord(0, 0), startingStyle);
             RefreshFrontier();
             SetSelectedStyle(null);
@@ -580,6 +623,16 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private void InitializeStartingVillage(int capacityForLevel)
         {
+            if (isDungeonEditorMode)
+            {
+                ClearAllTiles();
+                _tilesLeftToPlace = capacityForLevel;
+                TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+                TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
+                RecomputeActiveSlotsAndNotify();
+                return;
+            }
+
             Debug.Log("InitializeStartingVillage: Creating new village with core tile and Town Hall");
 
             EnsureWarehouse();
@@ -772,6 +825,23 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (enableTileBudgetPlacement)
             {
+                if (_paletteMode == PaletteMode.Props && SelectedProp != null && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
+                {
+                    _currentPropRotation = Mathf.Repeat(_currentPropRotation + 90f, 360f);
+                }
+
+                if (_paletteMode == PaletteMode.Props && SelectedProp != null && Keyboard.current != null)
+                {
+                    if (Keyboard.current.tKey.wasPressedThisFrame)
+                    {
+                        ApplySelectedPropScaleDelta(+0.05f);
+                    }
+                    if (Keyboard.current.yKey.wasPressedThisFrame)
+                    {
+                        ApplySelectedPropScaleDelta(-0.05f);
+                    }
+                }
+
                 // UNIFIED BUILDING INTERACTION:
                 // If nothing is selected (SelectedStyle == null AND SelectedProp == null AND SelectedBuilding == null),
                 // left-click always attempts building interaction regardless of PaletteMode.
@@ -889,19 +959,19 @@ namespace GalacticFishing.Minigames.HexWorld
                 }
                 else if (_paletteMode == PaletteMode.Props)
                 {
-                    if (_cursorGhost) _cursorGhost.SetActive(false);
+                    UpdateCursorGhost();
 
                     if (SelectedProp != null && Mouse.current.leftButton.isPressed)
                     {
                         if (!ShouldBlockWorldInputByUI())
                         {
-                            if (TryGetCursorCoord(out var coord))
+                            if (TryGetCursorCoord(out var coord) && TryGetCursorWorldPos(out var worldPos))
                             {
                                 if (!_dragHasLast || coord.q != _dragLastCoord.q || coord.r != _dragLastCoord.r)
                                 {
                                     _dragHasLast = true;
                                     _dragLastCoord = coord;
-                                    TryPlacePropAtCoord(coord, SelectedProp);
+                                    TryPlacePropAtCoord(coord, SelectedProp, worldPos);
                                 }
                             }
                         }
@@ -1292,7 +1362,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 SelectedBuildingChanged?.Invoke(null);
             }
 
-            if (_cursorGhost) _cursorGhost.SetActive(false);
+            UpdateCursorGhostVisibility();
 
             if (buildingContextMenu) buildingContextMenu.Hide();
         }
@@ -1373,6 +1443,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         public void SetSelectedProp(HexWorldPropDefinition prop)
         {
+            var previousProp = SelectedProp;
             if (SelectedProp == prop)
                 prop = null;
 
@@ -1395,12 +1466,19 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             SelectedProp = prop;
+            if (SelectedProp != null && !ReferenceEquals(previousProp, SelectedProp))
+            {
+                _currentPropRotation = 0f;
+                _currentPropScale = 1f;
+            }
             SelectedPropChanged?.Invoke(SelectedProp);
 
             if (enableTileBudgetPlacement && prop != null)
             {
                 SetPaletteModeProps();
             }
+
+            UpdateCursorGhostVisibility();
         }
 
         public void SetSelectedBuilding(HexWorldBuildingDefinition def)
@@ -1561,7 +1639,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // Check if we have tiles left to place
-            if (_tilesLeftToPlace <= 0)
+            if (!isDungeonEditorMode && _tilesLeftToPlace <= 0)
             {
                 int currentCapacity = TileCapacityMax;
                 int tilesPlaced = _owned.Count;
@@ -1597,8 +1675,11 @@ namespace GalacticFishing.Minigames.HexWorld
             AddOwned(coord, SelectedStyle);
 
             // Decrease tile budget
-            _tilesLeftToPlace--;
-            TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+            if (!isDungeonEditorMode)
+            {
+                _tilesLeftToPlace--;
+                TilesLeftChanged?.Invoke(_tilesLeftToPlace);
+            }
             TilesPlacedChanged?.Invoke(_owned.Count, TileCapacityMax);
         }
 
@@ -1629,6 +1710,9 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private bool CanAffordRepaint(int demolitionFee, List<HexWorldResourceStack> paintCosts)
         {
+            if (isDungeonEditorMode)
+                return true;
+
             EnsureWarehouse();
 
             // Calculate total credit cost (demolition fee + any credit costs in paintCosts)
@@ -1670,6 +1754,9 @@ namespace GalacticFishing.Minigames.HexWorld
         /// </summary>
         private void DeductRepaintCosts(int demolitionFee, List<HexWorldResourceStack> paintCosts)
         {
+            if (isDungeonEditorMode)
+                return;
+
             EnsureWarehouse();
 
             // Calculate total credit cost
@@ -2259,7 +2346,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
             }
 
-            if (!IsUnlocked(SelectedBuilding))
+            if (!isDungeonEditorMode && !IsUnlocked(SelectedBuilding))
             {
                 RequestToast("LOCKED");
                 return;
@@ -2303,7 +2390,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
             bool consumes = SelectedBuilding.consumesActiveSlot;
             bool wantsActive = SelectedBuilding.defaultActive;
-            bool canActivate = !consumes || (_activeBuildingsUsed < ActiveSlotsTotal);
+            bool canActivate = isDungeonEditorMode || !consumes || (_activeBuildingsUsed < ActiveSlotsTotal);
             bool isActive = wantsActive && canActivate;
             string selectedBuildingId = GetCanonicalBuildingId(SelectedBuilding);
 
@@ -2329,7 +2416,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 OnProgressionUnlocksChanged?.Invoke();
             }
 
-            if (wantsActive && !isActive)
+            if (!isDungeonEditorMode && wantsActive && !isActive)
                 RequestToast("No Active Slots available. Building placed Dormant.");
 
             RecomputeActiveSlotsAndNotify();
@@ -2460,7 +2547,7 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             // Try activate
-            if (_activeBuildingsUsed >= ActiveSlotsTotal)
+            if (!isDungeonEditorMode && _activeBuildingsUsed >= ActiveSlotsTotal)
             {
                 RequestToast("No Active Slots available. Upgrade Town Hall!");
                 return;
@@ -2495,7 +2582,7 @@ namespace GalacticFishing.Minigames.HexWorld
         private void TryRemoveBuildingOrTileAtCoord(HexCoord coord)
         {
             // ABSOLUTE ORIGIN PROTECTION: Block all deletion at (0,0) immediately
-            if (coord.q == 0 && coord.r == 0)
+            if (!isDungeonEditorMode && coord.q == 0 && coord.r == 0)
             {
                 RequestToast("The Town Hall and its foundation cannot be removed.");
                 return;
@@ -2544,13 +2631,13 @@ namespace GalacticFishing.Minigames.HexWorld
                 ? inst.buildingName
                 : GetCanonicalBuildingId(buildingDef);
 
-            if (IsTownHallBuilding(inst, buildingDef))
+            if (!isDungeonEditorMode && IsTownHallBuilding(inst, buildingDef))
             {
                 RequestToast("This building is a Town Hall and cannot be removed.");
                 return true;
             }
 
-            bool canRemoveWarehouse = CanRemoveWarehouseBuilding(buildingDef, buildingId);
+            bool canRemoveWarehouse = isDungeonEditorMode || CanRemoveWarehouseBuilding(buildingDef, buildingId);
             if (!canRemoveWarehouse)
                 return true;
 
@@ -2898,10 +2985,24 @@ namespace GalacticFishing.Minigames.HexWorld
         }
 
         /// <summary>
-        /// Places one manual prop on an owned tile (Props mode).
-        /// Existing decorations/props on the tile are cleared first.
+        /// Places one manual prop on an owned tile (Props mode) at a cursor-relative world position.
         /// </summary>
         public void TryPlacePropAtCoord(HexCoord coord, HexWorldPropDefinition prop)
+        {
+            TryPlacePropAtCoord(coord, prop, AxialToWorld(coord), _currentPropRotation);
+        }
+
+        public void TryPlacePropAtCoord(HexCoord coord, HexWorldPropDefinition prop, Vector3 worldPos)
+        {
+            TryPlacePropAtCoord(coord, prop, worldPos, _currentPropRotation);
+        }
+
+        private void TryPlacePropAtCoord(HexCoord coord, HexWorldPropDefinition prop, float rotationY)
+        {
+            TryPlacePropAtCoord(coord, prop, AxialToWorld(coord), rotationY);
+        }
+
+        private void TryPlacePropAtCoord(HexCoord coord, HexWorldPropDefinition prop, Vector3 worldPos, float rotationY)
         {
             if (prop == null || prop.prefab == null)
                 return;
@@ -2909,14 +3010,28 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!_owned.TryGetValue(coord, out var tile) || !tile)
                 return;
 
-            ClearDecorationsAtTile(coord);
-
             Transform decorRoot = GetOrCreateDecorRoot(tile.transform);
-            var placed = Instantiate(prop.prefab, decorRoot);
-            placed.transform.localPosition = Vector3.zero;
-            placed.transform.localRotation = Quaternion.identity;
-            placed.transform.localScale = Vector3.one * prop.scale;
-            placed.name = $"Prop_{(string.IsNullOrWhiteSpace(prop.id) ? prop.prefab.name : prop.id)}";
+
+            if (!isDungeonEditorMode)
+            {
+                int perPropLimit = Mathf.Max(1, prop.maxPerTile);
+                if (decorRoot.childCount >= perPropLimit)
+                {
+                    RequestToast("Tile is full of props.");
+                    return;
+                }
+            }
+
+            Vector3 spawnPos = worldPos;
+            spawnPos.y = tile.transform.position.y;
+
+            var placed = Instantiate(prop.prefab, spawnPos, Quaternion.Euler(0f, rotationY, 0f), decorRoot);
+            placed.transform.position = spawnPos;
+            placed.transform.localRotation = Quaternion.Euler(0f, rotationY, 0f);
+            float variance = UnityEngine.Random.Range(prop.randomScaleRange.x, prop.randomScaleRange.y);
+            float finalScale = prop.scale * (1f + variance / 100f) * _currentPropScale;
+            placed.transform.localScale = Vector3.one * Mathf.Max(0.001f, finalScale);
+            placed.name = $"Prop_{GetCanonicalPropId(prop)}";
         }
 
         /// <summary>
@@ -3012,6 +3127,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
             SetGhostShadowsOff(_cursorGhost);
             InstanceMaterialsOnce(_cursorGhost);
+            _tileGhostRenderers = _cursorGhost.GetComponentsInChildren<Renderer>(true);
 
             _cursorGhost.SetActive(false);
         }
@@ -3019,7 +3135,20 @@ namespace GalacticFishing.Minigames.HexWorld
         private void UpdateCursorGhostVisibility()
         {
             if (!_cursorGhost) return;
-            _cursorGhost.SetActive(IsTilePaletteMode(_paletteMode) && SelectedStyle != null);
+            bool showTileGhost = IsTilePaletteMode(_paletteMode) && SelectedStyle != null;
+            bool showPropGhost = _paletteMode == PaletteMode.Props && SelectedProp != null;
+            _cursorGhost.SetActive(showTileGhost || showPropGhost);
+
+            if (showPropGhost)
+            {
+                SetTileGhostRenderersVisible(false);
+                SetPropGhostVisualActive(true);
+            }
+            else
+            {
+                SetTileGhostRenderersVisible(true);
+                SetPropGhostVisualActive(false);
+            }
         }
 
         private void ApplyStyleToGhost()
@@ -3038,13 +3167,46 @@ namespace GalacticFishing.Minigames.HexWorld
             if (!_cursorGhost)
                 return;
 
+            if (_paletteMode == PaletteMode.Props && SelectedProp != null)
+            {
+                if (!EnsurePropGhostVisual(SelectedProp))
+                {
+                    _cursorGhost.SetActive(false);
+                    return;
+                }
+
+                _cursorGhost.SetActive(true);
+                SetTileGhostRenderersVisible(false);
+                SetPropGhostVisualActive(true);
+
+                if (!TryGetCursorCoord(out var propCoord))
+                    return;
+
+                if (!TryGetCursorWorldPos(out var propWorldPos))
+                    return;
+
+                _cursorCoord = propCoord;
+                _cursorValid = _owned.ContainsKey(propCoord);
+
+                var propPos = propWorldPos;
+                propPos.y += ghostYOffset;
+                _cursorGhost.transform.position = propPos;
+                _cursorGhost.transform.localRotation = Quaternion.Euler(0f, _currentPropRotation, 0f);
+                return;
+            }
+
             if (!IsTilePaletteMode(_paletteMode) || !SelectedStyle)
             {
                 _cursorGhost.SetActive(false);
+                SetPropGhostVisualActive(false);
+                SetTileGhostRenderersVisible(true);
                 return;
             }
 
             _cursorGhost.SetActive(true);
+            SetPropGhostVisualActive(false);
+            SetTileGhostRenderersVisible(true);
+            _cursorGhost.transform.localRotation = Quaternion.identity;
 
             if (!TryGetCursorPlacementState(out var coord, out var isValid))
                 return;
@@ -3062,6 +3224,150 @@ namespace GalacticFishing.Minigames.HexWorld
             {
                 var tint = _cursorValid ? Color.white : invalidGhostTint;
                 ApplyGhostTint(_cursorGhost, tint);
+            }
+        }
+
+        private bool EnsurePropGhostVisual(HexWorldPropDefinition prop)
+        {
+            if (_cursorGhost == null || prop == null || prop.prefab == null)
+                return false;
+
+            if (_propGhostVisual != null && ReferenceEquals(_propGhostDefinition, prop))
+            {
+                _propGhostVisual.transform.localScale = Vector3.one * prop.scale * _currentPropScale;
+                return true;
+            }
+
+            if (_propGhostVisual)
+                Destroy(_propGhostVisual);
+
+            _propGhostDefinition = prop;
+            _propGhostVisual = Instantiate(prop.prefab, _cursorGhost.transform);
+            _propGhostVisual.name = "PropGhostVisual";
+            _propGhostVisual.transform.localPosition = Vector3.zero;
+            _propGhostVisual.transform.localRotation = Quaternion.identity;
+            _propGhostVisual.transform.localScale = Vector3.one * prop.scale * _currentPropScale;
+
+            DisableColliders(_propGhostVisual);
+
+            int ignoreLayer = 2;
+            int named = LayerMask.NameToLayer("Ignore Raycast");
+            if (named >= 0) ignoreLayer = named;
+            SetLayerRecursively(_propGhostVisual, ignoreLayer);
+
+            SetGhostShadowsOff(_propGhostVisual);
+            InstanceMaterialsOnce(_propGhostVisual);
+            ForceGhostAlpha(_propGhostVisual, ghostAlpha);
+
+            return true;
+        }
+
+        private void RefreshPropGhostScale()
+        {
+            if (_propGhostVisual && _propGhostDefinition != null)
+                _propGhostVisual.transform.localScale = Vector3.one * _propGhostDefinition.scale * _currentPropScale;
+        }
+
+        private void ApplySelectedPropScaleDelta(float delta)
+        {
+            if (SelectedProp == null)
+                return;
+
+            const float tinyScaleThreshold = 0.05f;
+            const float tinyScaleStep = 0.01f;
+            float step = delta;
+
+            if (SelectedProp.scale <= tinyScaleThreshold && !Mathf.Approximately(delta, 0f))
+                step = Mathf.Sign(delta) * tinyScaleStep;
+
+            float newScale = Mathf.Max(0.01f, SelectedProp.scale + step);
+            SelectedProp.scale = newScale;
+
+            // Keep runtime multiplier neutral for deterministic tuning writes.
+            _currentPropScale = 1f;
+            RefreshPropGhostScale();
+
+            AutoSaveScaleToManifest(GetCanonicalPropId(SelectedProp), newScale);
+            RequestToast($"Tuning Scale: {newScale:0.00}");
+        }
+
+        private void AutoSaveScaleToManifest(string propId, float newScale)
+        {
+            if (string.IsNullOrWhiteSpace(propId))
+                return;
+
+            string path = Path.Combine(SaveDir(), PropScaleManifestFileName);
+            string dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(dir))
+                Directory.CreateDirectory(dir);
+
+            PropScaleManifest manifest = null;
+            try
+            {
+                if (File.Exists(path))
+                {
+                    string existingJson = File.ReadAllText(path);
+                    manifest = JsonUtility.FromJson<PropScaleManifest>(existingJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HexWorld3DController] Failed reading PropScaleManifest, rebuilding file. {ex.Message}");
+            }
+
+            if (manifest == null || manifest.entries == null)
+                manifest = new PropScaleManifest();
+
+            bool replaced = false;
+            for (int i = 0; i < manifest.entries.Count; i++)
+            {
+                if (!string.Equals(manifest.entries[i].propId, propId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                var entry = manifest.entries[i];
+                entry.propId = propId;
+                entry.scale = Mathf.Max(0.001f, newScale);
+                manifest.entries[i] = entry;
+                replaced = true;
+                break;
+            }
+
+            if (!replaced)
+            {
+                manifest.entries.Add(new PropScaleManifestEntry
+                {
+                    propId = propId,
+                    scale = Mathf.Max(0.001f, newScale)
+                });
+            }
+
+            try
+            {
+                string json = JsonUtility.ToJson(manifest, true);
+                File.WriteAllText(path, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[HexWorld3DController] Failed writing PropScaleManifest. {ex.Message}");
+            }
+        }
+
+        private void SetPropGhostVisualActive(bool active)
+        {
+            if (_propGhostVisual)
+                _propGhostVisual.SetActive(active);
+        }
+
+        private void SetTileGhostRenderersVisible(bool visible)
+        {
+            if (_tileGhostRenderers == null)
+                return;
+
+            for (int i = 0; i < _tileGhostRenderers.Length; i++)
+            {
+                var r = _tileGhostRenderers[i];
+                if (r)
+                    r.enabled = visible;
             }
         }
 
@@ -3084,8 +3390,28 @@ namespace GalacticFishing.Minigames.HexWorld
             return true;
         }
 
+        private bool TryGetCursorWorldPos(out Vector3 worldPos)
+        {
+            worldPos = default;
+
+            if (!mainCamera) return false;
+
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+            Ray ray = mainCamera.ScreenPointToRay(mousePos);
+
+            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            if (!plane.Raycast(ray, out float enter))
+                return false;
+
+            worldPos = ray.GetPoint(enter);
+            return true;
+        }
+
         private bool IsPlacementValid(HexCoord coord)
         {
+            if (isDungeonEditorMode)
+                return !_owned.ContainsKey(coord);
+
             if (_owned.ContainsKey(coord))
                 return false;
 
@@ -3159,6 +3485,31 @@ namespace GalacticFishing.Minigames.HexWorld
         }
 
         [Serializable]
+        private struct PropSave
+        {
+            public int q;
+            public int r;
+            public string propId;
+            public float rotY;
+            public bool hasWorldPos;
+            public float worldX;
+            public float worldZ;
+        }
+
+        [Serializable]
+        private struct PropScaleManifestEntry
+        {
+            public string propId;
+            public float scale;
+        }
+
+        [Serializable]
+        private sealed class PropScaleManifest
+        {
+            public List<PropScaleManifestEntry> entries = new List<PropScaleManifestEntry>();
+        }
+
+        [Serializable]
         private class VillageSave
         {
             // Increment this if you change the save schema.
@@ -3172,6 +3523,7 @@ namespace GalacticFishing.Minigames.HexWorld
             public List<HexWorldResourceStack> warehouse = new List<HexWorldResourceStack>();
             public List<TileSave> tiles = new List<TileSave>();
             public List<BuildingSave> buildings = new List<BuildingSave>();
+            public List<PropSave> props = new List<PropSave>();
         }
 
         private string SaveDir() => Path.Combine(Application.persistentDataPath, "GalacticFishing", "HexWorldVillage");
@@ -3204,6 +3556,170 @@ namespace GalacticFishing.Minigames.HexWorld
             bool ok = TryLoadFromPath(PresetPath(presetName));
             RequestToast(ok ? $"Preset loaded: {presetName}" : $"Preset not found: {presetName}");
             return ok;
+        }
+
+        [ContextMenu("Debug: Export as Dungeon Map")]
+        public void ExportAsDungeonMapFromInspector()
+        {
+            ExportAsDungeonMap(dungeonExportMapName);
+        }
+
+        [ContextMenu("Toggle Editor Mode")]
+        private void ToggleEditorMode()
+        {
+            isDungeonEditorMode = !isDungeonEditorMode;
+            Debug.Log($"[HexWorld3DController] Is Dungeon Editor Mode: {isDungeonEditorMode}", this);
+        }
+
+        public void ExportAsDungeonMap(string mapName)
+        {
+            if (_owned == null || _owned.Count == 0)
+            {
+                Debug.LogWarning("[HexWorld3DController] ExportAsDungeonMap: no owned tiles to export.");
+                RequestToast("No owned tiles to export.");
+                return;
+            }
+
+            string safeMapName = SanitizeExportMapName(mapName);
+            var layout = new GalacticFishing.Minigames.Dungeon3D.DimensionLayout();
+            layout.Clear();
+            layout.seedUsed = 0;
+
+            HexCoord startCoord = new HexCoord(0, 0);
+            if (!_owned.ContainsKey(startCoord))
+            {
+                foreach (var kv in _owned)
+                {
+                    if (!kv.Value)
+                        continue;
+
+                    startCoord = kv.Key;
+                    break;
+                }
+            }
+
+            layout.startCoord = startCoord;
+            layout.bossCoord = startCoord;
+            layout.bossReachable = true;
+
+            HexCoord farthestCoord = startCoord;
+            int farthestDistance = 0;
+
+            foreach (var kv in _owned)
+            {
+                HexCoord coord = kv.Key;
+                HexWorld3DTile tile = kv.Value;
+                if (!tile)
+                    continue;
+
+                _ownedStyleName.TryGetValue(coord, out string styleName);
+                HexWorldTileStyle style = ResolveStyleByName(styleName);
+                string biomeGroup = ResolveBiomeGroupForExport(styleName, style);
+                string styleId = style != null && !string.IsNullOrWhiteSpace(style.name)
+                    ? style.name.Trim()
+                    : (styleName ?? string.Empty).Trim();
+
+                var propIds = new List<string>();
+                var propScales = new List<float>();
+                Transform decorRoot = tile.transform.Find(DecorRootName);
+                if (decorRoot)
+                {
+                    for (int i = 0; i < decorRoot.childCount; i++)
+                    {
+                        Transform child = decorRoot.GetChild(i);
+                        if (!child)
+                            continue;
+
+                        const string propPrefix = "Prop_";
+                        if (!child.name.StartsWith(propPrefix, StringComparison.Ordinal))
+                            continue;
+
+                        string propId = child.name.Substring(propPrefix.Length).Trim();
+                        if (!string.IsNullOrWhiteSpace(propId))
+                        {
+                            propIds.Add(propId);
+                            propScales.Add(child.localScale.x);
+                        }
+                    }
+                }
+
+                layout.tiles.Add(new GalacticFishing.Minigames.Dungeon3D.DimensionTileData
+                {
+                    coord = coord,
+                    biomeGroup = biomeGroup,
+                    styleId = styleId,
+                    hasProp = propIds.Count > 0,
+                    propIds = propIds,
+                    propScales = propScales,
+                    kind = GalacticFishing.Minigames.Dungeon3D.DimensionTileKind.Filler
+                });
+
+                int distance = startCoord.DistanceTo(coord);
+                if (distance > farthestDistance)
+                {
+                    farthestDistance = distance;
+                    farthestCoord = coord;
+                }
+            }
+
+            layout.bossCoord = farthestCoord;
+            layout.spineCoords.Add(layout.startCoord);
+            if (layout.bossCoord != layout.startCoord)
+                layout.spineCoords.Add(layout.bossCoord);
+
+            if (layout.tiles.Count == 0)
+            {
+                Debug.LogWarning("[HexWorld3DController] ExportAsDungeonMap: no valid owned tile instances to export.");
+                RequestToast("No valid tiles to export.");
+                return;
+            }
+
+            string exportDir = Path.Combine(Application.dataPath, "Minigames", "Dungeon3D", "Data", "HandmadeMaps");
+            Directory.CreateDirectory(exportDir);
+            string exportPath = Path.Combine(exportDir, safeMapName + ".json");
+
+            string json = JsonUtility.ToJson(layout, true);
+            File.WriteAllText(exportPath, json);
+
+#if UNITY_EDITOR
+            UnityEditor.AssetDatabase.Refresh();
+#endif
+
+            Debug.Log($"[HexWorld3DController] Exported dungeon map '{safeMapName}' with {layout.tiles.Count} tiles to: {exportPath}");
+            RequestToast($"Dungeon map exported: {safeMapName}.json");
+        }
+
+        private static string SanitizeExportMapName(string mapName)
+        {
+            string safe = string.IsNullOrWhiteSpace(mapName) ? "Village_Handmade" : mapName.Trim();
+
+            foreach (char c in Path.GetInvalidFileNameChars())
+                safe = safe.Replace(c, '_');
+
+            safe = safe.Replace(' ', '_');
+            return string.IsNullOrWhiteSpace(safe) ? "Village_Handmade" : safe;
+        }
+
+        private static string ResolveBiomeGroupForExport(string styleName, HexWorldTileStyle style)
+        {
+            if (style && !string.IsNullOrWhiteSpace(style.biomeGroup))
+                return style.biomeGroup.Trim().ToUpperInvariant();
+
+            if (!string.IsNullOrWhiteSpace(styleName))
+            {
+                string token = styleName.Trim();
+                if (token.StartsWith("TileStyle_", StringComparison.OrdinalIgnoreCase))
+                    token = token.Substring("TileStyle_".Length);
+
+                int underscore = token.IndexOf('_');
+                if (underscore > 0)
+                    token = token.Substring(0, underscore);
+
+                if (!string.IsNullOrWhiteSpace(token))
+                    return token.Trim().ToUpperInvariant();
+            }
+
+            return "DEFAULT";
         }
 
         private void TrySaveToPath(string path)
@@ -3253,6 +3769,44 @@ namespace GalacticFishing.Minigames.HexWorld
                         level = inst.Level,
                         state = buildingState
                     });
+                }
+
+                foreach (var kv in _owned)
+                {
+                    var c = kv.Key;
+                    var tile = kv.Value;
+                    if (!tile)
+                        continue;
+
+                    var decorRoot = tile.transform.Find(DecorRootName);
+                    if (!decorRoot)
+                        continue;
+
+                    for (int i = 0; i < decorRoot.childCount; i++)
+                    {
+                        var child = decorRoot.GetChild(i);
+                        if (!child)
+                            continue;
+
+                        const string propPrefix = "Prop_";
+                        if (!child.name.StartsWith(propPrefix, StringComparison.Ordinal))
+                            continue;
+
+                        string propId = child.name.Substring(propPrefix.Length).Trim();
+                        if (string.IsNullOrWhiteSpace(propId))
+                            continue;
+
+                        save.props.Add(new PropSave
+                        {
+                            q = c.q,
+                            r = c.r,
+                            propId = propId,
+                            rotY = child.localEulerAngles.y,
+                            hasWorldPos = true,
+                            worldX = child.position.x,
+                            worldZ = child.position.z
+                        });
+                    }
                 }
 
                 string json = JsonUtility.ToJson(save, true);
@@ -3328,6 +3882,31 @@ namespace GalacticFishing.Minigames.HexWorld
                     {
                         // place without UI selection side-effects
                         PlaceBuildingFromLoad(coord, def, b, save.saveVersion);
+                    }
+                }
+
+                // 3) Manual props
+                if (save.props != null)
+                {
+                    for (int i = 0; i < save.props.Count; i++)
+                    {
+                        var p = save.props[i];
+                        var coord = new HexCoord(p.q, p.r);
+                        if (!_owned.ContainsKey(coord))
+                            continue;
+
+                        var def = ResolvePropById(p.propId);
+                        if (def == null)
+                            continue;
+
+                        Vector3 savedWorldPos = AxialToWorld(coord);
+                        if (p.hasWorldPos)
+                        {
+                            savedWorldPos.x = p.worldX;
+                            savedWorldPos.z = p.worldZ;
+                        }
+
+                        TryPlacePropAtCoord(coord, def, savedWorldPos, p.rotY);
                     }
                 }
 
@@ -3436,7 +4015,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
             _activeBuildingsUsed = used;
 
-            if (enforceLimit)
+            if (enforceLimit && !isDungeonEditorMode)
                 EnforceActiveSlotsLimit();
 
             ActiveSlotsChanged?.Invoke(_activeBuildingsUsed, ActiveSlotsTotal, townHallLevel);
@@ -3710,6 +4289,31 @@ namespace GalacticFishing.Minigames.HexWorld
             return null;
         }
 
+        private HexWorldPropDefinition ResolvePropById(string propId)
+        {
+            if (string.IsNullOrWhiteSpace(propId))
+                return null;
+
+            string trimmedId = propId.Trim();
+
+            if (propCatalog != null)
+            {
+                for (int i = 0; i < propCatalog.Length; i++)
+                {
+                    var def = propCatalog[i];
+                    if (!def) continue;
+
+                    if (string.Equals(GetCanonicalPropId(def), trimmedId, StringComparison.OrdinalIgnoreCase))
+                        return def;
+
+                    if (string.Equals(def.name, trimmedId, StringComparison.OrdinalIgnoreCase))
+                        return def;
+                }
+            }
+
+            return null;
+        }
+
         // Exit button can call this
         public void ExitVillage()
         {
@@ -3974,4 +4578,25 @@ namespace GalacticFishing.Minigames.HexWorld
 
     }
 }
+
+#if UNITY_EDITOR
+namespace GalacticFishing.Minigames.HexWorld
+{
+    [UnityEditor.CustomEditor(typeof(HexWorld3DController))]
+    public sealed class HexWorld3DControllerInspector : UnityEditor.Editor
+    {
+        public override void OnInspectorGUI()
+        {
+            DrawDefaultInspector();
+
+            UnityEditor.EditorGUILayout.Space();
+            UnityEditor.EditorGUILayout.LabelField("Dungeon Export", UnityEditor.EditorStyles.boldLabel);
+
+            HexWorld3DController controller = (HexWorld3DController)target;
+            if (UnityEngine.GUILayout.Button("Export as Dungeon Map"))
+                controller.ExportAsDungeonMapFromInspector();
+        }
+    }
+}
+#endif
         

@@ -1,6 +1,6 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/Panels/TopTaskbar.uss?fileID=7433441132597879392&amp;guid=58fc50a7cfa65d846ae8815784e6b528&amp;type=3#TopTaskbar" />
-    <ui:VisualElement name="ScreenRoot" class="screen-root" style="-unity-text-outline-color: rgb(255, 255, 255);">
+    <ui:VisualElement name="ROOT_TopTaskbar" class="screen-root" style="-unity-text-outline-color: rgb(255, 255, 255);">
         <ui:VisualElement name="HoverZone" class="hover-zone" />
         <ui:VisualElement name="Taskbar" class="taskbar">
             <ui:VisualElement name="MainStrip" class="main-strip">

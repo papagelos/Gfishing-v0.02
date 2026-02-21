@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SHRUB
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 001177b5620b42c49a6128de0dee4208, type: 3}
-  prefab: {fileID: 3349064423725713871, guid: fa007d95acade9740834590099d2cc96, type: 3}
+  prefab: {fileID: 3887441974274224715, guid: fa007d95acade9740834590099d2cc96, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

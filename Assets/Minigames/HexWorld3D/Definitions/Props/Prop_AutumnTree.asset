@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: AUTUMNTREE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7e9adfba94234914e966f65523350093, type: 3}
-  prefab: {fileID: 4014498184671038483, guid: ec34d4f8cbbe5794e9bd6f4849c1f9db, type: 3}
-  scale: 0.08
+  prefab: {fileID: 2003045923125281731, guid: ec34d4f8cbbe5794e9bd6f4849c1f9db, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.36
+  scale: 0.36
+  randomScaleRange: {x: -10, y: 10}

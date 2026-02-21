@@ -29,6 +29,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private readonly List<GameObject> _spawnedTiles = new();
         private readonly List<GameObject> _spawnedProps = new();
         private readonly Dictionary<string, List<HexWorldTileStyle>> _stylesByBiome = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, HexWorldTileStyle> _stylesById = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HexWorldPropDefinition> _propsByKey = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _missingPropIdsLogged = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _missingPropPrefabLogged = new(StringComparer.OrdinalIgnoreCase);
@@ -125,7 +126,11 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 tileGo.name = $"Tile_{tile.coord.q}_{tile.coord.r}_{tile.biomeGroup}";
                 _spawnedTiles.Add(tileGo);
 
-                HexWorldTileStyle style = ResolveStyle(tile.biomeGroup, tile.coord, layout.seedUsed);
+                HexWorldTileStyle style = null;
+                if (!string.IsNullOrWhiteSpace(tile.styleId))
+                    style = ResolveStyleById(tile.styleId);
+                if (style == null)
+                    style = ResolveStyle(tile.biomeGroup, tile.coord, layout);
                 if (style != null)
                 {
                     var visual = tileGo.GetComponent<HexTileVisual>() ?? tileGo.GetComponentInChildren<HexTileVisual>(true);
@@ -133,27 +138,51 @@ namespace GalacticFishing.Minigames.Dungeon3D
                         visual.ApplyStyle(style);
                 }
 
-                if (!tile.hasProp)
+                if (!tile.hasProp || tile.propIds == null || tile.propIds.Count == 0)
                     continue;
 
-                if (!TryResolveProp(tile.propId, out HexWorldPropDefinition propDef) || !propDef)
-                    continue;
-
-                if (!propDef.prefab)
+                for (int p = 0; p < tile.propIds.Count; p++)
                 {
-                    if (_missingPropPrefabLogged.Add(propDef.name))
-                    {
-                        Debug.LogWarning(
-                            $"[{nameof(DimensionRenderer)}] Prop '{tile.propId}' resolved to '{propDef.name}' but has no prefab assigned.",
-                            this);
-                    }
-                    continue;
-                }
+                    string propId = tile.propIds[p];
+                    if (!TryResolveProp(propId, out HexWorldPropDefinition propDef) || !propDef)
+                        continue;
 
-                GameObject propGo = Instantiate(propDef.prefab, tilePos, Quaternion.identity, propsRoot);
-                propGo.transform.localScale = Vector3.one * Mathf.Max(0.001f, propDef.scale);
-                propGo.name = $"Prop_{propDef.name}_{tile.coord.q}_{tile.coord.r}";
-                _spawnedProps.Add(propGo);
+                    if (!propDef.prefab)
+                    {
+                        if (_missingPropPrefabLogged.Add(propDef.name))
+                        {
+                            Debug.LogWarning(
+                                $"[{nameof(DimensionRenderer)}] Prop '{propId}' resolved to '{propDef.name}' but has no prefab assigned.",
+                                this);
+                        }
+                        continue;
+                    }
+
+                    Vector2 circle = UnityEngine.Random.insideUnitCircle * Mathf.Max(0f, propDef.jitterRadius);
+                    Vector3 propPos = tilePos + new Vector3(circle.x, 0f, circle.y);
+
+                    float finalScale = Mathf.Max(0.001f, propDef.masterScale);
+                    if (tile.propScales != null && p < tile.propScales.Count)
+                    {
+                        float exportedScale = tile.propScales[p];
+                        if (!float.IsNaN(exportedScale) && !float.IsInfinity(exportedScale))
+                            finalScale = Mathf.Max(0.001f, exportedScale);
+                    }
+
+                    GameObject propGo = Instantiate(propDef.prefab, propPos, Quaternion.identity, propsRoot);
+                    propGo.transform.localScale = Vector3.one * finalScale;
+                    propGo.name = $"Prop_{propDef.name}_{tile.coord.q}_{tile.coord.r}_{p}";
+
+                    var miningNode = propGo.GetComponent<GalacticFishing.Minigames.Dungeon3D.DungeonMiningNode>();
+                    if (miningNode != null && generator != null &&
+                        generator.TryGetResourceDefinitionForPropId(propId, out DungeonResourceDefinition resourceDef) &&
+                        resourceDef != null)
+                    {
+                        miningNode.Initialize(resourceDef);
+                    }
+
+                    _spawnedProps.Add(propGo);
+                }
             }
 
             SpawnPerimeterGuards(layout);
@@ -229,6 +258,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private void RebuildBiomeStyleCache()
         {
             _stylesByBiome.Clear();
+            _stylesById.Clear();
 
             DimensionGenProfile activeProfile = profile ? profile : (generator ? generator.Profile : null);
             if (!activeProfile || activeProfile.biomeStyleGroups == null)
@@ -251,9 +281,26 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 {
                     HexWorldTileStyle style = group.tileStyles[t];
                     if (style && !list.Contains(style))
+                    {
                         list.Add(style);
+                        AddStyleAlias(style.name, style);
+                        AddStyleAlias(style.displayName, style);
+                    }
                 }
             }
+        }
+
+        private void AddStyleAlias(string alias, HexWorldTileStyle style)
+        {
+            if (style == null)
+                return;
+
+            string key = Normalize(alias);
+            if (string.IsNullOrEmpty(key))
+                return;
+
+            if (!_stylesById.ContainsKey(key))
+                _stylesById.Add(key, style);
         }
 
         private void RebuildPropCache()
@@ -349,7 +396,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             }
         }
 
-        private HexWorldTileStyle ResolveStyle(string biomeGroup, HexCoord coord, int seed)
+        private HexWorldTileStyle ResolveStyle(string biomeGroup, HexCoord coord, DimensionLayout layout)
         {
             if (_stylesByBiome.Count == 0)
                 return null;
@@ -370,20 +417,33 @@ namespace GalacticFishing.Minigames.Dungeon3D
             if (list == null || list.Count == 0)
                 return null;
 
-            int index;
-            if (deterministicStylePick)
+            if (list.Count == 1)
+                return list[0];
+
+            float maxDist = 1f;
+            float currentDist = 0f;
+            if (layout != null)
             {
-                int hash = seed;
-                hash = unchecked(hash * 397) ^ coord.q;
-                hash = unchecked(hash * 397) ^ coord.r;
-                index = Mathf.Abs(hash) % list.Count;
-            }
-            else
-            {
-                index = UnityEngine.Random.Range(0, list.Count);
+                maxDist = Mathf.Max(1f, layout.startCoord.DistanceTo(layout.bossCoord));
+                currentDist = coord.DistanceTo(layout.startCoord);
             }
 
+            float ratio = Mathf.Clamp01(currentDist / maxDist);
+            int index = Mathf.Min(list.Count - 1, Mathf.FloorToInt(ratio * list.Count));
+
             return list[index];
+        }
+
+        private HexWorldTileStyle ResolveStyleById(string styleId)
+        {
+            if (string.IsNullOrWhiteSpace(styleId))
+                return null;
+
+            string key = Normalize(styleId);
+            if (_stylesById.TryGetValue(key, out HexWorldTileStyle style) && style != null)
+                return style;
+
+            return null;
         }
 
         private Vector3 AxialToWorld(HexCoord c)

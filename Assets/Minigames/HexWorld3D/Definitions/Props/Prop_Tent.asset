@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: TENT
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 11d02e2a11bfed74492d4f650c135cae, type: 3}
-  prefab: {fileID: 6820161396894012556, guid: 8738f4acf5ea1774881925387fee1e18, type: 3}
+  prefab: {fileID: 8079716985320438650, guid: 8738f4acf5ea1774881925387fee1e18, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

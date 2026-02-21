@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &25915725229551492
+--- !u!1 &2921239627957979291
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,10 +8,90 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3549008299109125839}
-  - component: {fileID: 9042510009373632917}
-  - component: {fileID: 1096049899470762700}
-  - component: {fileID: 320512616142003228}
+  - component: {fileID: 58441292345492855}
+  - component: {fileID: 5519202765129663156}
+  - component: {fileID: 4565098723839728635}
+  m_Layer: 0
+  m_Name: iceberg
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &58441292345492855
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2921239627957979291}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6239083130456765863}
+  - {fileID: 8519859608535069891}
+  - {fileID: 1817301581494206904}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!210 &5519202765129663156
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2921239627957979291}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
+--- !u!114 &4565098723839728635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2921239627957979291}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c86e01858cf94244a7c4ea2973159d66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.DistanceToCameraTracker
+  targetCamera: {fileID: 0}
+  trackingRoot: {fileID: 58441292345492855}
+  sortingGroup: {fileID: 5519202765129663156}
+  spriteRenderer: {fileID: 3329046705108436209}
+  forcePivotSortPoint: 1
+  driveSortingOrder: 1
+  sortingOrderScale: 50
+  sortingOrderBias: 0
+  flattenAxisToXZ: 1
+  depthOffset: 0
+  autoDriveNamedChildren: 1
+  visualName: Visual
+  backVisualName: BackVisual
+  shadowName: Shadow
+  thickName: Thick
+  faceOrderOffset: 1
+  shadowOrderOffset: -5
+  thickOrderOffset: 0
+  extraRenderers: []
+--- !u!1 &3641379899509020373
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1817301581494206904}
+  - component: {fileID: 1942853367360231021}
+  - component: {fileID: 6313876090187535760}
+  - component: {fileID: 3322727441144923728}
   m_Layer: 0
   m_Name: Thick
   m_TagString: Untagged
@@ -19,36 +99,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3549008299109125839
+--- !u!4 &1817301581494206904
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25915725229551492}
+  m_GameObject: {fileID: 3641379899509020373}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2012544458345538342}
+  m_Father: {fileID: 58441292345492855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &9042510009373632917
+--- !u!33 &1942853367360231021
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25915725229551492}
+  m_GameObject: {fileID: 3641379899509020373}
   m_Mesh: {fileID: 0}
---- !u!23 &1096049899470762700
+--- !u!23 &6313876090187535760
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25915725229551492}
+  m_GameObject: {fileID: 3641379899509020373}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -93,39 +173,40 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &320512616142003228
+--- !u!114 &3322727441144923728
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 25915725229551492}
+  m_GameObject: {fileID: 3641379899509020373}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9e293bb8623edc74592f16d3043dddc8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpriteOutlineThickMesh
-  sourceRenderer: {fileID: 1324568293307428712}
-  sourceSprite: {fileID: 21300000, guid: 921df0e8558f64541ac78775ba350313, type: 3}
+  sourceRenderer: {fileID: 0}
+  sourceSprite: {fileID: 21300000, guid: 60ea71abfd11c1746ac737e6e5a395e9, type: 3}
   sidesOnly: 0
   buildBackFace: 1
   splitFrontBackSubmeshes: 1
-  thickness: 0.75
+  thickness: 0.454
   faceDepthBias: 0.0015
-  disableSourceRenderer: 0
+  disableSourceRenderer: 1
   copySortingFromSource: 1
   frontBackMaterial: {fileID: 2100000, guid: acc9142dccf2c2b4fb961eb231375ea6, type: 2}
-  backFaceMaterial: {fileID: 0}
+  backFaceMaterial: {fileID: 2100000, guid: acc9142dccf2c2b4fb961eb231375ea6, type: 2}
   sideMaterial: {fileID: 2100000, guid: 5b416ba0ee7cb194c8080a3aeb2d8f38, type: 2}
   pushSpriteTextureToMaterial: 1
   tint: {r: 1, g: 1, b: 1, a: 1}
   enableSideAutoPatch: 1
-  sidePatchCoverage: 0.503
-  sideSafeInset: 0.45
-  sidePatchJitter: 0
+  sidePatchCoverage: 0.255
+  sideSafeInset: 0.125
+  sidePatchJitter: 0.152
   sideMaterialIndex: 1
+  rotateSideUvs: 1
   useSpriteMeshForFrontBack: 1
---- !u!1 &2991181129331046007
+--- !u!1 &4194731365264762339
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -133,43 +214,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2012544458345538342}
-  m_Layer: 0
-  m_Name: iceberg
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2012544458345538342
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2991181129331046007}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 4525211895686504885}
-  - {fileID: 900503672055995911}
-  - {fileID: 3549008299109125839}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7026895876456093683
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 4525211895686504885}
-  - component: {fileID: 1324568293307428712}
-  - component: {fileID: 1995890169910015142}
+  - component: {fileID: 6239083130456765863}
+  - component: {fileID: 2042271388849717717}
+  - component: {fileID: 23334347350378263}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -177,30 +224,61 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4525211895686504885
+--- !u!4 &6239083130456765863
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7026895876456093683}
+  m_GameObject: {fileID: 4194731365264762339}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2012544458345538342}
+  m_Father: {fileID: 58441292345492855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &1324568293307428712
+--- !u!114 &2042271388849717717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4194731365264762339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c86e01858cf94244a7c4ea2973159d66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.DistanceToCameraTracker
+  targetCamera: {fileID: 0}
+  trackingRoot: {fileID: 58441292345492855}
+  sortingGroup: {fileID: 5519202765129663156}
+  spriteRenderer: {fileID: 23334347350378263}
+  forcePivotSortPoint: 1
+  driveSortingOrder: 1
+  sortingOrderScale: 50
+  sortingOrderBias: 0
+  flattenAxisToXZ: 1
+  depthOffset: 0
+  autoDriveNamedChildren: 1
+  visualName: Visual
+  backVisualName: BackVisual
+  shadowName: Shadow
+  thickName: Thick
+  faceOrderOffset: 1
+  shadowOrderOffset: -5
+  thickOrderOffset: 0
+  extraRenderers: []
+--- !u!212 &23334347350378263
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7026895876456093683}
-  m_Enabled: 0
+  m_GameObject: {fileID: 4194731365264762339}
+  m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1
@@ -251,38 +329,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 1
---- !u!114 &1995890169910015142
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7026895876456093683}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c86e01858cf94244a7c4ea2973159d66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.DistanceToCameraTracker
-  targetCamera: {fileID: 0}
-  trackingRoot: {fileID: 2012544458345538342}
-  sortingGroup: {fileID: 0}
-  spriteRenderer: {fileID: 1324568293307428712}
-  forcePivotSortPoint: 1
-  driveSortingOrder: 1
-  sortingOrderScale: 50
-  sortingOrderBias: 0
-  flattenAxisToXZ: 1
-  depthOffset: 0
-  autoDriveNamedChildren: 1
-  visualName: Visual
-  backVisualName: BackVisual
-  shadowName: Shadow
-  thickName: Thick
-  faceOrderOffset: 1
-  shadowOrderOffset: -5
-  thickOrderOffset: 0
-  extraRenderers: []
---- !u!1 &8771971077652124552
+--- !u!1 &4381325249431125052
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -290,9 +337,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 900503672055995911}
-  - component: {fileID: 584153795505192592}
-  - component: {fileID: 5086936843464107497}
+  - component: {fileID: 8519859608535069891}
+  - component: {fileID: 3329046705108436209}
+  - component: {fileID: 647248923756218567}
   m_Layer: 0
   m_Name: Shadow
   m_TagString: Untagged
@@ -300,29 +347,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &900503672055995911
+--- !u!4 &8519859608535069891
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8771971077652124552}
+  m_GameObject: {fileID: 4381325249431125052}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.03, z: 0}
+  m_LocalScale: {x: 1, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2012544458345538342}
+  m_Father: {fileID: 58441292345492855}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &584153795505192592
+--- !u!212 &3329046705108436209
 SpriteRenderer:
   serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8771971077652124552}
+  m_GameObject: {fileID: 4381325249431125052}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -373,21 +420,21 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_SpriteSortPoint: 0
---- !u!114 &5086936843464107497
+  m_SpriteSortPoint: 1
+--- !u!114 &647248923756218567
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8771971077652124552}
+  m_GameObject: {fileID: 4381325249431125052}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86f830d15ab111141a3f26532e1758d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GroundCastShadow2D
-  mainRenderer: {fileID: 1324568293307428712}
-  shadowRenderer: {fileID: 584153795505192592}
+  mainRenderer: {fileID: 23334347350378263}
+  shadowRenderer: {fileID: 3329046705108436209}
   anchorMode: 0
   customAnchor: {fileID: 0}
   anchorOffset: {x: 0, y: 0, z: 0}

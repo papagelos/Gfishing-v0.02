@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: BOULDER
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 921df0e8558f64541ac78775ba350313, type: 3}
-  prefab: {fileID: 7426053654788978613, guid: ceb5420edd386ae4da187ac0f4d4effb, type: 3}
+  prefab: {fileID: 3345891624923313975, guid: ceb5420edd386ae4da187ac0f4d4effb, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

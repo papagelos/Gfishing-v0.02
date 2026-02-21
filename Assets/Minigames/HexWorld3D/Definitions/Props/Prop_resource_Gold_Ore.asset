@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_resource_Gold_Ore
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: resource_Gold_Ore
+  displayName: RESOURCE_GOLD ORE
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: 57d354864d1d14e47bc2c188a9678a65, type: 3}
+  prefab: {fileID: 3276633784270699133, guid: 6bd9b54eac2b7f04ca057672121c0d13, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
+  scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: HUNTING
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 950c47eb0d961d94d97ba1555e5db2c6, type: 3}
-  prefab: {fileID: 8924923111512606758, guid: 8874c0b8eeff38f468386bb6dece8998, type: 3}
+  prefab: {fileID: 2990716009277733164, guid: 8874c0b8eeff38f468386bb6dece8998, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

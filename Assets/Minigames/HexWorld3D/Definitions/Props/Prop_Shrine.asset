@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SHRINE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 96b7641c3414e964991c284c67675ff2, type: 3}
-  prefab: {fileID: 4344353090192801263, guid: 26a6d2a90e8e9c44d8aea162ba6b6641, type: 3}
+  prefab: {fileID: 5031105642221304418, guid: 26a6d2a90e8e9c44d8aea162ba6b6641, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

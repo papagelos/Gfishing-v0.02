@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: ICEBERG
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 60ea71abfd11c1746ac737e6e5a395e9, type: 3}
-  prefab: {fileID: 2991181129331046007, guid: ee37c4d80352ef945a2327eb69b82e59, type: 3}
+  prefab: {fileID: 2921239627957979291, guid: ee37c4d80352ef945a2327eb69b82e59, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

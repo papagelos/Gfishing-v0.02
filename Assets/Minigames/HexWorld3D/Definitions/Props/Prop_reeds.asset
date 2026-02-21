@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: REEDS
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: cc88c7617018e18449b6f8387a922b15, type: 3}
-  prefab: {fileID: 4907297974112490537, guid: 94c138315892b89458f5ff7dd50afcef, type: 3}
+  prefab: {fileID: 2181645075887971732, guid: 94c138315892b89458f5ff7dd50afcef, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

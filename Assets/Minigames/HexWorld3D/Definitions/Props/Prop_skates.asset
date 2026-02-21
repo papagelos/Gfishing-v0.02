@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SKATES
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 195db2571795af54391c872e269572bf, type: 3}
-  prefab: {fileID: 2968665534236974022, guid: 8eface18e192dce4f9305c4a30ecd9b7, type: 3}
+  prefab: {fileID: 652999535093839709, guid: 8eface18e192dce4f9305c4a30ecd9b7, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

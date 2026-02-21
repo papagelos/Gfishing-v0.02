@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: COMPOST
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 47ff63ac0923264488ef20f1b9676a8b, type: 3}
-  prefab: {fileID: 926638149651805114, guid: ee7745bbb24710a4c93b9dc151087feb, type: 3}
+  prefab: {fileID: 517118739016658145, guid: ee7745bbb24710a4c93b9dc151087feb, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

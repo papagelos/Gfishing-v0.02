@@ -96,8 +96,11 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
         private Vector3 ComputeCameraRelativeMove(Vector2 input)
         {
-            if (input.sqrMagnitude > 1f)
-                input.Normalize();
+            if (input.sqrMagnitude <= 0.0001f)
+                return Vector3.zero;
+
+            // Normalize first so input magnitude is 1 before camera-space compensation.
+            input.Normalize();
 
             Camera cam = _mainCamera != null ? _mainCamera : Camera.main;
             if (cam == null)
@@ -114,7 +117,9 @@ namespace GalacticFishing.Minigames.Dungeon3D
             camRight.Normalize();
             camForward.Normalize();
 
-            Vector3 worldMove = camRight * input.x + (camForward * verticalCompensation * input.y);
+            Vector3 moveH = camRight * input.x;
+            Vector3 moveV = camForward * (input.y * verticalCompensation);
+            Vector3 worldMove = moveH + moveV;
 
             return worldMove;
         }

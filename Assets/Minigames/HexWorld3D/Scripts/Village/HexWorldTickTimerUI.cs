@@ -11,9 +11,11 @@ namespace GalacticFishing.Minigames.HexWorld
     {
         [SerializeField] private TMP_Text label;
         [SerializeField] private HexWorldProductionTicker ticker;
+        [SerializeField] private HexWorld3DController controller;
         [SerializeField] private float refreshHz = 4f;
 
         private float _nextUpdate;
+        private bool _hiddenForEditor;
 
         private void Awake()
         {
@@ -22,11 +24,33 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (ticker == null)
                 ticker = FindObjectOfType<HexWorldProductionTicker>(true);
+
+            if (controller == null)
+                controller = FindObjectOfType<HexWorld3DController>(true);
         }
 
         private void Update()
         {
-            if (ticker == null || label == null) return;
+            if (label == null) return;
+            if (controller == null)
+                controller = FindObjectOfType<HexWorld3DController>(true);
+
+            bool hideForEditor = controller != null && controller.IsDungeonEditorMode;
+            if (hideForEditor != _hiddenForEditor)
+            {
+                label.enabled = !hideForEditor;
+                _hiddenForEditor = hideForEditor;
+            }
+
+            if (hideForEditor)
+                return;
+
+            if (!label.enabled)
+                label.enabled = true;
+
+            if (ticker == null)
+                ticker = FindObjectOfType<HexWorldProductionTicker>(true);
+            if (ticker == null) return;
 
             _nextUpdate -= Time.deltaTime;
             if (_nextUpdate > 0f) return;

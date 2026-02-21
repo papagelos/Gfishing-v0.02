@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: WARNING
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: a6c1bd7ff67a58c42af7d54240b8c80e, type: 3}
-  prefab: {fileID: 3911796212991108925, guid: c7836dc6c4f20664a8d51639aaec191e, type: 3}
+  prefab: {fileID: 4872814391186696751, guid: c7836dc6c4f20664a8d51639aaec191e, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

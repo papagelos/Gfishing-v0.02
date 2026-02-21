@@ -14,9 +14,12 @@ GameObject:
   - component: {fileID: 710001000100010005}
   - component: {fileID: 710001000100010006}
   - component: {fileID: 710001000100010007}
+  - component: {fileID: 517293840192837465}
+  - component: {fileID: 4171618664502368921}
+  - component: {fileID: -1361713653837519254}
   m_Layer: 0
   m_Name: PF_DungeonPlayer
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -82,7 +85,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: -78261433
-  m_SortingLayer: -2
+  m_SortingLayer: 1
   m_SortingOrder: 10
   m_MaskInteraction: 0
   m_Sprite: {fileID: 21300000, guid: a7f730a08cd0a4e4fa15e3031967768e, type: 3}
@@ -117,7 +120,7 @@ CapsuleCollider:
   m_Radius: 0.3
   m_Height: 1.8
   m_Direction: 1
-  m_Center: {x: 0, y: 0.9, z: 0}
+  m_Center: {x: 0, y: 1.8, z: 0}
 --- !u!54 &710001000100010005
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -141,7 +144,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 0
-  m_IsKinematic: 1
+  m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 56
   m_CollisionDetection: 0
@@ -180,7 +183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.PlayerController3D
   moveSpeed: 2
-  verticalCompensation: 1.41
+  verticalCompensation: 1.6
   gamepadDeadZone: 0.2
   spriteRenderer: {fileID: 710001000100010003}
   body: {fileID: 710001000100010005}
@@ -194,3 +197,51 @@ MonoBehaviour:
   southWest: {fileID: 21300000, guid: 91551b3cd96f00f40af1ddc09398f7c3, type: 3}
   west: {fileID: 21300000, guid: 42c05d69a62834c498ab9a9b68244fb3, type: 3}
   northWest: {fileID: 21300000, guid: 7d59f12cbd06db74d9ab178ae1a12006, type: 3}
+--- !u!114 &517293840192837465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 710001000100010001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b3d93ff2d3e24af7adc379f226af7f32, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.DungeonRunInventory
+  verboseLogging: 0
+--- !u!95 &4171618664502368921
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 710001000100010001}
+  m_Enabled: 0
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 862633bbe9cc85c4282d329b347fb6eb, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!210 &-1361713653837519254
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 710001000100010001}
+  m_Enabled: 1
+  m_SortingLayerID: -78261433
+  m_SortingLayer: 1
+  m_SortingOrder: 100
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0

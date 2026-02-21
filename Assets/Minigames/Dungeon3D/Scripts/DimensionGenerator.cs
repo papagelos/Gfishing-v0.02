@@ -10,8 +10,12 @@ namespace GalacticFishing.Minigames.Dungeon3D
         [Header("Config")]
         [SerializeField] private DimensionGenProfile profile;
         [SerializeField] private PropRegistry registry;
+        [SerializeField, Min(1)] private int floorIndex = 1;
+        [SerializeField] private List<DungeonResourceDefinition> resourceDefinitions = new();
         [SerializeField] private bool useFixedSeed = true;
         [SerializeField] private int fixedSeed = 1337;
+        [SerializeField] private bool useHandpaintedMap = false;
+        [SerializeField] private TextAsset mapJson;
 
         [Header("Output")]
         [SerializeField] private DimensionLayout latestLayout = new DimensionLayout();
@@ -31,6 +35,38 @@ namespace GalacticFishing.Minigames.Dungeon3D
         public DimensionGenProfile Profile => profile;
         public event Action<DimensionLayout> OnGenerated;
 
+        public bool TryGetResourceDefinitionForPropId(string propId, out DungeonResourceDefinition definition)
+        {
+            definition = null;
+            if (resourceDefinitions == null || resourceDefinitions.Count == 0 || string.IsNullOrWhiteSpace(propId))
+                return false;
+
+            string target = NormalizeId(propId);
+            string targetNoPrefix = StripResourcePrefix(target);
+
+            for (int i = 0; i < resourceDefinitions.Count; i++)
+            {
+                DungeonResourceDefinition def = resourceDefinitions[i];
+                if (def == null || string.IsNullOrWhiteSpace(def.resourceId))
+                    continue;
+
+                string candidate = NormalizeId(def.resourceId);
+                if (string.Equals(candidate, target, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(StripResourcePrefix(candidate), targetNoPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    definition = def;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void OnValidate()
+        {
+            floorIndex = Mathf.Max(1, floorIndex);
+        }
+
         [ContextMenu("Regenerate")]
         public void Regenerate()
         {
@@ -43,18 +79,32 @@ namespace GalacticFishing.Minigames.Dungeon3D
             EnsureRegistryReference();
 
             int seed = useFixedSeed ? fixedSeed : Environment.TickCount;
-            latestLayout = GenerateWithRetries(seed, profile, registry);
+            latestLayout = GenerateWithRetries(
+                seed,
+                profile,
+                registry,
+                floorIndex,
+                resourceDefinitions,
+                useHandpaintedMap,
+                mapJson);
 
             Debug.Log(
                 $"[{nameof(DimensionGenerator)}] Seed={latestLayout.seedUsed} " +
                 $"Tiles={latestLayout.WalkableCount} Spine={latestLayout.spineCoords.Count} " +
-                $"Pockets={latestLayout.pocketCoords.Count} Reachable={latestLayout.bossReachable}",
+                $"Pockets={latestLayout.pocketCoords.Count} Reachable={latestLayout.bossReachable} Floor={floorIndex}",
                 this);
 
             OnGenerated?.Invoke(latestLayout);
         }
 
-        private static DimensionLayout GenerateWithRetries(int seed, DimensionGenProfile genProfile, PropRegistry propRegistry)
+        private static DimensionLayout GenerateWithRetries(
+            int seed,
+            DimensionGenProfile genProfile,
+            PropRegistry propRegistry,
+            int floorIndex,
+            List<DungeonResourceDefinition> resourceDefinitions,
+            bool useHandpaintedMap,
+            TextAsset mapJson)
         {
             const int MaxAttempts = 4;
             DimensionLayout best = null;
@@ -62,7 +112,14 @@ namespace GalacticFishing.Minigames.Dungeon3D
             for (int i = 0; i < MaxAttempts; i++)
             {
                 int attemptSeed = seed + i * 7919;
-                var attempt = GenerateOnce(attemptSeed, genProfile, propRegistry);
+                var attempt = GenerateOnce(
+                    attemptSeed,
+                    genProfile,
+                    propRegistry,
+                    floorIndex,
+                    resourceDefinitions,
+                    useHandpaintedMap,
+                    mapJson);
                 if (best == null || attempt.WalkableCount > best.WalkableCount)
                     best = attempt;
 
@@ -74,8 +131,95 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return best ?? new DimensionLayout();
         }
 
-        private static DimensionLayout GenerateOnce(int seed, DimensionGenProfile genProfile, PropRegistry propRegistry)
+        private static DimensionLayout GenerateOnce(
+            int seed,
+            DimensionGenProfile genProfile,
+            PropRegistry propRegistry,
+            int floorIndex,
+            List<DungeonResourceDefinition> resourceDefinitions,
+            bool useHandpaintedMap,
+            TextAsset mapJson)
         {
+            if (useHandpaintedMap && mapJson != null)
+            {
+                DimensionLayout loaded = JsonUtility.FromJson<DimensionLayout>(mapJson.text);
+                if (loaded == null)
+                    return new DimensionLayout();
+
+                if (loaded.tiles == null)
+                    loaded.tiles = new List<DimensionTileData>();
+                if (loaded.spineCoords == null)
+                    loaded.spineCoords = new List<HexCoord>();
+                if (loaded.pocketCoords == null)
+                    loaded.pocketCoords = new List<HexCoord>();
+
+                bool foundStartMarker = false;
+                bool foundBossMarker = false;
+
+                for (int i = 0; i < loaded.tiles.Count; i++)
+                {
+                    DimensionTileData tile = loaded.tiles[i];
+                    if (tile.propIds == null)
+                        tile.propIds = new List<string>();
+
+                    bool hasStart = false;
+                    bool hasBoss = false;
+                    for (int p = tile.propIds.Count - 1; p >= 0; p--)
+                    {
+                        string id = tile.propIds[p];
+                        if (string.IsNullOrWhiteSpace(id))
+                            continue;
+
+                        string trimmed = id.Trim();
+                        bool isStart = string.Equals(trimmed, "Start_Marker", StringComparison.OrdinalIgnoreCase) ||
+                                       string.Equals(trimmed, "Prop_Start_Marker", StringComparison.OrdinalIgnoreCase);
+                        bool isBoss = string.Equals(trimmed, "Boss_Marker", StringComparison.OrdinalIgnoreCase) ||
+                                      string.Equals(trimmed, "Prop_Boss_Marker", StringComparison.OrdinalIgnoreCase);
+
+                        if (!isStart && !isBoss)
+                            continue;
+
+                        if (isStart)
+                            hasStart = true;
+                        if (isBoss)
+                            hasBoss = true;
+
+                        tile.propIds.RemoveAt(p);
+                    }
+
+                    if (hasStart)
+                    {
+                        loaded.startCoord = tile.coord;
+                        foundStartMarker = true;
+                    }
+
+                    if (hasBoss)
+                    {
+                        loaded.bossCoord = tile.coord;
+                        foundBossMarker = true;
+                    }
+
+                    tile.hasProp = tile.propIds.Count > 0;
+                    loaded.tiles[i] = tile;
+                }
+
+                if (loaded.tiles.Count > 0)
+                {
+                    if (!foundStartMarker)
+                        loaded.startCoord = loaded.tiles[0].coord;
+
+                    if (!foundBossMarker)
+                        loaded.bossCoord = loaded.tiles[loaded.tiles.Count - 1].coord;
+                }
+
+                loaded.bossReachable = IsReachable(
+                    loaded.startCoord,
+                    loaded.bossCoord,
+                    loaded.BuildWalkableSet());
+
+                return loaded;
+            }
+
             var rng = new System.Random(seed);
 
             var layout = new DimensionLayout
@@ -103,6 +247,9 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
             List<string> selectedBiomes = SelectBiomeSubset(rng, genProfile);
             var biomeByCoord = AssignBiomes(rng, selectedBiomes, genProfile.biomePatchSize, walkableList);
+            var allResourceIds = BuildResourceIdSet(resourceDefinitions, includeOnlyEligible: false, floorIndex);
+            var eligibleResourceIds = BuildResourceIdSet(resourceDefinitions, includeOnlyEligible: true, floorIndex);
+            var resourceVeinCoords = GenerateResourceVeinCoords(rng, pocketSet);
 
             var sortedWalkable = new List<HexCoord>(walkableList);
             sortedWalkable.Sort(CompareCoords);
@@ -116,17 +263,62 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     : pocketSet.Contains(coord) ? DimensionTileKind.Pocket : DimensionTileKind.Filler;
 
                 string biome = biomeByCoord.TryGetValue(coord, out string b) ? b : "DEFAULT";
+                var tilePropIds = new List<string>();
                 bool hasProp = rng.NextDouble() < genProfile.propChance;
-                string prop = hasProp ? PickRandomProp(rng, genProfile, propRegistry, biome) : string.Empty;
-                if (hasProp && string.IsNullOrEmpty(prop))
-                    hasProp = false;
+                if (hasProp)
+                {
+                    bool isPocket = kind == DimensionTileKind.Pocket;
+                    bool preferResource = isPocket && resourceVeinCoords.Contains(coord);
+                    bool avoidResources = !isPocket;
+
+                    string prop = PickRandomProp(
+                        rng,
+                        genProfile,
+                        propRegistry,
+                        biome,
+                        allResourceIds,
+                        eligibleResourceIds,
+                        preferResource,
+                        avoidResources);
+
+                    // If a pocket vein had no matching resource candidates, gracefully fall back.
+                    if (string.IsNullOrEmpty(prop) && preferResource)
+                    {
+                        prop = PickRandomProp(
+                            rng,
+                            genProfile,
+                            propRegistry,
+                            biome,
+                            allResourceIds,
+                            eligibleResourceIds,
+                            preferResources: false,
+                            avoidResources: false);
+                    }
+
+                    if (!string.IsNullOrEmpty(prop))
+                    {
+                        int spawnCount = 1;
+                        HexWorldPropDefinition propDef = ResolvePropDefinitionById(propRegistry, prop);
+                        if (propDef != null)
+                        {
+                            int min = Mathf.Max(1, propDef.minPerTile);
+                            int max = Mathf.Max(min, propDef.maxPerTile);
+                            spawnCount = rng.Next(min, max + 1);
+                        }
+
+                        for (int p = 0; p < spawnCount; p++)
+                            tilePropIds.Add(prop);
+                    }
+                }
+
+                hasProp = tilePropIds.Count > 0;
 
                 layout.tiles.Add(new DimensionTileData
                 {
                     coord = coord,
                     biomeGroup = biome,
                     hasProp = hasProp,
-                    propId = prop,
+                    propIds = tilePropIds,
                     kind = kind,
                 });
             }
@@ -470,7 +662,15 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return subset;
         }
 
-        private static string PickRandomProp(System.Random rng, DimensionGenProfile genProfile, PropRegistry propRegistry, string tileBiome)
+        private static string PickRandomProp(
+            System.Random rng,
+            DimensionGenProfile genProfile,
+            PropRegistry propRegistry,
+            string tileBiome,
+            HashSet<string> allResourceIds,
+            HashSet<string> eligibleResourceIds,
+            bool preferResources,
+            bool avoidResources)
         {
             string biome = NormalizeBiome(tileBiome);
             var candidates = new List<string>();
@@ -513,6 +713,14 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     if (string.IsNullOrEmpty(id))
                         continue;
 
+                    bool isResource = allResourceIds != null && allResourceIds.Contains(id);
+                    if (isResource && (eligibleResourceIds == null || !eligibleResourceIds.Contains(id)))
+                        continue;
+                    if (preferResources && !isResource)
+                        continue;
+                    if (avoidResources && isResource)
+                        continue;
+
                     if (useFilteredPool && !filteredIds.Contains(id) && !globalIds.Contains(id))
                         continue;
 
@@ -536,6 +744,82 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 return string.Empty;
 
             return candidates[rng.Next(candidates.Count)];
+        }
+
+        private static HashSet<string> BuildResourceIdSet(
+            List<DungeonResourceDefinition> definitions,
+            bool includeOnlyEligible,
+            int floorIndex)
+        {
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (definitions == null || definitions.Count == 0)
+                return ids;
+
+            int floor = Mathf.Max(1, floorIndex);
+            for (int i = 0; i < definitions.Count; i++)
+            {
+                DungeonResourceDefinition def = definitions[i];
+                if (def == null || string.IsNullOrWhiteSpace(def.resourceId))
+                    continue;
+
+                bool eligible =
+                    def.minFloor <= floor &&
+                    (def.maxFloor <= 0 || floor <= def.maxFloor);
+
+                if (!includeOnlyEligible || eligible)
+                    ids.Add(NormalizeId(def.resourceId));
+            }
+
+            return ids;
+        }
+
+        private static HashSet<HexCoord> GenerateResourceVeinCoords(System.Random rng, HashSet<HexCoord> pocketSet)
+        {
+            var result = new HashSet<HexCoord>();
+            if (pocketSet == null || pocketSet.Count == 0)
+                return result;
+
+            var pocketList = new List<HexCoord>(pocketSet);
+            int seedCount = Mathf.Clamp(pocketList.Count / 90, 1, 10);
+
+            for (int i = 0; i < seedCount; i++)
+            {
+                HexCoord seed = pocketList[rng.Next(pocketList.Count)];
+                int budget = rng.Next(6, 18);
+                GrowResourceVeinBlob(rng, seed, budget, pocketSet, result);
+            }
+
+            return result;
+        }
+
+        private static void GrowResourceVeinBlob(
+            System.Random rng,
+            HexCoord seed,
+            int budget,
+            HashSet<HexCoord> pocketSet,
+            HashSet<HexCoord> veinSet)
+        {
+            if (budget <= 0 || !pocketSet.Contains(seed))
+                return;
+
+            var frontier = new List<HexCoord> { seed };
+            veinSet.Add(seed);
+
+            int grown = 1;
+            int guard = budget * 12 + 16;
+            while (grown < budget && frontier.Count > 0 && guard-- > 0)
+            {
+                HexCoord origin = frontier[rng.Next(frontier.Count)];
+                HexCoord next = origin.Neighbor(rng.Next(0, HexCoord.NeighborDirs.Length));
+
+                if (!pocketSet.Contains(next))
+                    continue;
+                if (!veinSet.Add(next))
+                    continue;
+
+                frontier.Add(next);
+                grown++;
+            }
         }
 
         private void EnsureRegistryReference()
@@ -660,6 +944,42 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private static string NormalizeId(string value)
         {
             return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        }
+
+        private static string StripResourcePrefix(string value)
+        {
+            const string Prefix = "resource_";
+            if (string.IsNullOrWhiteSpace(value))
+                return string.Empty;
+
+            string normalized = NormalizeId(value);
+            if (normalized.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+                return normalized.Substring(Prefix.Length);
+
+            return normalized;
+        }
+
+        private static HexWorldPropDefinition ResolvePropDefinitionById(PropRegistry propRegistry, string propId)
+        {
+            if (propRegistry == null || propRegistry.allProps == null || string.IsNullOrWhiteSpace(propId))
+                return null;
+
+            string target = NormalizeId(propId);
+            for (int i = 0; i < propRegistry.allProps.Count; i++)
+            {
+                HexWorldPropDefinition def = propRegistry.allProps[i];
+                if (!def)
+                    continue;
+
+                if (string.Equals(NormalizeId(def.id), target, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(NormalizeId(def.displayName), target, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(NormalizeId(def.name), target, StringComparison.OrdinalIgnoreCase))
+                {
+                    return def;
+                }
+            }
+
+            return null;
         }
 
         private Vector3 AxialToWorld(HexCoord c)

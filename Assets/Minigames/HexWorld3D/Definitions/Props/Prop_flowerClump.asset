@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: FLOWERCLUMP
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 22df3fcd46c52674f9cee6c381025bbd, type: 3}
-  prefab: {fileID: 7185486143144989494, guid: b97669375bc123148999761a8c189738, type: 3}
+  prefab: {fileID: 1706373155156712290, guid: b97669375bc123148999761a8c189738, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

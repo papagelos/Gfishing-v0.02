@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: WHEELRUT
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 52a47992690d5cc4d8b2499a93b37b2c, type: 3}
-  prefab: {fileID: 15622263379487190, guid: 9ad8dab450188764cbb64f28c28c56f6, type: 3}
+  prefab: {fileID: 7893732718385066573, guid: 9ad8dab450188764cbb64f28c28c56f6, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

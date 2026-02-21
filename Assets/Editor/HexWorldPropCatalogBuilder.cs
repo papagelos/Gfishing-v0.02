@@ -1,8 +1,10 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -13,9 +15,16 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private const string SpritesFolder = "Assets/Sprites/Biomes";
     private const string PropPrefabsFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props";
     private const string PropDefinitionsFolder = "Assets/Minigames/HexWorld3D/Definitions/Props";
+    private const string GeneratedMeshesFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props/GeneratedMeshes";
+    private const string DungeonResourceFolder = "Assets/Minigames/Dungeon3D/Data/Resources";
     private const string PropRegistryAssetPath = "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset";
     private const string VillageControllerPrefabPath = "Assets/Minigames/Prefabs/Prefab_HexWorld3D_Village.prefab";
     private const string ShadowMaterialPath = "Assets/Minigames/HexWorld3D/Materials/Props/Mat_ShadowSilhouette.mat";
+    private const string TemplatePrefabPath = "Assets/Minigames/HexWorld3D/Prefabs/Props/PF_PropsDefault.prefab";
+    private const string MiningDustPrefabPath = "Assets/Minigames/Dungeon3D/Prefabs/FX/PF_MiningDust.prefab";
+    private const string MiningDustSpriteSheetPath = "Assets/Sprites/FX/SP_MiningParticles.png";
+    private const string PropScaleManifestFileName = "PropScaleManifest.json";
+    private const string SpriteRenderMaterialGuid = "9dfc825aed78fcd4ba02077103263b40";
     private const string PropScalePrefKey = "HexWorldPropCatalogBuilder.PropScale";
     private const string ShadowYawPrefKey = "HexWorldPropCatalogBuilder.ShadowYaw";
     private const string ShadowUseSunPrefKey = "HexWorldPropCatalogBuilder.ShadowUseSun";
@@ -24,6 +33,32 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private float _shadowYaw = -45f;
     private bool _useSun = true;
     private string _utilityPath = "Assets/Sprites/Buildings";
+
+    [Serializable]
+    private sealed class ManifestEntry
+    {
+        public string propId;
+        public string PropId;
+        public string PropID;
+        public string id;
+        public string key;
+        public string safeName;
+        public string name;
+        public float scale;
+        public float Scale;
+        public float value;
+        public float Value;
+        public float masterScale;
+        public float MasterScale;
+    }
+
+    [Serializable]
+    private sealed class ManifestRoot
+    {
+        public List<ManifestEntry> entries;
+        public List<ManifestEntry> items;
+        public List<ManifestEntry> scales;
+    }
 
     [MenuItem("Galactic Fishing/Catalogs/HexWorld Props")]
     public static void OpenWindow()
@@ -51,6 +86,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         EditorGUILayout.LabelField("Definitions Folder", PropDefinitionsFolder);
         EditorGUILayout.LabelField("Registry Asset", PropRegistryAssetPath);
         EditorGUILayout.LabelField("Controller Prefab", VillageControllerPrefabPath);
+        EditorGUILayout.LabelField("Template Prefab", TemplatePrefabPath);
         EditorGUILayout.LabelField("Shadow Material", ShadowMaterialPath);
 
         EditorGUILayout.Space();
@@ -70,6 +106,25 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             if (GUILayout.Button("Rebuild Prop Catalog", GUILayout.Height(34f)))
             {
                 RebuildCatalog(_propScale, _shadowYaw, _useSun);
+            }
+
+            if (GUILayout.Button("Make Prop Scales Permanent", GUILayout.Height(28f)))
+            {
+                MakePropScalesPermanentFromManifest();
+            }
+
+            if (GUILayout.Button(new GUIContent(
+                    "Clear and Rebuild Catalog",
+                    "DESTRUCTIVE: Deletes orphan generated prop prefabs/definitions and rebuilds from current PNG sources."),
+                GUILayout.Height(30f)))
+            {
+                bool confirmed = EditorUtility.DisplayDialog(
+                    "Clear and Rebuild Prop Catalog",
+                    "This will delete orphan generated prop assets that no longer have source PNGs, clear the prop registry list, and rebuild the catalog. Continue?",
+                    "Clear and Rebuild",
+                    "Cancel");
+                if (confirmed)
+                    ClearAndRebuildCatalog(_propScale, _shadowYaw, _useSun);
             }
         }
 
@@ -104,6 +159,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         EnsureFolder(PropPrefabsFolder);
         EnsureFolder(PropDefinitionsFolder);
+        EnsureFolder(GeneratedMeshesFolder);
 
         string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { SpritesFolder });
         var texturePaths = textureGuids
@@ -143,6 +199,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
                 string safeName = MakeSafeAssetName(rawName);
                 string displayName = rawName.ToUpperInvariant();
+                HexWorldPropDefinition existingDef =
+                    AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>($"{PropDefinitionsFolder}/Prop_{safeName}.asset");
+                float masterScale = ResolveDefinitionMasterScale(existingDef, propScale);
 
                 Sprite sprite = ConfigureAndLoadSprite(texturePath, rawName, ref texturesProcessed);
                 if (sprite == null)
@@ -154,6 +213,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 GameObject propPrefab = CreateOrUpdatePropPrefab(
                     safeName,
                     sprite,
+                    masterScale,
                     shadowMaterial,
                     shadowYaw,
                     useSun,
@@ -165,7 +225,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                     continue;
                 }
 
-                CreateOrUpdateDefinition(safeName, displayName, biomeGroup, sprite, propPrefab, propScale, ref defsCreated, ref defsUpdated);
+                CreateOrUpdateDefinition(safeName, displayName, biomeGroup, sprite, propPrefab, masterScale, ref defsCreated, ref defsUpdated);
             }
             catch (Exception ex)
             {
@@ -186,6 +246,284 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             $"[HexWorldPropCatalogBuilder] Done. PNGs: {texturePaths.Count}, processed: {texturesProcessed}, " +
             $"prefabs created/updated: {prefabsCreated}/{prefabsUpdated}, definitions created/updated: {defsCreated}/{defsUpdated}, " +
             $"registry/prefab/scene wired: {wiredRegistryCount}/{wiredPrefabCount}/{wiredSceneCount}.");
+    }
+
+    private static float ResolveDefinitionMasterScale(HexWorldPropDefinition def, float fallbackScale)
+    {
+        float fallback = Mathf.Max(0.001f, fallbackScale);
+        if (def == null)
+            return fallback;
+
+        if (def.masterScale > 0f)
+            return def.masterScale;
+
+        if (def.scale > 0f)
+            return def.scale;
+
+        return fallback;
+    }
+
+    private static void MakePropScalesPermanentFromManifest()
+    {
+        if (!TryResolvePropScaleManifestPath(out string manifestPath, out List<string> checkedPaths))
+        {
+            Debug.LogWarning(
+                "[HexWorldPropCatalogBuilder] Scale manifest not found. " +
+                $"Checked paths:\n - {string.Join("\n - ", checkedPaths)}\n" +
+                "Path separator mixing is not the issue; .NET handles '/' and '\\' on Windows. " +
+                "Run the runtime prop-scaling workflow first (the part that writes PropScaleManifest.json), then try again.");
+            return;
+        }
+
+        string json;
+        try
+        {
+            json = File.ReadAllText(manifestPath);
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[HexWorldPropCatalogBuilder] Failed reading scale manifest: {ex.Message}");
+            return;
+        }
+
+        Dictionary<string, float> manifestScales = ParseManifestScales(json);
+        if (manifestScales.Count == 0)
+        {
+            Debug.LogWarning(
+                $"[HexWorldPropCatalogBuilder] Scale manifest parsed with zero entries: {manifestPath}");
+            return;
+        }
+
+        List<HexWorldPropDefinition> defs = LoadPropDefinitions();
+        var byId = new Dictionary<string, HexWorldPropDefinition>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < defs.Count; i++)
+        {
+            HexWorldPropDefinition def = defs[i];
+            if (def == null)
+                continue;
+
+            if (!string.IsNullOrWhiteSpace(def.id))
+                byId[MakeSafeAssetName(def.id)] = def;
+            byId[MakeSafeAssetName(def.name.Replace("Prop_", string.Empty))] = def;
+        }
+
+        int updated = 0;
+        int missing = 0;
+        foreach (var kv in manifestScales)
+        {
+            string id = MakeSafeAssetName(kv.Key);
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+
+            if (!byId.TryGetValue(id, out HexWorldPropDefinition def) || def == null)
+            {
+                missing++;
+                continue;
+            }
+
+            float bakedScale = Mathf.Max(0.001f, kv.Value);
+            def.masterScale = bakedScale;
+            def.scale = bakedScale;
+            EditorUtility.SetDirty(def);
+            updated++;
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log(
+            $"[HexWorldPropCatalogBuilder] Make Prop Scales Permanent complete. " +
+            $"Updated: {updated}, Missing definitions: {missing}, Manifest entries: {manifestScales.Count}. " +
+            $"Source: {manifestPath}");
+    }
+
+    private static string GetPropScaleManifestPath()
+    {
+        // Primary expected location (same root as village autosave).
+        return Path.Combine(
+            Application.persistentDataPath,
+            "GalacticFishing",
+            "HexWorldVillage",
+            PropScaleManifestFileName);
+    }
+
+    private static bool TryResolvePropScaleManifestPath(out string resolvedPath, out List<string> checkedPaths)
+    {
+        checkedPaths = GetPropScaleManifestCandidatePaths();
+        for (int i = 0; i < checkedPaths.Count; i++)
+        {
+            string path = checkedPaths[i];
+            if (File.Exists(path))
+            {
+                resolvedPath = path;
+                return true;
+            }
+        }
+
+        resolvedPath = null;
+        return false;
+    }
+
+    private static List<string> GetPropScaleManifestCandidatePaths()
+    {
+        string primary = GetPropScaleManifestPath();
+        string saveRoot = Path.Combine(Application.persistentDataPath, "GalacticFishing", "HexWorldVillage");
+        string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+
+        var candidates = new List<string>
+        {
+            primary,
+            Path.Combine(saveRoot, "presets", PropScaleManifestFileName),
+            Path.Combine(Application.persistentDataPath, PropScaleManifestFileName),
+            Path.Combine(projectRoot, PropScaleManifestFileName),
+            Path.Combine(projectRoot, "Temp", PropScaleManifestFileName)
+        };
+
+        // De-duplicate while preserving order.
+        var unique = new List<string>(candidates.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            string full = NormalizeFullPath(candidates[i]);
+            if (seen.Add(full))
+                unique.Add(full);
+        }
+
+        return unique;
+    }
+
+    private static string NormalizeFullPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return string.Empty;
+
+        try
+        {
+            return Path.GetFullPath(path);
+        }
+        catch
+        {
+            return path;
+        }
+    }
+
+    private static Dictionary<string, float> ParseManifestScales(string json)
+    {
+        var result = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(json))
+            return result;
+
+        string trimmed = json.Trim();
+        string wrapped = trimmed.StartsWith("[", StringComparison.Ordinal)
+            ? "{\"entries\":" + trimmed + "}"
+            : trimmed;
+
+        try
+        {
+            ManifestRoot root = JsonUtility.FromJson<ManifestRoot>(wrapped);
+            AddManifestEntries(result, root != null ? root.entries : null);
+            AddManifestEntries(result, root != null ? root.items : null);
+            AddManifestEntries(result, root != null ? root.scales : null);
+        }
+        catch
+        {
+            // Fall through to a permissive key/value parser.
+        }
+
+        if (result.Count > 0)
+            return result;
+
+        // Fallback for dictionary style manifests: { "Oak_Tree": 0.2, ... }
+        MatchCollection matches = Regex.Matches(
+            trimmed,
+            "\"(?<key>[^\"]+)\"\\s*:\\s*(?<value>-?\\d+(?:\\.\\d+)?)",
+            RegexOptions.CultureInvariant);
+        for (int i = 0; i < matches.Count; i++)
+        {
+            string key = matches[i].Groups["key"].Value;
+            string valueText = matches[i].Groups["value"].Value;
+            if (string.IsNullOrWhiteSpace(key))
+                continue;
+            if (string.Equals(key, "entries", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(key, "items", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(key, "scales", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (!float.TryParse(valueText, NumberStyles.Float, CultureInfo.InvariantCulture, out float parsed))
+                continue;
+
+            result[MakeSafeAssetName(key)] = parsed;
+        }
+
+        return result;
+    }
+
+    private static void AddManifestEntries(Dictionary<string, float> result, List<ManifestEntry> entries)
+    {
+        if (entries == null)
+            return;
+
+        for (int i = 0; i < entries.Count; i++)
+        {
+            ManifestEntry entry = entries[i];
+            if (entry == null)
+                continue;
+
+            string id = !string.IsNullOrWhiteSpace(entry.propId) ? entry.propId :
+                        !string.IsNullOrWhiteSpace(entry.PropId) ? entry.PropId :
+                        !string.IsNullOrWhiteSpace(entry.PropID) ? entry.PropID :
+                        !string.IsNullOrWhiteSpace(entry.id) ? entry.id :
+                        !string.IsNullOrWhiteSpace(entry.safeName) ? entry.safeName :
+                        !string.IsNullOrWhiteSpace(entry.key) ? entry.key :
+                        entry.name;
+            if (string.IsNullOrWhiteSpace(id))
+                continue;
+
+            float scale = entry.MasterScale != 0f ? entry.MasterScale :
+                          entry.masterScale != 0f ? entry.masterScale :
+                          entry.Scale != 0f ? entry.Scale :
+                          entry.scale != 0f ? entry.scale :
+                          entry.Value != 0f ? entry.Value :
+                          entry.value;
+            if (Mathf.Approximately(scale, 0f))
+                continue;
+
+            result[MakeSafeAssetName(id)] = scale;
+        }
+    }
+
+    private static void ClearAndRebuildCatalog(float propScale, float shadowYaw, bool useSun)
+    {
+        if (!AssetDatabase.IsValidFolder(SpritesFolder))
+        {
+            Debug.LogError($"[HexWorldPropCatalogBuilder] Missing folder: {SpritesFolder}");
+            return;
+        }
+
+        EnsureFolder(PropPrefabsFolder);
+        EnsureFolder(PropDefinitionsFolder);
+        EnsureFolder(GeneratedMeshesFolder);
+
+        HashSet<string> sourceSafeNames = CollectSourceSafeNames();
+        if (sourceSafeNames.Count == 0)
+        {
+            Debug.LogWarning(
+                $"[HexWorldPropCatalogBuilder] No source PNGs found under '{SpritesFolder}'. Destructive rebuild aborted for safety.");
+            return;
+        }
+
+        int deletedPrefabs = DeleteOrphanPropPrefabs(sourceSafeNames);
+        int deletedDefs = DeleteOrphanPropDefinitions(sourceSafeNames);
+        int deletedMeshes = DeleteOrphanGeneratedMeshes(sourceSafeNames);
+        int clearedRegistry = ClearPropRegistryList();
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
+        Debug.Log(
+            $"[HexWorldPropCatalogBuilder] Clear step complete. Deleted prefabs/definitions/meshes: " +
+            $"{deletedPrefabs}/{deletedDefs}/{deletedMeshes}. Registry entries cleared: {clearedRegistry}.");
+
+        RebuildCatalog(propScale, shadowYaw, useSun);
     }
 
     private static Sprite ConfigureAndLoadSprite(string texturePath, string rawName, ref int texturesProcessed)
@@ -333,6 +671,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private static GameObject CreateOrUpdatePropPrefab(
         string safeName,
         Sprite sprite,
+        float masterScale,
         Material shadowMaterial,
         float shadowYaw,
         bool useSun,
@@ -345,58 +684,500 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             return null;
 
         string prefabPath = $"{PropPrefabsFolder}/{safeName}.prefab";
-        GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-
-        if (existingPrefab == null)
+        bool existed = File.Exists(prefabPath);
+        GameObject instance;
+        if (!existed)
         {
-            var go = new GameObject($"Prop_{safeName}");
-            try
+            GameObject templatePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(TemplatePrefabPath);
+            if (templatePrefab == null)
             {
-                if (go == null)
-                    return null;
-
-                if (!ConfigurePropPrefabHierarchy(go, sprite, shadowMaterial, shadowYaw, useSun))
-                    return null;
-
-                EditorUtility.SetDirty(go);
-                var savedPrefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
-                if (savedPrefab == null)
-                    return null;
-                if (savedPrefab != null)
-                    EditorUtility.SetDirty(savedPrefab);
-                created++;
-            }
-            finally
-            {
-                UnityEngine.Object.DestroyImmediate(go);
+                Debug.LogError($"[HexWorldPropCatalogBuilder] Missing template prefab: {TemplatePrefabPath}");
+                return null;
             }
 
-            return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            // New props: clone template as a regular GameObject (no prefab link).
+            instance = UnityEngine.Object.Instantiate(templatePrefab);
+        }
+        else
+        {
+            // Existing props: instantiate the existing prefab so custom overrides are preserved.
+            GameObject existingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            if (existingPrefab == null)
+            {
+                Debug.LogError($"[HexWorldPropCatalogBuilder] Existing prefab missing at path: {prefabPath}");
+                return null;
+            }
+
+            instance = PrefabUtility.InstantiatePrefab(existingPrefab) as GameObject;
         }
 
-        GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
-        if (root == null)
+        if (instance == null)
             return null;
 
         try
         {
-            if (!ConfigurePropPrefabHierarchy(root, sprite, shadowMaterial, shadowYaw, useSun))
-                return null;
-            EditorUtility.SetDirty(root);
+            instance.name = $"Prop_{safeName}";
+            instance.transform.localScale = Vector3.one * Mathf.Max(0.001f, masterScale);
+            bool isResource = safeName.StartsWith("resource_", StringComparison.OrdinalIgnoreCase);
 
-            var savedPrefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+            if (!ApplyTemplateSpriteData(instance, sprite, shadowMaterial, shadowYaw, useSun))
+                return null;
+
+            ConfigureResourceMiningComponents(instance, isResource, safeName);
+
+            EditorUtility.SetDirty(instance);
+            GameObject savedPrefab = PrefabUtility.SaveAsPrefabAsset(instance, prefabPath);
             if (savedPrefab == null)
                 return null;
-            if (savedPrefab != null)
-                EditorUtility.SetDirty(savedPrefab);
-            updated++;
+
+            EditorUtility.SetDirty(savedPrefab);
+            if (isResource)
+                CreateOrUpdateDungeonResourceDefinition(safeName, savedPrefab);
+            if (existed) updated++;
+            else created++;
+            return savedPrefab;
         }
         finally
         {
-            PrefabUtility.UnloadPrefabContents(root);
+            UnityEngine.Object.DestroyImmediate(instance);
+        }
+    }
+
+    private static void ConfigureResourceMiningComponents(GameObject root, bool isResource, string safeName)
+    {
+        if (root == null)
+            return;
+
+        Transform thick = EnsureChild(root.transform, "Thick");
+        Transform visual = EnsureChild(root.transform, "Visual");
+        var thickOutline = thick != null ? thick.GetComponent<SpriteOutlineThickMesh>() : null;
+        if (thickOutline != null)
+        {
+            thickOutline.Rebuild();
+            EditorUtility.SetDirty(thickOutline);
         }
 
-        return AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (isResource)
+        {
+            int propsLayer = LayerMask.NameToLayer("Props");
+            root.layer = propsLayer >= 0 ? propsLayer : LayerMask.NameToLayer("Default");
+
+            // Rigidbody bridge on root so child colliders route trigger/collision callbacks to root scripts.
+            var bridgeBody = EnsureComponent<Rigidbody>(root);
+            if (bridgeBody != null)
+            {
+                bridgeBody.isKinematic = true;
+                bridgeBody.useGravity = false;
+                EditorUtility.SetDirty(bridgeBody);
+            }
+
+            // Detection collider on root so DungeonMiningNode receives trigger events directly.
+            var detectionCollider = EnsureComponent<BoxCollider>(root);
+            if (detectionCollider != null)
+            {
+                detectionCollider.isTrigger = true;
+
+                var visualRenderer = visual != null ? visual.GetComponent<SpriteRenderer>() : null;
+                if (visualRenderer != null)
+                {
+                    Bounds localBounds = visualRenderer.localBounds;
+                    Vector3 scale = visual.localScale;
+                    Vector3 scaledSize = Vector3.Scale(
+                        localBounds.size,
+                        new Vector3(Mathf.Abs(scale.x), Mathf.Abs(scale.y), Mathf.Abs(scale.z)));
+                    const float tightenFactor = 0.15f;
+                    Vector3 size = new Vector3(scaledSize.x * tightenFactor, scaledSize.y * tightenFactor, 1f);
+
+                    detectionCollider.center = localBounds.center;
+                    detectionCollider.size = size;
+                }
+                else
+                {
+                    detectionCollider.center = Vector3.zero;
+                    detectionCollider.size = new Vector3(1f, 1f, 2f);
+                }
+
+                EditorUtility.SetDirty(detectionCollider);
+            }
+
+            if (thick != null)
+            {
+                Transform colliderChild = EnsureChild(thick, "Collider");
+                colliderChild.localPosition = Vector3.zero;
+                colliderChild.localRotation = Quaternion.identity;
+                colliderChild.localScale = Vector3.one;
+
+                // Thick keeps the generated mesh visual only; physical collider lives on Thick/Collider.
+                RemoveComponentIfExists<MeshCollider>(thick.gameObject);
+                var meshCollider = EnsureComponent<MeshCollider>(colliderChild.gameObject);
+                if (meshCollider != null)
+                {
+                    meshCollider.convex = true;
+                    meshCollider.isTrigger = false;
+
+                    var meshFilter = thick.GetComponent<MeshFilter>();
+                    if (meshFilter != null)
+                    {
+                        Mesh generatedMesh = meshFilter.sharedMesh;
+                        Mesh persistentMesh = EnsurePersistentGeneratedMesh(safeName, generatedMesh);
+                        if (persistentMesh != null)
+                        {
+                            meshFilter.sharedMesh = persistentMesh;
+                            meshCollider.sharedMesh = null;
+                            meshCollider.sharedMesh = persistentMesh;
+                            EditorUtility.SetDirty(meshFilter);
+                        }
+                    }
+
+                    EditorUtility.SetDirty(meshCollider);
+                }
+            }
+
+            var miningNode = EnsureComponent<GalacticFishing.Minigames.Dungeon3D.DungeonMiningNode>(root);
+            if (miningNode != null)
+            {
+                ParticleSystem miningDust = EnsureMiningDustFxChild(root);
+                AssignMiningParticles(miningNode, miningDust);
+                EditorUtility.SetDirty(miningNode);
+            }
+
+            return;
+        }
+
+        RemoveComponentIfExists<Rigidbody>(root);
+        RemoveComponentIfExists<BoxCollider>(root);
+        Transform dustFx = root.transform.Find("FX_MiningDust");
+        if (dustFx != null)
+            UnityEngine.Object.DestroyImmediate(dustFx.gameObject);
+        if (thick != null)
+        {
+            RemoveComponentIfExists<MeshCollider>(thick.gameObject);
+            Transform colliderChild = thick.Find("Collider");
+            if (colliderChild != null)
+                RemoveComponentIfExists<MeshCollider>(colliderChild.gameObject);
+        }
+        RemoveComponentIfExists<GalacticFishing.Minigames.Dungeon3D.DungeonMiningNode>(root);
+    }
+
+    private static ParticleSystem EnsureMiningDustFxChild(GameObject root)
+    {
+        if (root == null)
+            return null;
+
+        Transform existing = root.transform.Find("FX_MiningDust");
+        if (existing != null)
+        {
+            ParticleSystem existingPs = existing.GetComponent<ParticleSystem>();
+            if (existingPs != null)
+            {
+                existingPs.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                return existingPs;
+            }
+
+            UnityEngine.Object.DestroyImmediate(existing.gameObject);
+        }
+
+        GameObject dustPrefab = EnsureMiningDustPrefabAsset();
+        if (dustPrefab == null)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Mining dust prefab not found: {MiningDustPrefabPath}");
+            return null;
+        }
+
+        GameObject dustInstance = PrefabUtility.InstantiatePrefab(dustPrefab) as GameObject;
+        if (dustInstance == null)
+            dustInstance = UnityEngine.Object.Instantiate(dustPrefab);
+        if (dustInstance == null)
+            return null;
+
+        dustInstance.name = "FX_MiningDust";
+        dustInstance.transform.SetParent(root.transform, false);
+        EditorUtility.SetDirty(dustInstance);
+
+        ParticleSystem particles = dustInstance.GetComponent<ParticleSystem>();
+        if (particles != null)
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        return particles;
+    }
+
+    private static GameObject EnsureMiningDustPrefabAsset()
+    {
+        EnsureFolder(Path.GetDirectoryName(MiningDustPrefabPath)?.Replace("\\", "/"));
+
+        bool exists = File.Exists(MiningDustPrefabPath);
+        GameObject root = null;
+        try
+        {
+            root = exists
+                ? PrefabUtility.LoadPrefabContents(MiningDustPrefabPath)
+                : new GameObject("PF_MiningDust");
+
+            if (root == null)
+                return null;
+
+            root.name = "PF_MiningDust";
+            root.transform.localPosition = Vector3.zero;
+            root.transform.localRotation = Quaternion.identity;
+            root.transform.localScale = Vector3.one;
+
+            ParticleSystem ps = EnsureComponent<ParticleSystem>(root);
+            ParticleSystemRenderer psr = EnsureComponent<ParticleSystemRenderer>(root);
+            if (ps == null || psr == null)
+                return null;
+
+            ConfigureMiningDustParticleSystem(ps, psr);
+            EditorUtility.SetDirty(ps);
+            EditorUtility.SetDirty(psr);
+            EditorUtility.SetDirty(root);
+
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, MiningDustPrefabPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(MiningDustPrefabPath, ImportAssetOptions.ForceUpdate);
+            return saved != null ? saved : AssetDatabase.LoadAssetAtPath<GameObject>(MiningDustPrefabPath);
+        }
+        finally
+        {
+            if (root != null)
+            {
+                if (exists)
+                    PrefabUtility.UnloadPrefabContents(root);
+                else
+                    UnityEngine.Object.DestroyImmediate(root);
+            }
+        }
+    }
+
+    private static void ConfigureMiningDustParticleSystem(ParticleSystem ps, ParticleSystemRenderer psr)
+    {
+        var main = ps.main;
+        main.duration = 1f;
+        main.loop = true;
+        main.prewarm = false;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 0.8f);
+        main.startSpeed = 0.5f;
+        main.playOnAwake = false;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var emission = ps.emission;
+        emission.enabled = true;
+        emission.rateOverTime = 20f;
+
+        var shape = ps.shape;
+        shape.enabled = true;
+        shape.shapeType = ParticleSystemShapeType.Box;
+        shape.scale = new Vector3(0.8f, 0.8f, 0.1f);
+        shape.position = new Vector3(0f, 0.2f, 0f);
+
+        var texAnim = ps.textureSheetAnimation;
+        texAnim.enabled = true;
+        texAnim.mode = ParticleSystemAnimationMode.Sprites;
+        texAnim.animation = ParticleSystemAnimationType.WholeSheet;
+        texAnim.frameOverTime = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0f, 1f, 1f));
+        texAnim.numTilesX = 1;
+        texAnim.numTilesY = 1;
+        while (texAnim.spriteCount > 0)
+            texAnim.RemoveSprite(texAnim.spriteCount - 1);
+        List<Sprite> miningSprites = LoadMiningDustSprites();
+        for (int i = 0; i < miningSprites.Count; i++)
+            texAnim.AddSprite(miningSprites[i]);
+        if (miningSprites.Count < 16)
+        {
+            Debug.LogWarning(
+                $"[HexWorldPropCatalogBuilder] Expected 16 mining sprites, found {miningSprites.Count} at {MiningDustSpriteSheetPath}.");
+        }
+
+        var sizeOverLifetime = ps.sizeOverLifetime;
+        sizeOverLifetime.enabled = true;
+        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.2f, 1f, 0f));
+
+        psr.renderMode = ParticleSystemRenderMode.Billboard;
+        string matPath = AssetDatabase.GUIDToAssetPath(SpriteRenderMaterialGuid);
+        if (!string.IsNullOrWhiteSpace(matPath))
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat != null)
+                psr.sharedMaterial = mat;
+        }
+
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+    }
+
+    private static List<Sprite> LoadMiningDustSprites()
+    {
+        var all = AssetDatabase.LoadAllAssetsAtPath(MiningDustSpriteSheetPath);
+        if (all == null || all.Length == 0)
+            return new List<Sprite>();
+
+        return all
+            .OfType<Sprite>()
+            .OrderBy(s => ParseTrailingNumber(s != null ? s.name : string.Empty))
+            .ThenBy(s => s != null ? s.name : string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static int ParseTrailingNumber(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return int.MaxValue;
+
+        int end = value.Length - 1;
+        while (end >= 0 && char.IsDigit(value[end]))
+            end--;
+
+        if (end == value.Length - 1)
+            return int.MaxValue;
+
+        string digits = value.Substring(end + 1);
+        return int.TryParse(digits, out int parsed) ? parsed : int.MaxValue;
+    }
+
+    private static void AssignMiningParticles(GalacticFishing.Minigames.Dungeon3D.DungeonMiningNode miningNode, ParticleSystem particles)
+    {
+        if (miningNode == null)
+            return;
+
+        var so = new SerializedObject(miningNode);
+        SerializedProperty prop = so.FindProperty("miningParticles");
+        if (prop == null)
+            return;
+
+        prop.objectReferenceValue = particles;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    private static void CreateOrUpdateDungeonResourceDefinition(string safeName, GameObject prefabAsset)
+    {
+        if (string.IsNullOrWhiteSpace(safeName))
+            return;
+
+        EnsureFolder(DungeonResourceFolder);
+        string defPath = $"{DungeonResourceFolder}/DungeonResource_{safeName}.asset";
+        var def = AssetDatabase.LoadAssetAtPath<GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition>(defPath);
+        bool isNew = def == null;
+        if (isNew)
+        {
+            def = ScriptableObject.CreateInstance<GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition>();
+            AssetDatabase.CreateAsset(def, defPath);
+        }
+
+        if (def == null)
+            return;
+
+        def.resourceId = safeName;
+        def.prefab = prefabAsset;
+
+        if (isNew || def.maxHp <= 0)
+            def.maxHp = 15;
+
+        def.lootId = ResolveResourceLootId(safeName);
+        EditorUtility.SetDirty(def);
+    }
+
+    private static HexWorldResourceId ResolveResourceLootId(string safeName)
+    {
+        if (string.IsNullOrWhiteSpace(safeName))
+            return HexWorldResourceId.Stone;
+
+        if (safeName.IndexOf("Copper", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Copper;
+        if (safeName.IndexOf("Iron", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Iron;
+        if (safeName.IndexOf("Gold", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Gold;
+        if (safeName.IndexOf("Silver", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Gold;
+        if (safeName.IndexOf("Basalt", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Stone;
+        if (safeName.IndexOf("Coal", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Coal;
+        if (safeName.IndexOf("Clay", StringComparison.OrdinalIgnoreCase) >= 0)
+            return HexWorldResourceId.Clay;
+
+        Debug.LogWarning($"[HexWorldPropCatalogBuilder] Resource '{safeName}' has no explicit loot mapping. Falling back to Stone.");
+        return HexWorldResourceId.Stone;
+    }
+
+    private static Mesh EnsurePersistentGeneratedMesh(string safeName, Mesh generatedMesh)
+    {
+        if (generatedMesh == null || string.IsNullOrWhiteSpace(safeName))
+            return null;
+
+        EnsureFolder(GeneratedMeshesFolder);
+        string meshPath = $"{GeneratedMeshesFolder}/{safeName}_Thick.asset";
+
+        Mesh persistent = AssetDatabase.LoadAssetAtPath<Mesh>(meshPath);
+        if (persistent == null)
+        {
+            persistent = UnityEngine.Object.Instantiate(generatedMesh);
+            persistent.name = $"{safeName}_Thick";
+            AssetDatabase.CreateAsset(persistent, meshPath);
+            EditorUtility.SetDirty(persistent);
+            return persistent;
+        }
+
+        EditorUtility.CopySerialized(generatedMesh, persistent);
+        EditorUtility.SetDirty(persistent);
+        return persistent;
+    }
+
+    private static bool ApplyTemplateSpriteData(
+        GameObject root,
+        Sprite sprite,
+        Material shadowMaterial,
+        float shadowYaw,
+        bool useSun)
+    {
+        if (root == null || sprite == null)
+            return false;
+
+        Transform visual = EnsureChild(root.transform, "Visual");
+        Transform thick = EnsureChild(root.transform, "Thick");
+        Transform shadow = EnsureChild(root.transform, "Shadow");
+
+        for (int i = root.transform.childCount - 1; i >= 0; i--)
+        {
+            var child = root.transform.GetChild(i);
+            if (child == visual || child == thick || child == shadow)
+                continue;
+
+            UnityEngine.Object.DestroyImmediate(child.gameObject);
+        }
+
+        // Enforce expected child ordering to match template intent.
+        visual.SetSiblingIndex(0);
+        shadow.SetSiblingIndex(1);
+        thick.SetSiblingIndex(2);
+
+        var visualSr = visual.GetComponent<SpriteRenderer>();
+        if (visualSr == null)
+            visualSr = visual.gameObject.AddComponent<SpriteRenderer>();
+        visualSr.sprite = sprite;
+        EditorUtility.SetDirty(visualSr);
+
+        var thickOutline = thick.GetComponent<SpriteOutlineThickMesh>();
+        if (thickOutline != null)
+        {
+            thickOutline.sourceSprite = sprite;
+            thickOutline.Rebuild();
+            EditorUtility.SetDirty(thickOutline);
+        }
+        else
+        {
+            Debug.LogWarning("[HexWorldPropCatalogBuilder] Template child 'Thick' is missing SpriteOutlineThickMesh.");
+        }
+
+        var shadowSr = shadow.GetComponent<SpriteRenderer>();
+        if (shadowSr != null)
+        {
+            shadowSr.sprite = sprite;
+            EditorUtility.SetDirty(shadowSr);
+        }
+        else
+        {
+            Debug.LogWarning("[HexWorldPropCatalogBuilder] Template child 'Shadow' is missing SpriteRenderer.");
+        }
+
+        return true;
     }
 
     private static bool ConfigurePropPrefabHierarchy(
@@ -488,7 +1269,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         string biomeGroup,
         Sprite sprite,
         GameObject propPrefab,
-        float propScale,
+        float masterScale,
         ref int created,
         ref int updated)
     {
@@ -508,7 +1289,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         def.biomeGroup = string.IsNullOrWhiteSpace(biomeGroup) ? "ALL" : biomeGroup.Trim().ToUpperInvariant();
         def.thumbnail = sprite;
         def.prefab = propPrefab;
-        def.scale = propScale;
+        float bakedScale = Mathf.Max(0.001f, masterScale);
+        def.masterScale = bakedScale;
+        def.scale = bakedScale;
         EditorUtility.SetDirty(def);
 
         if (isNew) created++;
@@ -583,6 +1366,17 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         if (defs == null)
             defs = new List<HexWorldPropDefinition>();
+
+        // Force-inject dungeon marker props so they are always available in the Village prop catalog.
+        var startMarker = AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>(
+            "Assets/Minigames/HexWorld3D/Definitions/Props/Prop_Start_Marker.asset");
+        var bossMarker = AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>(
+            "Assets/Minigames/HexWorld3D/Definitions/Props/Prop_Boss_Marker.asset");
+
+        if (startMarker != null && !defs.Contains(startMarker))
+            defs.Add(startMarker);
+        if (bossMarker != null && !defs.Contains(bossMarker))
+            defs.Add(bossMarker);
 
         GameObject prefabRoot = PrefabUtility.LoadPrefabContents(VillageControllerPrefabPath);
         if (prefabRoot == null)
@@ -820,6 +1614,142 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         }
 
         return null;
+    }
+
+    private static HashSet<string> CollectSourceSafeNames()
+    {
+        string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { SpritesFolder });
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < textureGuids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(textureGuids[i]);
+            if (!path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || !IsBiomePropPath(path))
+                continue;
+
+            string rawName = Path.GetFileNameWithoutExtension(path).Trim();
+            if (string.IsNullOrEmpty(rawName))
+                continue;
+
+            names.Add(MakeSafeAssetName(rawName));
+        }
+
+        return names;
+    }
+
+    private static int DeleteOrphanPropDefinitions(HashSet<string> validSafeNames)
+    {
+        string[] defGuids = AssetDatabase.FindAssets("t:HexWorldPropDefinition", new[] { PropDefinitionsFolder });
+        int deleted = 0;
+        for (int i = 0; i < defGuids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(defGuids[i]);
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            if (!fileName.StartsWith("Prop_", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string safeName = fileName.Substring("Prop_".Length);
+            if (string.IsNullOrWhiteSpace(safeName))
+                continue;
+
+            if (validSafeNames.Contains(safeName))
+                continue;
+
+            if (AssetDatabase.DeleteAsset(path))
+                deleted++;
+        }
+
+        return deleted;
+    }
+
+    private static int DeleteOrphanPropPrefabs(HashSet<string> validSafeNames)
+    {
+        string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab", new[] { PropPrefabsFolder });
+        int deleted = 0;
+        string templateName = Path.GetFileNameWithoutExtension(TemplatePrefabPath);
+        for (int i = 0; i < prefabGuids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            if (string.Equals(fileName, templateName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string safeName = fileName.StartsWith("Prop_", StringComparison.OrdinalIgnoreCase)
+                ? fileName.Substring("Prop_".Length)
+                : fileName;
+
+            if (string.IsNullOrWhiteSpace(safeName))
+                continue;
+            if (!fileName.StartsWith("Prop_", StringComparison.OrdinalIgnoreCase) && !IsSanitizedGeneratedName(fileName))
+                continue;
+
+            // Safety: only delete prefabs that match this tool's managed naming conventions.
+            bool looksManaged = fileName.StartsWith("Prop_", StringComparison.OrdinalIgnoreCase) ||
+                                AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>($"{PropDefinitionsFolder}/Prop_{safeName}.asset") != null;
+            if (!looksManaged)
+                continue;
+
+            if (validSafeNames.Contains(safeName))
+                continue;
+
+            if (AssetDatabase.DeleteAsset(path))
+                deleted++;
+        }
+
+        return deleted;
+    }
+
+    private static int DeleteOrphanGeneratedMeshes(HashSet<string> validSafeNames)
+    {
+        string[] meshGuids = AssetDatabase.FindAssets("t:Mesh", new[] { GeneratedMeshesFolder });
+        int deleted = 0;
+        for (int i = 0; i < meshGuids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(meshGuids[i]);
+            string fileName = Path.GetFileNameWithoutExtension(path);
+            if (!fileName.EndsWith("_Thick", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string safeName = fileName.Substring(0, fileName.Length - "_Thick".Length);
+            if (string.IsNullOrWhiteSpace(safeName))
+                continue;
+
+            if (validSafeNames.Contains(safeName))
+                continue;
+
+            if (AssetDatabase.DeleteAsset(path))
+                deleted++;
+        }
+
+        return deleted;
+    }
+
+    private static int ClearPropRegistryList()
+    {
+        var registry = GetOrCreatePropRegistry();
+        if (registry == null || registry.allProps == null)
+            return 0;
+
+        int previousCount = registry.allProps.Count;
+        registry.allProps.Clear();
+        EditorUtility.SetDirty(registry);
+        return previousCount;
+    }
+
+    private static bool IsSanitizedGeneratedName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (char.IsLetterOrDigit(c) || c == '_' || c == '-')
+                continue;
+
+            return false;
+        }
+
+        return true;
     }
 
     private static T EnsureComponent<T>(GameObject gameObject) where T : Component

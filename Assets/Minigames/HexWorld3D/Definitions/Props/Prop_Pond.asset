@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: POND
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: ed1764c689273a3479b437dac5538e4f, type: 3}
-  prefab: {fileID: 1793240600745435225, guid: 204d13ef19cd76d448233c3ee6a1b410, type: 3}
+  prefab: {fileID: 3425266360210418428, guid: 204d13ef19cd76d448233c3ee6a1b410, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

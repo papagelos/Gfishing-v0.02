@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: MUDPOOL
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 485b19160aa5a1045b4c09246e64ca5b, type: 3}
-  prefab: {fileID: 6802286582547167847, guid: 98968990e3d59264eba0416694070ebf, type: 3}
+  prefab: {fileID: 9012247041036716001, guid: 98968990e3d59264eba0416694070ebf, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: STUMP
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7df8a53d9ba62f042a5b958f78ac4edd, type: 3}
-  prefab: {fileID: 7504436489182150607, guid: f240d4f37c56eec49bd7eee2deaadf08, type: 3}
+  prefab: {fileID: 927997163045531848, guid: f240d4f37c56eec49bd7eee2deaadf08, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: FENCEGATE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7117f54b15523db47ad64d2ce6e99665, type: 3}
-  prefab: {fileID: 1696314329938058692, guid: 0e7e73c6511bc014fbbead707137bf05, type: 3}
+  prefab: {fileID: 3843666820553571214, guid: 0e7e73c6511bc014fbbead707137bf05, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

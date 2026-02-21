@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: WINDMILL
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: adf008a7508024d45b30c75f8d99885d, type: 3}
-  prefab: {fileID: 1513912553938816248, guid: d627aa94b686dc740bbb0e2835757fe0, type: 3}
+  prefab: {fileID: 6294357280632466441, guid: d627aa94b686dc740bbb0e2835757fe0, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SNOWDRIFT
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 21fb964f331596a4fb590c47b6b0f264, type: 3}
-  prefab: {fileID: 6308710770922600567, guid: 5961cb075c2afeb43a3e06099ab02ec6, type: 3}
+  prefab: {fileID: 3595848626023812953, guid: 5961cb075c2afeb43a3e06099ab02ec6, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

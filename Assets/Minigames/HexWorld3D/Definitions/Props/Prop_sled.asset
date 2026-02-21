@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SLED
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 3aaba148d115a8f46a839d86ec9dc62b, type: 3}
-  prefab: {fileID: 8554734673084576838, guid: bb95bf9e8182cd441b753371f5050d88, type: 3}
+  prefab: {fileID: 2808391597505867052, guid: bb95bf9e8182cd441b753371f5050d88, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

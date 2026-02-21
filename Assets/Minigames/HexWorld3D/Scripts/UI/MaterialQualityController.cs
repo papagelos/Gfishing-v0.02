@@ -116,7 +116,7 @@ namespace GalacticFishing.Minigames.HexWorld
         {
             var root = uiDocument.rootVisualElement;
 
-            _root = root.Q<VisualElement>("MaterialQualityRoot");
+            _root = root.Q<VisualElement>("ROOT_MaterialQuality") ?? root.Q<VisualElement>("MaterialQualityRoot");
             _backdrop = root.Q<VisualElement>("MaterialQualityBackdrop");
             _btnClose = root.Q<Button>("Btn_Close");
 

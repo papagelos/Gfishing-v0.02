@@ -16,5 +16,10 @@ MonoBehaviour:
   displayName: SUBMERGED_LOG
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 7acd907211ee030449210ab1da9a41fe, type: 3}
-  prefab: {fileID: 1370721018849472341, guid: 2393be34bd4fc304d979e4025029b163, type: 3}
+  prefab: {fileID: 5072912684629019326, guid: 2393be34bd4fc304d979e4025029b163, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
   scale: 0.08
+  randomScaleRange: {x: -10, y: 10}
