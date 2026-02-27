@@ -15,7 +15,7 @@ TagManager:
   - Fish
   - Hook
   - FarmMap
-  - 
+  - Enemy
   - 
   - 
   - 
@@ -53,6 +53,9 @@ TagManager:
     locked: 0
   - name: Effects
     uniqueID: 784249843
+    locked: 0
+  - name: UI
+    uniqueID: 1905438611
     locked: 0
   m_RenderingLayers:
   - Default

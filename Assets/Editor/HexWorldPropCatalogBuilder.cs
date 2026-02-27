@@ -8,15 +8,23 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using GalacticFishing.Minigames.HexWorld;
+using GalacticFishing.Data;
 
 public sealed class HexWorldPropCatalogBuilder : EditorWindow
 {
     private const string SpritesFolder = "Assets/Sprites/Biomes";
+    private const string GemsFolder = "Assets/Sprites/Gems";
+    private const string GemSpritePrefix = "gem_";
     private const string PropPrefabsFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props";
     private const string PropDefinitionsFolder = "Assets/Minigames/HexWorld3D/Definitions/Props";
     private const string GeneratedMeshesFolder = "Assets/Minigames/HexWorld3D/Prefabs/Props/GeneratedMeshes";
     private const string DungeonResourceFolder = "Assets/Minigames/Dungeon3D/Data/Resources";
+    private const string GemIdScriptPath = "Assets/Scripts/Data/GemId.cs";
+    private const string DungeonGemRegistryAssetPath = "Assets/Minigames/Dungeon3D/Definitions/DungeonGemRegistry_Main.asset";
+    private const string DungeonScenePath = "Assets/Minigames/Dungeon3D/Scenes/Dungeon_Minigame.unity";
+    private const string HexWorldResourceIdScriptPath = "Assets/Minigames/HexWorld3D/Scripts/Village/HexWorldResourceId.cs";
     private const string PropRegistryAssetPath = "Assets/Minigames/HexWorld3D/Definitions/PropRegistry_Main.asset";
     private const string VillageControllerPrefabPath = "Assets/Minigames/Prefabs/Prefab_HexWorld3D_Village.prefab";
     private const string ShadowMaterialPath = "Assets/Minigames/HexWorld3D/Materials/Props/Mat_ShadowSilhouette.mat";
@@ -29,6 +37,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
     private const string ShadowYawPrefKey = "HexWorldPropCatalogBuilder.ShadowYaw";
     private const string ShadowUseSunPrefKey = "HexWorldPropCatalogBuilder.ShadowUseSun";
     private const byte AlphaThreshold = 10;
+    private static readonly string[] ResourceSuffixes = { "_Ore", "_Fruit", "_Licence", "_Material", "_Part" };
     private float _propScale = 0.1f;
     private float _shadowYaw = -45f;
     private bool _useSun = true;
@@ -181,6 +190,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         int prefabsUpdated = 0;
         int defsCreated = 0;
         int defsUpdated = 0;
+        int gemIdsAdded = 0;
+        int gemRegistryCount = 0;
         Material shadowMaterial = AssetDatabase.LoadAssetAtPath<Material>(ShadowMaterialPath);
         if (shadowMaterial == null)
             Debug.LogWarning($"[HexWorldPropCatalogBuilder] Shadow material not found: {ShadowMaterialPath}");
@@ -193,12 +204,30 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
                 if (string.IsNullOrEmpty(rawName))
                     continue;
 
+                if (rawName.StartsWith("recource_", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogWarning(
+                        $"[HexWorldPropCatalogBuilder] '{rawName}' uses 'recource_' (typo). " +
+                        "Use the standard 'resource_' prefix for automatic dungeon resource setup.");
+                }
+
                 string biomeGroup = ExtractBiomeGroupFromBiomePropPath(texturePath);
                 if (string.IsNullOrEmpty(biomeGroup))
                     continue;
 
+                bool isDungeonResourceFolder = IsBiomeDungeonResourcePath(texturePath);
                 string safeName = MakeSafeAssetName(rawName);
                 string displayName = rawName.ToUpperInvariant();
+
+                if (isDungeonResourceFolder &&
+                    !safeName.StartsWith("resource_", StringComparison.OrdinalIgnoreCase))
+                {
+                    Debug.LogWarning(
+                        $"[HexWorldPropCatalogBuilder] '{texturePath}' is in /DungeonResources/ but does not use the 'resource_' prefix. " +
+                        "Skipping to avoid adding it as a village prop.");
+                    continue;
+                }
+
                 HexWorldPropDefinition existingDef =
                     AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>($"{PropDefinitionsFolder}/Prop_{safeName}.asset");
                 float masterScale = ResolveDefinitionMasterScale(existingDef, propScale);
@@ -233,6 +262,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             }
         }
 
+        gemIdsAdded = SyncGemIdEnumFromGemsFolder();
+        gemRegistryCount = SyncDungeonGemRegistryFromGemsFolder();
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
@@ -241,11 +273,13 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         int wiredRegistryCount = WireRegistry(registry, defs);
         int wiredPrefabCount = WireCatalogToVillageControllerPrefab(defs);
         int wiredSceneCount = WireCatalogToSceneInstance(defs);
+        int wiredDungeonResourceCount = WireCatalogToDungeonGenerator();
 
         Debug.Log(
             $"[HexWorldPropCatalogBuilder] Done. PNGs: {texturePaths.Count}, processed: {texturesProcessed}, " +
             $"prefabs created/updated: {prefabsCreated}/{prefabsUpdated}, definitions created/updated: {defsCreated}/{defsUpdated}, " +
-            $"registry/prefab/scene wired: {wiredRegistryCount}/{wiredPrefabCount}/{wiredSceneCount}.");
+            $"registry/prefab/scene/dungeonResources wired: {wiredRegistryCount}/{wiredPrefabCount}/{wiredSceneCount}/{wiredDungeonResourceCount}, " +
+            $"GemId added: {gemIdsAdded}, gems registered: {gemRegistryCount}.");
     }
 
     private static float ResolveDefinitionMasterScale(HexWorldPropDefinition def, float fallbackScale)
@@ -503,17 +537,19 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         EnsureFolder(PropDefinitionsFolder);
         EnsureFolder(GeneratedMeshesFolder);
 
-        HashSet<string> sourceSafeNames = CollectSourceSafeNames();
-        if (sourceSafeNames.Count == 0)
+        HashSet<string> sourceSafeNamesAll = CollectSourceSafeNames(includeDungeonResources: true);
+        if (sourceSafeNamesAll.Count == 0)
         {
             Debug.LogWarning(
                 $"[HexWorldPropCatalogBuilder] No source PNGs found under '{SpritesFolder}'. Destructive rebuild aborted for safety.");
             return;
         }
 
-        int deletedPrefabs = DeleteOrphanPropPrefabs(sourceSafeNames);
-        int deletedDefs = DeleteOrphanPropDefinitions(sourceSafeNames);
-        int deletedMeshes = DeleteOrphanGeneratedMeshes(sourceSafeNames);
+        HashSet<string> sourceSafeNamesPropsOnly = CollectSourceSafeNames(includeDungeonResources: false);
+
+        int deletedPrefabs = DeleteOrphanPropPrefabs(sourceSafeNamesAll);
+        int deletedDefs = DeleteOrphanPropDefinitions(sourceSafeNamesPropsOnly);
+        int deletedMeshes = DeleteOrphanGeneratedMeshes(sourceSafeNamesAll);
         int clearedRegistry = ClearPropRegistryList();
 
         AssetDatabase.SaveAssets();
@@ -1063,7 +1099,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         if (def == null)
             return;
 
-        def.resourceId = safeName;
+        string normalizedResourceId = ExtractResourceEnumName(safeName);
+        def.resourceId = string.IsNullOrWhiteSpace(normalizedResourceId) ? safeName : normalizedResourceId;
         def.prefab = prefabAsset;
 
         if (isNew || def.maxHp <= 0)
@@ -1075,26 +1112,425 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
     private static HexWorldResourceId ResolveResourceLootId(string safeName)
     {
-        if (string.IsNullOrWhiteSpace(safeName))
-            return HexWorldResourceId.Stone;
+        if (TryResolveResourceLootIdValue(safeName, out int rawId))
+            return (HexWorldResourceId)rawId;
 
-        if (safeName.IndexOf("Copper", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Copper;
-        if (safeName.IndexOf("Iron", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Iron;
-        if (safeName.IndexOf("Gold", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Gold;
-        if (safeName.IndexOf("Silver", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Gold;
-        if (safeName.IndexOf("Basalt", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Stone;
-        if (safeName.IndexOf("Coal", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Coal;
-        if (safeName.IndexOf("Clay", StringComparison.OrdinalIgnoreCase) >= 0)
-            return HexWorldResourceId.Clay;
-
-        Debug.LogWarning($"[HexWorldPropCatalogBuilder] Resource '{safeName}' has no explicit loot mapping. Falling back to Stone.");
+        Debug.LogWarning($"[HexWorldPropCatalogBuilder] Resource '{safeName}' has no enum mapping. Falling back to Stone.");
         return HexWorldResourceId.Stone;
+    }
+
+    private static bool TryResolveResourceLootIdValue(string safeName, out int lootId)
+    {
+        lootId = (int)HexWorldResourceId.Stone;
+        string enumName = ExtractResourceEnumName(safeName);
+        if (string.IsNullOrWhiteSpace(enumName))
+            return false;
+
+        // Fast path: already compiled into the enum.
+        if (Enum.IsDefined(typeof(HexWorldResourceId), enumName) &&
+            Enum.TryParse(enumName, true, out HexWorldResourceId parsed))
+        {
+            lootId = (int)parsed;
+            return true;
+        }
+
+        // Super-automation: append a new mining resource ID if missing.
+        if (TryEnsureMiningResourceEnumEntry(enumName, out int generatedId))
+        {
+            lootId = generatedId;
+            return true;
+        }
+
+        // Fallback parse in case name exists with different casing.
+        if (Enum.TryParse(enumName, true, out parsed))
+        {
+            lootId = (int)parsed;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string ExtractResourceEnumName(string safeName)
+    {
+        if (string.IsNullOrWhiteSpace(safeName))
+            return string.Empty;
+
+        string value = safeName.Trim();
+        if (value.StartsWith("resource_", StringComparison.OrdinalIgnoreCase))
+            value = value.Substring("resource_".Length);
+
+        for (int i = 0; i < ResourceSuffixes.Length; i++)
+        {
+            string suffix = ResourceSuffixes[i];
+            if (string.IsNullOrEmpty(suffix))
+                continue;
+
+            if (!value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            value = value.Substring(0, value.Length - suffix.Length);
+            break;
+        }
+
+        value = MakeSafeAssetName(value).Trim('_');
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        string[] parts = value.Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string p = parts[i];
+            if (string.IsNullOrEmpty(p))
+                continue;
+            parts[i] = p.Length == 1
+                ? char.ToUpperInvariant(p[0]).ToString()
+                : char.ToUpperInvariant(p[0]) + p.Substring(1);
+        }
+
+        return string.Join("_", parts);
+    }
+
+    private static bool TryEnsureMiningResourceEnumEntry(string enumName, out int assignedId)
+    {
+        assignedId = -1;
+        if (string.IsNullOrWhiteSpace(enumName))
+            return false;
+
+        string projectRoot = Directory.GetCurrentDirectory();
+        string fullPath = Path.Combine(projectRoot, HexWorldResourceIdScriptPath.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(fullPath))
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Enum source not found: {HexWorldResourceIdScriptPath}");
+            return false;
+        }
+
+        string text = File.ReadAllText(fullPath);
+        if (TryFindEnumValueInSource(text, enumName, out assignedId))
+            return true;
+
+        string newline = text.Contains("\r\n") ? "\r\n" : "\n";
+        var lines = new List<string>(File.ReadAllLines(fullPath));
+
+        int miningHeaderIndex = lines.FindIndex(l => l != null && l.IndexOf("// Mining resources", StringComparison.Ordinal) >= 0);
+        if (miningHeaderIndex < 0)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not find 'Mining resources' block in {HexWorldResourceIdScriptPath}");
+            return false;
+        }
+
+        int lastEntryIndex = -1;
+        int maxAssigned = int.MinValue;
+        string entryIndent = "        ";
+        var entryRegex = new Regex(@"^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(\d+)\s*,\s*$");
+
+        for (int i = miningHeaderIndex + 1; i < lines.Count; i++)
+        {
+            string line = lines[i];
+
+            if (line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+                break;
+            if (line.TrimStart().StartsWith("}", StringComparison.Ordinal))
+                break;
+
+            Match m = entryRegex.Match(line);
+            if (!m.Success)
+                continue;
+
+            lastEntryIndex = i;
+            entryIndent = m.Groups[1].Value;
+
+            if (string.Equals(m.Groups[2].Value, enumName, StringComparison.OrdinalIgnoreCase))
+            {
+                assignedId = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            int parsed = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            if (parsed > maxAssigned)
+                maxAssigned = parsed;
+        }
+
+        if (lastEntryIndex < 0)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] No enum entries found in mining block of {HexWorldResourceIdScriptPath}");
+            return false;
+        }
+
+        assignedId = maxAssigned + 1;
+        lines.Insert(lastEntryIndex + 1, $"{entryIndent}{enumName} = {assignedId},");
+        File.WriteAllText(fullPath, string.Join(newline, lines) + newline);
+
+        // RebuildCatalog already refreshes the AssetDatabase at the end; keep the run alive and let compilation happen once.
+        Debug.Log($"[HexWorldPropCatalogBuilder] Added HexWorldResourceId.{enumName} = {assignedId} to mining resources.");
+        return true;
+    }
+
+    private static bool TryFindEnumValueInSource(string sourceText, string enumName, out int value)
+    {
+        value = -1;
+        if (string.IsNullOrWhiteSpace(sourceText) || string.IsNullOrWhiteSpace(enumName))
+            return false;
+
+        Match match = Regex.Match(
+            sourceText,
+            $@"\b{Regex.Escape(enumName)}\b\s*=\s*(\d+)\s*,",
+            RegexOptions.CultureInvariant);
+        if (!match.Success)
+            return false;
+
+        return int.TryParse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static int SyncGemIdEnumFromGemsFolder()
+    {
+        if (!AssetDatabase.IsValidFolder(GemsFolder))
+            return 0;
+
+        EnsureGemIdEnumFileExists();
+
+        string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { GemsFolder });
+        var gemEnumNames = textureGuids
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Where(path => path.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(raw => !string.IsNullOrWhiteSpace(raw) && raw.StartsWith("gem_", StringComparison.OrdinalIgnoreCase))
+            .Select(ExtractGemEnumName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        int added = 0;
+        for (int i = 0; i < gemEnumNames.Count; i++)
+        {
+            if (TryEnsureGemIdEnumEntry(gemEnumNames[i], out _, out bool wasAdded) && wasAdded)
+                added++;
+        }
+
+        return added;
+    }
+
+    private static string ExtractGemEnumName(string rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+            return string.Empty;
+
+        string value = rawName.Trim();
+        if (value.StartsWith("gem_", StringComparison.OrdinalIgnoreCase))
+            value = value.Substring("gem_".Length);
+
+        value = MakeSafeAssetName(value).Trim('_');
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        string[] parts = value.Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < parts.Length; i++)
+        {
+            string p = parts[i];
+            if (string.IsNullOrEmpty(p))
+                continue;
+            parts[i] = p.Length == 1
+                ? char.ToUpperInvariant(p[0]).ToString()
+                : char.ToUpperInvariant(p[0]) + p.Substring(1);
+        }
+
+        return string.Join("_", parts);
+    }
+
+    private static void EnsureGemIdEnumFileExists()
+    {
+        string folder = Path.GetDirectoryName(GemIdScriptPath)?.Replace("\\", "/");
+        if (!string.IsNullOrEmpty(folder))
+            EnsureFolder(folder);
+
+        string projectRoot = Directory.GetCurrentDirectory();
+        string fullPath = Path.Combine(projectRoot, GemIdScriptPath.Replace('/', Path.DirectorySeparatorChar));
+        if (File.Exists(fullPath))
+            return;
+
+        string contents =
+            "using System;" + Environment.NewLine +
+            Environment.NewLine +
+            "namespace GalacticFishing.Data" + Environment.NewLine +
+            "{" + Environment.NewLine +
+            "    public enum GemId" + Environment.NewLine +
+            "    {" + Environment.NewLine +
+            "        None = 0," + Environment.NewLine +
+            "    }" + Environment.NewLine +
+            "}" + Environment.NewLine;
+
+        File.WriteAllText(fullPath, contents);
+    }
+
+    private static bool TryEnsureGemIdEnumEntry(string enumName, out int assignedId, out bool wasAdded)
+    {
+        assignedId = -1;
+        wasAdded = false;
+        if (string.IsNullOrWhiteSpace(enumName))
+            return false;
+
+        string projectRoot = Directory.GetCurrentDirectory();
+        string fullPath = Path.Combine(projectRoot, GemIdScriptPath.Replace('/', Path.DirectorySeparatorChar));
+        if (!File.Exists(fullPath))
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Gem enum source not found: {GemIdScriptPath}");
+            return false;
+        }
+
+        string text = File.ReadAllText(fullPath);
+        if (TryFindEnumValueInSource(text, enumName, out assignedId))
+            return true;
+
+        string newline = text.Contains("\r\n") ? "\r\n" : "\n";
+        var lines = new List<string>(File.ReadAllLines(fullPath));
+
+        int enumIndex = lines.FindIndex(l => l != null && l.IndexOf("enum GemId", StringComparison.Ordinal) >= 0);
+        if (enumIndex < 0)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not find 'enum GemId' in {GemIdScriptPath}");
+            return false;
+        }
+
+        int openBraceIndex = -1;
+        for (int i = enumIndex; i < lines.Count; i++)
+        {
+            if (lines[i].Contains("{"))
+            {
+                openBraceIndex = i;
+                break;
+            }
+        }
+
+        if (openBraceIndex < 0)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not find GemId enum body in {GemIdScriptPath}");
+            return false;
+        }
+
+        int closeBraceIndex = -1;
+        int depth = 0;
+        for (int i = openBraceIndex; i < lines.Count; i++)
+        {
+            string line = lines[i];
+            for (int c = 0; c < line.Length; c++)
+            {
+                if (line[c] == '{') depth++;
+                else if (line[c] == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        closeBraceIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (closeBraceIndex >= 0)
+                break;
+        }
+
+        if (closeBraceIndex < 0)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Could not find GemId enum closing brace in {GemIdScriptPath}");
+            return false;
+        }
+
+        int maxAssigned = 0;
+        string entryIndent = "        ";
+        var entryRegex = new Regex(@"^(\s*)([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(\d+)\s*,\s*$");
+
+        for (int i = openBraceIndex + 1; i < closeBraceIndex; i++)
+        {
+            Match m = entryRegex.Match(lines[i]);
+            if (!m.Success)
+                continue;
+
+            entryIndent = m.Groups[1].Value;
+
+            if (string.Equals(m.Groups[2].Value, enumName, StringComparison.OrdinalIgnoreCase))
+            {
+                assignedId = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            int parsed = int.Parse(m.Groups[3].Value, CultureInfo.InvariantCulture);
+            if (parsed > maxAssigned)
+                maxAssigned = parsed;
+        }
+
+        assignedId = maxAssigned + 1;
+        lines.Insert(closeBraceIndex, $"{entryIndent}{enumName} = {assignedId},");
+        File.WriteAllText(fullPath, string.Join(newline, lines) + newline);
+        wasAdded = true;
+
+        Debug.Log($"[HexWorldPropCatalogBuilder] Added GemId.{enumName} to gems list.");
+        return true;
+    }
+
+    private static int SyncDungeonGemRegistryFromGemsFolder()
+    {
+        if (!AssetDatabase.IsValidFolder(GemsFolder))
+            return 0;
+
+        EnsureGemIdEnumFileExists();
+        string registryFolder = Path.GetDirectoryName(DungeonGemRegistryAssetPath)?.Replace("\\", "/");
+        if (!string.IsNullOrEmpty(registryFolder))
+            EnsureFolder(registryFolder);
+
+        DungeonGemRegistry registry = AssetDatabase.LoadAssetAtPath<DungeonGemRegistry>(DungeonGemRegistryAssetPath);
+        if (registry == null)
+        {
+            registry = ScriptableObject.CreateInstance<DungeonGemRegistry>();
+            AssetDatabase.CreateAsset(registry, DungeonGemRegistryAssetPath);
+        }
+
+        if (registry == null)
+            return 0;
+
+        var so = new SerializedObject(registry);
+        var gemsProp = so.FindProperty("gems");
+        if (gemsProp == null || !gemsProp.isArray)
+            return 0;
+
+        string[] spriteGuids = AssetDatabase.FindAssets("t:Sprite", new[] { GemsFolder });
+        var discovered = spriteGuids
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(path => AssetDatabase.LoadAssetAtPath<Sprite>(path))
+            .Where(sprite => sprite != null && sprite.name.StartsWith(GemSpritePrefix, StringComparison.OrdinalIgnoreCase))
+            .Select(sprite => new { sprite, enumName = ExtractGemEnumName(sprite.name) })
+            .Where(x => !string.IsNullOrWhiteSpace(x.enumName))
+            .GroupBy(x => x.enumName, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderBy(x => x.sprite.name, StringComparer.OrdinalIgnoreCase).First())
+            .OrderBy(x => x.enumName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        gemsProp.arraySize = discovered.Count;
+        for (int i = 0; i < discovered.Count; i++)
+        {
+            var item = discovered[i];
+            if (!TryEnsureGemIdEnumEntry(item.enumName, out int gemIdValue, out _))
+                gemIdValue = 0;
+
+            SerializedProperty row = gemsProp.GetArrayElementAtIndex(i);
+            SerializedProperty gemIdProp = row.FindPropertyRelative("gemId");
+            SerializedProperty iconProp = row.FindPropertyRelative("icon");
+            SerializedProperty descProp = row.FindPropertyRelative("description");
+
+            if (gemIdProp != null)
+                gemIdProp.intValue = gemIdValue;
+            if (iconProp != null)
+                iconProp.objectReferenceValue = item.sprite;
+            if (descProp != null && string.IsNullOrWhiteSpace(descProp.stringValue))
+                descProp.stringValue = string.Empty;
+        }
+
+        so.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(registry);
+        AssetDatabase.SaveAssets();
+
+        return discovered.Count;
     }
 
     private static Mesh EnsurePersistentGeneratedMesh(string safeName, Mesh generatedMesh)
@@ -1283,8 +1719,11 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
             AssetDatabase.CreateAsset(def, defPath);
         }
 
-        // Keep IDs aligned with generated asset filenames for deterministic registry lookup.
-        def.id = safeName;
+        bool isResource = safeName.StartsWith("resource_", StringComparison.OrdinalIgnoreCase);
+        string normalizedResourceId = isResource ? ExtractResourceEnumName(safeName) : null;
+
+        // Keep IDs aligned with generator/resource naming for deterministic registry lookup.
+        def.id = !string.IsNullOrWhiteSpace(normalizedResourceId) ? normalizedResourceId : safeName;
         def.displayName = displayName;
         def.biomeGroup = string.IsNullOrWhiteSpace(biomeGroup) ? "ALL" : biomeGroup.Trim().ToUpperInvariant();
         def.thumbnail = sprite;
@@ -1367,6 +1806,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         if (defs == null)
             defs = new List<HexWorldPropDefinition>();
 
+        defs = FilterVillageVisiblePropDefinitions(defs);
+
         // Force-inject dungeon marker props so they are always available in the Village prop catalog.
         var startMarker = AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>(
             "Assets/Minigames/HexWorld3D/Definitions/Props/Prop_Start_Marker.asset");
@@ -1433,6 +1874,8 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         if (defs == null)
             defs = new List<HexWorldPropDefinition>();
 
+        defs = FilterVillageVisiblePropDefinitions(defs);
+
         var serializedController = new SerializedObject(controller);
         var propCatalog = serializedController.FindProperty("propCatalog");
         if (propCatalog == null || !propCatalog.isArray)
@@ -1455,6 +1898,130 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         EditorUtility.SetDirty(controller);
         return defs.Count;
+    }
+
+    private static List<HexWorldPropDefinition> FilterVillageVisiblePropDefinitions(List<HexWorldPropDefinition> defs)
+    {
+        if (defs == null || defs.Count == 0)
+            return new List<HexWorldPropDefinition>();
+
+        var result = new List<HexWorldPropDefinition>(defs.Count);
+        for (int i = 0; i < defs.Count; i++)
+        {
+            HexWorldPropDefinition def = defs[i];
+            if (def == null)
+                continue;
+
+            if (IsDungeonResourcePropDefinition(def))
+                continue;
+
+            if (!result.Contains(def))
+                result.Add(def);
+        }
+
+        return result;
+    }
+
+    private static bool IsDungeonResourcePropDefinition(HexWorldPropDefinition def)
+    {
+        if (def == null)
+            return false;
+
+        // Prefer the source sprite path, which preserves the original folder category (Props vs DungeonResources).
+        if (def.thumbnail != null)
+        {
+            string sourcePath = AssetDatabase.GetAssetPath(def.thumbnail)?.Replace("\\", "/");
+            if (!string.IsNullOrEmpty(sourcePath) &&
+                sourcePath.IndexOf("/DungeonResources/", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return true;
+            }
+        }
+
+        // Fallback for older assets missing thumbnails: detect legacy generated definition name.
+        string defPath = AssetDatabase.GetAssetPath(def)?.Replace("\\", "/");
+        string fileName = Path.GetFileNameWithoutExtension(defPath ?? string.Empty);
+        return fileName.StartsWith("Prop_resource_", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int WireCatalogToDungeonGenerator()
+    {
+        if (!File.Exists(DungeonScenePath))
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Dungeon scene not found: {DungeonScenePath}");
+            return 0;
+        }
+
+        if (!Directory.Exists(DungeonResourceFolder))
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Dungeon resource folder not found: {DungeonResourceFolder}");
+            return 0;
+        }
+
+        string projectRoot = Directory.GetCurrentDirectory().Replace("\\", "/");
+        var resourcePaths = Directory.GetFiles(DungeonResourceFolder, "*.asset", SearchOption.TopDirectoryOnly)
+            .Select(path => path.Replace("\\", "/"))
+            .Select(path => path.StartsWith(projectRoot + "/", StringComparison.OrdinalIgnoreCase)
+                ? path.Substring(projectRoot.Length + 1)
+                : path);
+
+        var resources = resourcePaths
+            .Select(path => AssetDatabase.LoadAssetAtPath<GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition>(path))
+            .Where(r => r != null)
+            .OrderBy(r => r.name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        Scene dungeonScene = SceneManager.GetSceneByPath(DungeonScenePath);
+        bool openedTemporarily = false;
+
+        if (!dungeonScene.IsValid() || !dungeonScene.isLoaded)
+        {
+            dungeonScene = EditorSceneManager.OpenScene(DungeonScenePath, OpenSceneMode.Additive);
+            openedTemporarily = dungeonScene.IsValid() && dungeonScene.isLoaded;
+        }
+
+        if (!dungeonScene.IsValid() || !dungeonScene.isLoaded)
+        {
+            Debug.LogWarning($"[HexWorldPropCatalogBuilder] Failed to open dungeon scene: {DungeonScenePath}");
+            return 0;
+        }
+
+        try
+        {
+            GalacticFishing.Minigames.Dungeon3D.DimensionGenerator generator = null;
+            var roots = dungeonScene.GetRootGameObjects();
+            for (int i = 0; i < roots.Length && generator == null; i++)
+                generator = roots[i].GetComponentInChildren<GalacticFishing.Minigames.Dungeon3D.DimensionGenerator>(true);
+
+            if (generator == null)
+            {
+                Debug.LogWarning("[HexWorldPropCatalogBuilder] No DimensionGenerator found in dungeon scene.");
+                return 0;
+            }
+
+            var so = new SerializedObject(generator);
+            var resourceDefinitionsProp = so.FindProperty("resourceDefinitions");
+            if (resourceDefinitionsProp == null || !resourceDefinitionsProp.isArray)
+            {
+                Debug.LogWarning("[HexWorldPropCatalogBuilder] DimensionGenerator missing array field 'resourceDefinitions'.");
+                return 0;
+            }
+
+            resourceDefinitionsProp.arraySize = resources.Count;
+            for (int i = 0; i < resources.Count; i++)
+                resourceDefinitionsProp.GetArrayElementAtIndex(i).objectReferenceValue = resources[i];
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(generator);
+            EditorSceneManager.MarkSceneDirty(dungeonScene);
+            EditorSceneManager.SaveScene(dungeonScene);
+            return resources.Count;
+        }
+        finally
+        {
+            if (openedTemporarily && dungeonScene.IsValid() && dungeonScene.isLoaded)
+                EditorSceneManager.CloseScene(dungeonScene, true);
+        }
     }
 
     private static void EnsureFolder(string folder)
@@ -1587,7 +2154,18 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
         string normalized = assetPath.Replace("\\", "/");
         return normalized.StartsWith(SpritesFolder + "/", StringComparison.OrdinalIgnoreCase) &&
-               normalized.IndexOf("/Props/", StringComparison.OrdinalIgnoreCase) >= 0;
+               (normalized.IndexOf("/Props/", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                normalized.IndexOf("/DungeonResources/", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private static bool IsBiomeDungeonResourcePath(string assetPath)
+    {
+        if (string.IsNullOrEmpty(assetPath))
+            return false;
+
+        string normalized = assetPath.Replace("\\", "/");
+        return normalized.StartsWith(SpritesFolder + "/", StringComparison.OrdinalIgnoreCase) &&
+               normalized.IndexOf("/DungeonResources/", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
     private static string ExtractBiomeGroupFromBiomePropPath(string assetPath)
@@ -1604,7 +2182,10 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
 
             string biome = parts[i + 1];
             string category = parts[i + 2];
-            if (!string.Equals(category, "Props", StringComparison.OrdinalIgnoreCase))
+            bool isSupportedCategory =
+                string.Equals(category, "Props", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(category, "DungeonResources", StringComparison.OrdinalIgnoreCase);
+            if (!isSupportedCategory)
                 return null;
 
             if (string.Equals(biome, "GLOBAL", StringComparison.OrdinalIgnoreCase))
@@ -1616,7 +2197,7 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         return null;
     }
 
-    private static HashSet<string> CollectSourceSafeNames()
+    private static HashSet<string> CollectSourceSafeNames(bool includeDungeonResources = true)
     {
         string[] textureGuids = AssetDatabase.FindAssets("t:Texture2D", new[] { SpritesFolder });
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1624,6 +2205,9 @@ public sealed class HexWorldPropCatalogBuilder : EditorWindow
         {
             string path = AssetDatabase.GUIDToAssetPath(textureGuids[i]);
             if (!path.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || !IsBiomePropPath(path))
+                continue;
+
+            if (!includeDungeonResources && IsBiomeDungeonResourcePath(path))
                 continue;
 
             string rawName = Path.GetFileNameWithoutExtension(path).Trim();

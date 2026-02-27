@@ -1115,10 +1115,19 @@ namespace GalacticFishing.Minigames.HexWorld
             if (Mouse.current == null)
                 return "Unknown UI element";
 
-            var documents = UnityEngine.Object.FindObjectsOfType<UnityEngine.UIElements.UIDocument>(true);
+            var documents = UnityEngine.Object.FindObjectsByType<UnityEngine.UIElements.UIDocument>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
 
             if (documents == null || documents.Length == 0)
                 return "Unknown UI element";
+
+            System.Array.Sort(documents, (a, b) =>
+            {
+                float orderA = a != null ? a.sortingOrder : float.MinValue;
+                float orderB = b != null ? b.sortingOrder : float.MinValue;
+                return orderB.CompareTo(orderA);
+            });
 
             Vector2 screenPos = Mouse.current.position.ReadValue();
 
@@ -2480,6 +2489,12 @@ namespace GalacticFishing.Minigames.HexWorld
                 UnlockBlueprint(WarehouseBlueprintId);
                 // Ensure progression-gated HUD paths refresh immediately.
                 OnProgressionUnlocksChanged?.Invoke();
+
+                // 4. Notify only on the first-ever unlock (not every scene entry).
+                MilestoneReached?.Invoke(
+                    "Milestone Complete",
+                    "WAREHOUSE UNLOCKED!\n\nYou can now build Warehouses to increase resource storage caps.");
+                Debug.Log("[Milestone] Warehouse unlocked and player notified.");
             }
             else
             {
@@ -2488,11 +2503,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 OnProgressionUnlocksChanged?.Invoke();
             }
 
-            // 4. Notify once per play session (satisfying milestone feedback without spam).
-            MilestoneReached?.Invoke(
-                "Milestone Complete",
-                "WAREHOUSE UNLOCKED!\n\nYou can now build Warehouses to increase resource storage caps.");
-            Debug.Log("[Milestone] Warehouse unlocked and player notified.");
+            // Mark as processed this session in both branches so we don't spam refresh events.
             _warehouseToastShownThisSession = true;
         }
 
@@ -2590,6 +2601,19 @@ namespace GalacticFishing.Minigames.HexWorld
 
             if (TryHandleBuildingRemoval(coord))
                 return;
+
+            // Tiered delete behavior: clear tile decorations first, then allow tile deletion
+            // on a subsequent delete pass once the tile is empty.
+            if (_owned.TryGetValue(coord, out var ownedWithDecor) && ownedWithDecor)
+            {
+                Transform decorRoot = ownedWithDecor.transform.Find(DecorRootName);
+                if (decorRoot && decorRoot.childCount > 0)
+                {
+                    ClearDecorationsAtTile(coord);
+                    Debug.Log($"[DeleteMode] Props cleared at {coord.q},{coord.r}");
+                    return;
+                }
+            }
 
             // Otherwise remove tile (only if no building exists)
             if (_owned.TryGetValue(coord, out var ownedTile) && ownedTile)

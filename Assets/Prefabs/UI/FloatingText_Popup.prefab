@@ -101,7 +101,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -165,7 +165,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.UI.FloatingText
   text: {fileID: 0}
   lifetime: 2
-  moveOffset: {x: 0, y: 100}
+  moveOffset: {x: 30, y: 100}
   alphaOverLifetime:
     serializedVersion: 2
     m_Curve:

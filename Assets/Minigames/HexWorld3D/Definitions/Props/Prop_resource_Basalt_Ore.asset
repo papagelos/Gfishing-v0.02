@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_resource_Basalt_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: resource_Basalt_Ore
+  id: Basalt
   displayName: RESOURCE_BASALT ORE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 0fc4e21f7e33f7c47b28cc4b7e1cd1a9, type: 3}

@@ -49,9 +49,8 @@ MonoBehaviour:
     pauseGame: 1
   - id: Scene_Start_HexWorld_Village
     text: this is your very own village, existing in your very own transdimensional
-      reality. You start with 4 tiles - Grass, forest, mountain, water and are given
-      37 tile spaces. You can place and remove basic tiles with no cost. Go ahead
-      and build you village terrain
+      reality. You start with a Townhall and given 37 tile spaces. You can place
+      and remove basic tiles with no cost. Go ahead and build you village terrain
     showOnce: 0
     pauseGame: 1
   - id: Scene_Start_MainGame
@@ -66,5 +65,55 @@ MonoBehaviour:
       || Your next task is to clear all lakes of world 1, defeat the boss fish, and
       give that fish to us. Here, take this Seal as proof of your enrollment. Off
       you go!
+    showOnce: 0
+    pauseGame: 1
+  - id: Cant_Leave
+    text: 'Its no use. You are not allowed to leave the boat.
+
+      But.. I have
+      to use the bathroom.
+
+      Use the lake
+
+      But, I have to do.. you know...
+
+      I
+      dont
+
+      Number two.
+
+      Yes, that is fine. There is a roll of toilet
+      paper included in the boat starter kit.
+
+      One roll?
+
+      Yes, your hearing
+      is excellent.
+
+      How long does it usually take for a contenstant to finish
+      the tournament?
+
+      Oh, the fastest one was 3 weeks. But most dont finish
+      at all.
+
+      One toilet roll for 3 weeks, this is not going to work out.
+
+      Oh,
+      its not ordinary toilet paper. Its magic.
+
+      Magic?
+
+      Yes, your hearing
+      is still functional.
+
+      Describe in what way it it magic.
+
+      It never
+      runs out. One roll wil last you a lifetime.
+
+      You have your doubts, but
+      after trying it you can see it indeed is infinite toilet paper. You do your
+      number two, narrowly avoiding clobbering a fish on the head with.. it.. and
+      continue with the tournament.'
     showOnce: 0
     pauseGame: 1

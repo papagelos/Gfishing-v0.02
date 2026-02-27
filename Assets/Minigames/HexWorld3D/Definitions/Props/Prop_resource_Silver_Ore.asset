@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_resource_Silver_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: resource_Silver_Ore
+  id: Silver
   displayName: RESOURCE_SILVER ORE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: fcdee1963be0e024089b3300c9d7746e, type: 3}

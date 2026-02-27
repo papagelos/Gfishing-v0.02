@@ -1,6 +1,7 @@
 using GalacticFishing.Minigames.HexWorld;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 namespace GalacticFishing.Minigames.Dungeon3D
 {
@@ -10,8 +11,15 @@ namespace GalacticFishing.Minigames.Dungeon3D
     {
         [Header("Movement")]
         [SerializeField, Min(0.1f)] private float moveSpeed = 2.0f;
-        [SerializeField, Range(1f, 2f)] private float verticalCompensation = 1.41f;
+        [SerializeField, Range(1f, 4f)] private float verticalCompensation = 1.41f;
         [SerializeField, Range(0f, 1f)] private float gamepadDeadZone = 0.2f;
+        [SerializeField, Min(0.01f)] private float mouseFollowStopDistance = 0.15f;
+
+        [Header("Debug")]
+        [SerializeField] private bool showMovementDebugOverlay;
+        [SerializeField, Min(0.01f)] private float debugHexSize = 0.5f;
+        [SerializeField, Min(0.01f)] private float debugScreenSpeedSmoothing = 0.2f;
+        [SerializeField, Min(0.05f)] private float debugScreenSpeedPeakHoldSeconds = 0.5f;
 
         [Header("Refs")]
         [SerializeField] private SpriteRenderer spriteRenderer;
@@ -32,6 +40,17 @@ namespace GalacticFishing.Minigames.Dungeon3D
         private Vector2 _moveInput;
         private Vector3 _lastMoveWorld = Vector3.forward;
         private Camera _mainCamera;
+        private float _debugWorldSpeedMps;
+        private float _debugScreenSpeedPxPerSec;
+        private float _debugScreenSpeedPeakHoldPxPerSec;
+        private float _debugScreenSpeedPeakHoldTimer;
+        private float _debugTilesPerMinute;
+        private float _debugDirectionAngleDeg;
+        private bool _debugDirectionIdle;
+        private Vector3 _debugPrevScreenPos;
+        private bool _debugHasPrevScreenPos;
+
+        public float VerticalCompensation => verticalCompensation;
 
         private void Awake()
         {
@@ -46,6 +65,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             if (_mainCamera == null)
                 _mainCamera = Camera.main;
 
+            HandleDebugOverlayToggle();
             _moveInput = ReadMoveInput();
 
             if (_moveInput.sqrMagnitude > 0.0001f)
@@ -53,6 +73,8 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 _lastMoveWorld = ComputeCameraRelativeMove(_moveInput);
                 ApplyFacingFromInput(_moveInput);
             }
+
+            UpdateMovementDebugMetrics();
         }
 
         private void FixedUpdate()
@@ -83,6 +105,10 @@ namespace GalacticFishing.Minigames.Dungeon3D
             if (fromKeys.sqrMagnitude > 1f)
                 fromKeys.Normalize();
 
+            // Priority: explicit keyboard input wins over gamepad/mouse steering.
+            if (fromKeys.sqrMagnitude > 0.0001f)
+                return fromKeys;
+
             Gamepad pad = Gamepad.current;
             if (pad != null)
             {
@@ -91,7 +117,56 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     return stick;
             }
 
-            return fromKeys;
+            Mouse mouse = Mouse.current;
+            if (mouse != null && mouse.leftButton.isPressed)
+            {
+                // Do not steer when clicking UI (e.g., extraction button).
+                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+                    return Vector2.zero;
+
+                if (TryReadMouseFollowInput(mouse, out Vector2 mouseDir))
+                    return mouseDir;
+            }
+
+            return Vector2.zero;
+        }
+
+        private bool TryReadMouseFollowInput(Mouse mouse, out Vector2 input)
+        {
+            input = Vector2.zero;
+            if (mouse == null)
+                return false;
+
+            Camera cam = _mainCamera != null ? _mainCamera : Camera.main;
+            if (cam == null)
+                return false;
+
+            Ray ray = cam.ScreenPointToRay(mouse.position.ReadValue());
+            Plane movePlane = new Plane(Vector3.up, new Vector3(0f, transform.position.y, 0f));
+            if (!movePlane.Raycast(ray, out float enter))
+                return false;
+
+            Vector3 target = ray.GetPoint(enter);
+            Vector3 delta = target - transform.position;
+            delta.y = 0f;
+
+            if (delta.sqrMagnitude < mouseFollowStopDistance * mouseFollowStopDistance)
+                return false;
+
+            Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+            Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
+            if (camRight.sqrMagnitude < 0.0001f || camForward.sqrMagnitude < 0.0001f)
+                return false;
+
+            Vector3 moveDir = delta.normalized;
+            input = new Vector2(
+                Vector3.Dot(moveDir, camRight),
+                Vector3.Dot(moveDir, camForward));
+
+            if (input.sqrMagnitude > 1f)
+                input.Normalize();
+
+            return input.sqrMagnitude > 0.0001f;
         }
 
         private Vector3 ComputeCameraRelativeMove(Vector2 input)
@@ -99,29 +174,113 @@ namespace GalacticFishing.Minigames.Dungeon3D
             if (input.sqrMagnitude <= 0.0001f)
                 return Vector3.zero;
 
-            // Normalize first so input magnitude is 1 before camera-space compensation.
-            input.Normalize();
+            // Normalize first so compensation is applied to direction, not raw stick/key magnitude.
+            Vector2 normalizedInput = input.normalized;
 
             Camera cam = _mainCamera != null ? _mainCamera : Camera.main;
             if (cam == null)
-                return new Vector3(input.x, 0f, input.y);
+                return new Vector3(normalizedInput.x, 0f, normalizedInput.y);
 
-            Vector3 camRight = cam.transform.right;
-            Vector3 camForward = cam.transform.forward;
-            camRight.y = 0f;
-            camForward.y = 0f;
+            Vector3 camForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+            Vector3 camRight = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up).normalized;
 
             if (camRight.sqrMagnitude < 0.0001f || camForward.sqrMagnitude < 0.0001f)
-                return new Vector3(input.x, 0f, input.y);
+                return new Vector3(normalizedInput.x, 0f, normalizedInput.y);
 
-            camRight.Normalize();
-            camForward.Normalize();
-
-            Vector3 moveH = camRight * input.x;
-            Vector3 moveV = camForward * (input.y * verticalCompensation);
+            Vector3 moveH = camRight * normalizedInput.x;
+            Vector3 moveV = camForward * (normalizedInput.y * verticalCompensation);
             Vector3 worldMove = moveH + moveV;
+            if (worldMove.sqrMagnitude <= 0.0001f)
+                return Vector3.zero;
 
             return worldMove;
+        }
+
+        private void HandleDebugOverlayToggle()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.f8Key.wasPressedThisFrame)
+                showMovementDebugOverlay = !showMovementDebugOverlay;
+        }
+
+        private void UpdateMovementDebugMetrics()
+        {
+            Vector3 velocity = body != null ? body.linearVelocity : Vector3.zero;
+            Vector3 planarVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            _debugWorldSpeedMps = planarVelocity.magnitude;
+
+            float hexStepDistance = Mathf.Sqrt(3f) * Mathf.Max(0.01f, debugHexSize);
+            _debugTilesPerMinute = (_debugWorldSpeedMps / hexStepDistance) * 60f;
+
+            Vector3 direction = planarVelocity.sqrMagnitude > 0.0001f ? planarVelocity : _lastMoveWorld;
+            direction.y = 0f;
+            _debugDirectionIdle = planarVelocity.sqrMagnitude <= 0.0001f;
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                float angle = Mathf.Atan2(direction.z, direction.x) * Mathf.Rad2Deg;
+                if (angle < 0f)
+                    angle += 360f;
+                _debugDirectionAngleDeg = angle;
+            }
+
+            Camera cam = _mainCamera != null ? _mainCamera : Camera.main;
+            if (cam == null)
+            {
+                _debugScreenSpeedPxPerSec = 0f;
+                _debugHasPrevScreenPos = false;
+                return;
+            }
+
+            Vector3 screenPos = cam.WorldToScreenPoint(transform.position);
+            float rawScreenSpeedPxPerSec = 0f;
+            if (_debugHasPrevScreenPos && screenPos.z > 0f && _debugPrevScreenPos.z > 0f)
+            {
+                Vector2 a = new Vector2(screenPos.x, screenPos.y);
+                Vector2 b = new Vector2(_debugPrevScreenPos.x, _debugPrevScreenPos.y);
+                rawScreenSpeedPxPerSec = Vector2.Distance(a, b) / Mathf.Max(Time.deltaTime, 0.0001f);
+            }
+
+            float smoothTime = Mathf.Max(0.01f, debugScreenSpeedSmoothing);
+            float lerpT = 1f - Mathf.Exp(-Time.deltaTime / smoothTime);
+            _debugScreenSpeedPxPerSec = Mathf.Lerp(_debugScreenSpeedPxPerSec, rawScreenSpeedPxPerSec, lerpT);
+            UpdateDebugScreenSpeedPeakHold();
+
+            _debugPrevScreenPos = screenPos;
+            _debugHasPrevScreenPos = true;
+        }
+
+        private void UpdateDebugScreenSpeedPeakHold()
+        {
+            float holdSeconds = Mathf.Max(0.05f, debugScreenSpeedPeakHoldSeconds);
+            if (_debugScreenSpeedPxPerSec >= _debugScreenSpeedPeakHoldPxPerSec)
+            {
+                _debugScreenSpeedPeakHoldPxPerSec = _debugScreenSpeedPxPerSec;
+                _debugScreenSpeedPeakHoldTimer = holdSeconds;
+                return;
+            }
+
+            _debugScreenSpeedPeakHoldTimer -= Time.deltaTime;
+            if (_debugScreenSpeedPeakHoldTimer <= 0f)
+            {
+                _debugScreenSpeedPeakHoldPxPerSec = _debugScreenSpeedPxPerSec;
+                _debugScreenSpeedPeakHoldTimer = holdSeconds;
+            }
+        }
+
+        private void OnGUI()
+        {
+            if (!showMovementDebugOverlay)
+                return;
+
+            const float Width = 240f;
+            const float Height = 128f;
+            GUILayout.BeginArea(new Rect(12f, 12f, Width, Height), $"Move Debug (F8)", GUI.skin.window);
+            GUILayout.Label($"World m/s: {_debugWorldSpeedMps:F2}");
+            GUILayout.Label($"Screen px/s: {_debugScreenSpeedPxPerSec:F0}");
+            GUILayout.Label($"Screen px/s (peak): {_debugScreenSpeedPeakHoldPxPerSec:F0}");
+            GUILayout.Label($"Tiles/min: {_debugTilesPerMinute:F1}");
+            GUILayout.Label($"Angle: {_debugDirectionAngleDeg:F1}°{(_debugDirectionIdle ? " (idle)" : string.Empty)}");
+            GUILayout.EndArea();
         }
 
         private void ApplyFacingFromInput(Vector2 input)
@@ -146,29 +305,46 @@ namespace GalacticFishing.Minigames.Dungeon3D
             switch (octant)
             {
                 case 0: // E
-                    return FirstSprite(east, northEast, southEast, north, south);
+                    {
+                        Sprite fallback = FirstSprite(east, southEast, northEast, south, north);
+                        if (fallback != null) return fallback;
+                        if (west != null) { flipX = true; return west; }
+                        return FirstSprite(northWest, southWest);
+                    }
                 case 1: // NE
                     return FirstSprite(northEast, north, east, northWest);
                 case 2: // N
                     return FirstSprite(north, northEast, northWest, east);
                 case 3: // NW
-                    if (northWest != null) return northWest;
-                    if (northEast != null) { flipX = true; return northEast; }
-                    return FirstSprite(north, west, east);
+                    {
+                        if (northWest != null) return northWest;
+                        Sprite fallback = FirstSprite(north, west, south, southWest);
+                        if (fallback != null) return fallback;
+                        if (northEast != null) { flipX = true; return northEast; }
+                        return FirstSprite(east, southEast);
+                    }
                 case 4: // W
-                    if (west != null) return west;
-                    if (east != null) { flipX = true; return east; }
-                    return FirstSprite(northWest, southWest, north, south);
+                    {
+                        if (west != null) return west;
+                        Sprite fallback = FirstSprite(southWest, northWest, south, north);
+                        if (fallback != null) return fallback;
+                        if (east != null) { flipX = true; return east; }
+                        return FirstSprite(northEast, southEast);
+                    }
                 case 5: // SW
                     return FirstSprite(southWest, south, west, southEast);
                 case 6: // S
-                    return FirstSprite(south, southWest, southEast, west);
+                    return FirstSprite(south, southWest, southEast, east, west);
                 case 7: // SE
-                    if (southEast != null) return southEast;
-                    if (southWest != null) { flipX = true; return southWest; }
-                    return FirstSprite(south, east, west);
+                    {
+                        if (southEast != null) return southEast;
+                        Sprite fallback = FirstSprite(south, east, west, north);
+                        if (fallback != null) return fallback;
+                        if (southWest != null) { flipX = true; return southWest; }
+                        return FirstSprite(northEast, northWest);
+                    }
                 default:
-                    return FirstSprite(north, east, south, west);
+                    return FirstSprite(south, southEast, southWest, east, west, north, northEast, northWest);
             }
         }
 

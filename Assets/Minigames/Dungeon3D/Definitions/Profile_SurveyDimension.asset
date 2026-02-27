@@ -12,17 +12,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37ced6c1bc2cf994c8e56ae0c25aac7a, type: 3}
   m_Name: Profile_SurveyDimension
   m_EditorClassIdentifier: 
-  spineMinLength: 180
-  spineMaxLength: 240
-  targetTileCount: 2000
-  minBossDistance: 160
+  spineMinLength: 20
+  spineMaxLength: 30
+  targetTileCount: 4000
+  minBossDistance: 20
   bossArenaRadius: 7
-  towardBossBias: 5
-  outwardBias: 2
-  forwardDirectionBonus: 3
+  towardBossBias: 0
+  outwardBias: 0
+  forwardDirectionBonus: 0
   sideDirectionBonus: 1
   pocketSeedCount: 14
-  pocketMinSize: 40
+  pocketMinSize: 60
   pocketMaxSize: 200
   pocketStartPadding: 8
   pocketEndPadding: 8

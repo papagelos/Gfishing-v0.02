@@ -7,6 +7,8 @@ using UnityEngine.SceneManagement;
 
 public static class ProceduralSceneSetupUtility
 {
+    private static readonly Vector3 DefaultCameraPosition = new Vector3(10.6f, 3.4f, -14.3f);
+
     [MenuItem("Tools/Galactic Fishing/Bootstrap Procedural Scene")]
     public static void Bootstrap()
     {
@@ -48,7 +50,7 @@ public static class ProceduralSceneSetupUtility
             Undo.RegisterCreatedObjectUndo(cameraGo, "Create Main Camera");
             cameraGo.tag = "MainCamera";
 
-            cameraGo.transform.position = new Vector3(0f, 10f, -10f);
+            cameraGo.transform.position = DefaultCameraPosition;
             cameraGo.transform.rotation = Quaternion.Euler(45f, 0f, 0f);
 
             camera = Undo.AddComponent<Camera>(cameraGo);

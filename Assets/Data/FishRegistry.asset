@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: FishRegistry
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.FishRegistry
   fishes:
+  - {fileID: 11400000, guid: e66d6633def17c74b91898aa18bc072d, type: 2}
   - {fileID: 11400000, guid: 501afda3c672bed4186c521277def32a, type: 2}
   - {fileID: 11400000, guid: 7f24ca413c4857a43b3261d7eda05eb1, type: 2}
   - {fileID: 11400000, guid: 79660cbd3500ab8458ef5750a59ec376, type: 2}

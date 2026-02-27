@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_resource_Copper_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: resource_Copper_Ore
+  id: Copper
   displayName: RESOURCE_COPPER ORE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: f758f95647e45684086450f40b1152e8, type: 3}

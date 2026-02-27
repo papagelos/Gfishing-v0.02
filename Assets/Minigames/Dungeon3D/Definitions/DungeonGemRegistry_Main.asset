@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3918e08666a1454e9d9ddb4179d2e4e4, type: 3}
+  m_Name: DungeonGemRegistry_Main
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Data.DungeonGemRegistry
+  gems:
+  - gemId: 1
+    icon: {fileID: 21300000, guid: f922a487e9e26d5428fc06422b69224d, type: 3}
+    skillDefinition: {fileID: 11400000, guid: cc9b4ed5f3e44e65a9dcaf1600bdf344, type: 2}
+    description: 

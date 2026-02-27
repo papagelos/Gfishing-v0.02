@@ -22,11 +22,8 @@
                 </ui:VisualElement>
                 <ui:VisualElement name="ResourcesPanel" class="dropdown-panel" style="display: none;">
                     <ui:Label name="LabelStorageCapacity" text="STORAGE CAPACITY: 0" class="dropdown-row" style="color: rgb(255, 255, 255);" />
-                    <ui:VisualElement name="ResourceGrid" class="resource-grid">
-                        <ui:Label name="Res_Wood" text="Wood: 0" class="resource-entry" />
-                        <ui:Label name="Res_Stone" text="Stone: 0" class="resource-entry" />
-                        <ui:Label name="Res_Fiber" text="Fiber: 0" class="resource-entry" />
-                        <ui:Label name="Res_Bait" text="Bait: 0" class="resource-entry" />
+                    <ui:VisualElement name="ResourceContainer" class="resource-grid">
+                        <ui:Label name="Res_Template" text="Template: 0" class="resource-entry" style="display: none;" />
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>

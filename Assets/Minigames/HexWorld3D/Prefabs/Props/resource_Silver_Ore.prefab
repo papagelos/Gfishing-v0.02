@@ -280,13 +280,13 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.08, y: 0.08, z: 0.08}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3645687608187367488}
   - {fileID: 1682060430905296257}
   - {fileID: 4969609540422807545}
-  - {fileID: 6562586139896811634}
+  - {fileID: 7580613929708923812}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!210 &4380528353615089597
@@ -399,7 +399,7 @@ MonoBehaviour:
   proximityRadius: 1.2
   vibrationAmplitude: 0.05
   vibrationDuration: 0.12
-  miningParticles: {fileID: 2948986758613094777}
+  miningParticles: {fileID: 1931440278982945455}
   dungeonRunInventory: {fileID: 0}
   brokenVisual: {fileID: 0}
   destroyOnBreak: 1
@@ -580,7 +580,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 1
---- !u!1001 &7822796105353236594
+--- !u!1001 &6823264571860298660
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -637,13 +637,13 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1e10db89405a438ebb26fab0a406be81, type: 3}
---- !u!198 &2948986758613094777 stripped
+--- !u!198 &1931440278982945455 stripped
 ParticleSystem:
   m_CorrespondingSourceObject: {fileID: 4935030712590221579, guid: 1e10db89405a438ebb26fab0a406be81, type: 3}
-  m_PrefabInstance: {fileID: 7822796105353236594}
+  m_PrefabInstance: {fileID: 6823264571860298660}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &6562586139896811634 stripped
+--- !u!4 &7580613929708923812 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4000000000000000000, guid: 1e10db89405a438ebb26fab0a406be81, type: 3}
-  m_PrefabInstance: {fileID: 7822796105353236594}
+  m_PrefabInstance: {fileID: 6823264571860298660}
   m_PrefabAsset: {fileID: 0}

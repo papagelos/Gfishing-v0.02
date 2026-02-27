@@ -32,7 +32,7 @@ namespace GalacticFishing.Minigames.HexWorld
         [SerializeField] private HexWorldResourceId[] resources;
 
         [Header("Behavior")]
-        [SerializeField] private bool hideZero = false;
+        [SerializeField] private bool hideZero = true;
         [SerializeField] private bool sortByEnumValue = true;
 
         [Header("Formatting")]

@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: FishMetaIndex
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.FishMetaIndex
   entries:
+  - fish: {fileID: 11400000, guid: e66d6633def17c74b91898aa18bc072d, type: 2}
+    meta: {fileID: 11400000, guid: 4526799f654c29c47b1f8d9f6bbb478f, type: 2}
+    key: Abyssal DreadMaw
   - fish: {fileID: 11400000, guid: 79660cbd3500ab8458ef5750a59ec376, type: 2}
     meta: {fileID: 11400000, guid: 37f3b94b7918d7c46885ff7991647516, type: 2}
     key: Fish_Aegis_Stingray_0
@@ -370,9 +373,6 @@ MonoBehaviour:
   - fish: {fileID: 0}
     meta: {fileID: 11400000, guid: 7b19de204b195b148a9a4137848f9474, type: 2}
     key: Fish_
-  - fish: {fileID: 0}
-    meta: {fileID: 11400000, guid: 4526799f654c29c47b1f8d9f6bbb478f, type: 2}
-    key: Abyssal DreadMaw
   - fish: {fileID: 0}
     meta: {fileID: 11400000, guid: 78707534cf8280442889650e8e9304cb, type: 2}
     key: Abyssal Sturgeon

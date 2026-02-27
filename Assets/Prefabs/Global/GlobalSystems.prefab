@@ -2452,6 +2452,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2354668284244248405}
   - component: {fileID: 840224992294656622}
+  - component: {fileID: 1122334455667788990}
   m_Layer: 0
   m_Name: GlobalSystems
   m_TagString: Untagged
@@ -2488,6 +2489,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30dcb9c5ade646248aa20da1ddc6ba28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GlobalSystemsBootstrap
+--- !u!114 &1122334455667788990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8624376164063368362}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d7d94db5eb744b4abf7a7b86cc54e10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.UI.GlobalMenuController
+  popupRoot: {fileID: 0}
 --- !u!1 &8699587128076460079
 GameObject:
   m_ObjectHideFlags: 0

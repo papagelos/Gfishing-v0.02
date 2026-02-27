@@ -96,6 +96,7 @@ namespace GalacticFishing.UI
         public class CustomItem
         {
             public string label = "Item";
+            public string hoverText = "";
             public Sprite icon;
             public UnityEvent onClick;
         }

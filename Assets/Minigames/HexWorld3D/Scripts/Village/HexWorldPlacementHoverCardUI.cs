@@ -119,7 +119,9 @@ namespace GalacticFishing.Minigames.HexWorld
                 return;
 
             _overlayRoot = root.Q<VisualElement>("OverlayRoot") ?? root;
-            _hoverCardRoot = root.Q<VisualElement>("HoverCardRoot") ?? root.Q<VisualElement>("PlacementHoverCard");
+            _hoverCardRoot = root.Q<VisualElement>("HoverCardRoot")
+                             ?? root.Q<VisualElement>("ROOT_PlacementHover")
+                             ?? root.Q<VisualElement>("PlacementHoverCard");
             _titleLabel = root.Q<Label>("TitleLabel") ?? root.Q<Label>("HoverNameLabel");
             _baseValueLabel = root.Q<Label>("BaseValueLabel");
             _bonusList = root.Q<VisualElement>("BonusList") ?? root.Q<VisualElement>("HoverBreakdownList");

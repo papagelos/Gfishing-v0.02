@@ -1,0 +1,15 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/Panels/VillageTabs/VillageHudStrip.uss?fileID=7433441132597879392&amp;guid=9c19a9366a3039f4bb2b353228c156b8&amp;type=3#VillageHudStrip" />
+    <Style src="DungeonHotbar.uss" />
+    <ui:VisualElement name="ROOT_DungeonHotbar" class="dungeon-hotbar-root">
+        <ui:VisualElement name="HotbarStrip" class="dungeon-hotbar-strip">
+            <ui:Button name="DungeonSlot0" text="1" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot1" text="2" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot2" text="3" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot3" text="4" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot4" text="5" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot5" text="6" class="card-btn dungeon-slot" />
+            <ui:Button name="DungeonSlot6" text="7" class="card-btn dungeon-slot" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -152,6 +152,8 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     loaded.spineCoords = new List<HexCoord>();
                 if (loaded.pocketCoords == null)
                     loaded.pocketCoords = new List<HexCoord>();
+                if (loaded.packSeeds == null)
+                    loaded.packSeeds = new List<PackSeedSpawn>();
 
                 bool foundStartMarker = false;
                 bool foundBossMarker = false;
@@ -217,6 +219,9 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     loaded.bossCoord,
                     loaded.BuildWalkableSet());
 
+                if (loaded.packSeeds.Count == 0)
+                    loaded.packSeeds = BuildPackSeeds(new System.Random(seed), loaded);
+
                 return loaded;
             }
 
@@ -240,7 +245,9 @@ namespace GalacticFishing.Minigames.Dungeon3D
             layout.bossCoord = spinePath.Count > 0 ? spinePath[spinePath.Count - 1] : layout.startCoord;
 
             GeneratePockets(rng, genProfile, spinePath, walkable, walkableList, pocketSet);
+            MarkSpineThickeningAsResourceValid(spinePath, spineSet, pocketSet);
             ExpandToTarget(rng, genProfile.EffectiveTargetTileCount, walkable, walkableList);
+            FillIsolatedHoles(walkable, walkableList);
 
             if (!IsReachable(layout.startCoord, layout.bossCoord, walkable))
                 ForceConnectStartToBoss(layout.startCoord, layout.bossCoord, walkable, walkableList);
@@ -269,7 +276,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 {
                     bool isPocket = kind == DimensionTileKind.Pocket;
                     bool preferResource = isPocket && resourceVeinCoords.Contains(coord);
-                    bool avoidResources = !isPocket;
+                    bool avoidResources = kind == DimensionTileKind.Spine;
 
                     string prop = PickRandomProp(
                         rng,
@@ -327,8 +334,69 @@ namespace GalacticFishing.Minigames.Dungeon3D
             sortedPockets.Sort(CompareCoords);
             layout.pocketCoords = sortedPockets;
             layout.bossReachable = IsReachable(layout.startCoord, layout.bossCoord, walkable);
+            layout.packSeeds = BuildPackSeeds(rng, layout);
 
             return layout;
+        }
+
+        private static List<PackSeedSpawn> BuildPackSeeds(System.Random rng, DimensionLayout layout)
+        {
+            var seeds = new List<PackSeedSpawn>();
+            if (layout == null || layout.tiles == null || layout.tiles.Count == 0)
+                return seeds;
+
+            const string ChaserArchetypeId = "CHASER";
+
+            int desired = Mathf.Clamp(layout.tiles.Count / 350, 3, 14);
+            var chosen = new HashSet<HexCoord>();
+
+            AddFromList(layout.pocketCoords, desired, preferRandom: true);
+            AddFromList(layout.spineCoords, desired, preferRandom: false);
+
+            if (seeds.Count < desired)
+            {
+                var fallback = new List<HexCoord>(layout.tiles.Count);
+                for (int i = 0; i < layout.tiles.Count; i++)
+                    fallback.Add(layout.tiles[i].coord);
+                AddFromList(fallback, desired, preferRandom: true);
+            }
+
+            return seeds;
+
+            void AddFromList(List<HexCoord> source, int targetCount, bool preferRandom)
+            {
+                if (source == null || source.Count == 0 || seeds.Count >= targetCount)
+                    return;
+
+                if (preferRandom)
+                {
+                    int guard = source.Count * 4;
+                    while (seeds.Count < targetCount && guard-- > 0)
+                    {
+                        HexCoord coord = source[rng.Next(source.Count)];
+                        TryAdd(coord);
+                    }
+                    return;
+                }
+
+                int stride = Mathf.Max(1, source.Count / Mathf.Max(1, targetCount));
+                for (int i = 0; i < source.Count && seeds.Count < targetCount; i += stride)
+                    TryAdd(source[i]);
+            }
+
+            void TryAdd(HexCoord coord)
+            {
+                if (coord.Equals(layout.startCoord) || coord.Equals(layout.bossCoord))
+                    return;
+                if (!chosen.Add(coord))
+                    return;
+
+                seeds.Add(new PackSeedSpawn
+                {
+                    coord = coord,
+                    archetypeId = ChaserArchetypeId,
+                });
+            }
         }
 
         private static List<HexCoord> GenerateSpine(
@@ -407,6 +475,13 @@ namespace GalacticFishing.Minigames.Dungeon3D
                     spine.Add(current);
                     AddWalkable(current, walkable, walkableList);
                 }
+            }
+
+            // Thicken the main route to prevent 1-tile chokepoints.
+            var spineSnapshot = new HashSet<HexCoord>(spine);
+            foreach (HexCoord spineCoord in spineSnapshot)
+            {
+                AddRadiusCluster(spineCoord, 2, walkable, walkableList);
             }
 
             return spine;
@@ -571,6 +646,93 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 HexCoord origin = walkableList[rng.Next(walkableList.Count)];
                 HexCoord candidate = origin.Neighbor(rng.Next(0, HexCoord.NeighborDirs.Length));
                 AddWalkable(candidate, walkable, walkableList);
+                for (int dir = 0; dir < HexCoord.NeighborDirs.Length; dir++)
+                {
+                    AddWalkable(candidate.Neighbor(dir), walkable, walkableList);
+                }
+            }
+        }
+
+        private static void FillIsolatedHoles(HashSet<HexCoord> walkable, List<HexCoord> walkableList)
+        {
+            if (walkable == null || walkableList == null || walkableList.Count == 0)
+                return;
+
+            var toFill = new HashSet<HexCoord>();
+            var scanSnapshot = new List<HexCoord>(walkableList);
+            for (int i = 0; i < scanSnapshot.Count; i++)
+            {
+                HexCoord coord = scanSnapshot[i];
+                for (int dir = 0; dir < HexCoord.NeighborDirs.Length; dir++)
+                {
+                    HexCoord neighbor = coord.Neighbor(dir);
+                    if (walkable.Contains(neighbor))
+                        continue;
+
+                    int adjacentWalkableCount = 0;
+                    for (int n = 0; n < HexCoord.NeighborDirs.Length; n++)
+                    {
+                        if (walkable.Contains(neighbor.Neighbor(n)))
+                            adjacentWalkableCount++;
+                    }
+
+                    if (adjacentWalkableCount >= 5)
+                        toFill.Add(neighbor);
+                }
+            }
+
+            foreach (HexCoord hole in toFill)
+            {
+                AddWalkable(hole, walkable, walkableList);
+            }
+        }
+
+        private static void AddRadiusCluster(
+            HexCoord center,
+            int radius,
+            HashSet<HexCoord> walkable,
+            List<HexCoord> walkableList)
+        {
+            if (radius < 0)
+                return;
+
+            for (int dq = -radius; dq <= radius; dq++)
+            {
+                int drMin = Mathf.Max(-radius, -dq - radius);
+                int drMax = Mathf.Min(radius, -dq + radius);
+                for (int dr = drMin; dr <= drMax; dr++)
+                {
+                    AddWalkable(new HexCoord(center.q + dq, center.r + dr), walkable, walkableList);
+                }
+            }
+        }
+
+        // Treat spine thickening tiles as "pocket-like" for resource generation so widened corridors can host veins.
+        private static void MarkSpineThickeningAsResourceValid(
+            List<HexCoord> spinePath,
+            HashSet<HexCoord> spineSet,
+            HashSet<HexCoord> pocketSet)
+        {
+            if (spinePath == null || spineSet == null || pocketSet == null)
+                return;
+
+            for (int i = 0; i < spinePath.Count; i++)
+            {
+                HexCoord center = spinePath[i];
+                const int radius = 2;
+                for (int dq = -radius; dq <= radius; dq++)
+                {
+                    int drMin = Mathf.Max(-radius, -dq - radius);
+                    int drMax = Mathf.Min(radius, -dq + radius);
+                    for (int dr = drMin; dr <= drMax; dr++)
+                    {
+                        HexCoord coord = new HexCoord(center.q + dq, center.r + dr);
+                        if (spineSet.Contains(coord))
+                            continue;
+
+                        pocketSet.Add(coord);
+                    }
+                }
             }
         }
 
@@ -728,6 +890,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
                         ? "ALL"
                         : NormalizeBiome(def.biomeGroup);
                     bool matchesBiome =
+                        isResource || // Resources are floor content; don't block them on biome art tags.
                         string.Equals(propBiome, "ALL", StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(propBiome, biome, StringComparison.OrdinalIgnoreCase) ||
                         globalIds.Contains(id);

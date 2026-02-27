@@ -104,6 +104,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -302,6 +303,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75389b7f4c449674da9abe45055494b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexCameraPanZoom3D
+  lockRotation: 0
+  lockedYaw: 45
+  lockedPitch: 45
   orbitTarget: {fileID: 0}
   panSpeed: 1
   rotateSpeed: 0.15
@@ -453,6 +457,7 @@ MonoBehaviour:
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -539,14 +544,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2756519919859213608}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -708,7 +713,7 @@ MonoBehaviour:
   tilesParent: {fileID: 2953239283626877980}
   startingStyle: {fileID: 11400000, guid: d3148c8890bf2434fb8d698b8785b066, type: 2}
   topMaterialSlotOverride: -1
-  hexSize: 0
+  hexSize: 0.5
   startingCredits: 9999
   costPerTile: 10
   enableTileBudgetPlacement: 1
@@ -724,8 +729,16 @@ MonoBehaviour:
   tintGhostWhenInvalid: 1
   invalidGhostTint: {r: 1, g: 0.3, b: 0.3, a: 1}
   buildingCatalog: []
+  propCatalog: []
+  maxPropsPerTile: 4
   buildingsParent: {fileID: 0}
-  allowReplaceBuilding: 1
+  buildingContextMenu: {fileID: 0}
+  townHallLevel: 1
+  warehouse: {fileID: 0}
+  worldProgressionProvider: {fileID: 0}
+  townHallStartingStyle: {fileID: 0}
+  townHallBuildingDef: {fileID: 0}
+  balanceConfig: {fileID: 0}
   autoLoadOnStart: 1
   autoSaveOnExit: 1
   exitSceneName: 
@@ -735,6 +748,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bcf49588a2a41c14ca51ac6a51873361, type: 2}
   - {fileID: 11400000, guid: e4c84a45619c01f498bfa43e0699aa27, type: 2}
   - {fileID: 11400000, guid: 100ce9ceec4b5784fae48ae8d454544e, type: 2}
+  dungeonExportMapName: Village_Handmade
+  isDungeonEditorMode: 0
+  townTierDefinitions: []
+  debugDrawRoadNetwork: 1
+  debugRoadColor: {r: 0.2, g: 0.8, b: 0.2, a: 0.5}
 --- !u!114 &400055333800589597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -867,6 +885,7 @@ MonoBehaviour:
   controller: {fileID: 5748590224200386753}
   slotsContainer: {fileID: 8201340336960527358}
   slotPrefab: {fileID: 2347333998765122686, guid: a5c81dabeee86ea4a987f0f42c72318b, type: 3}
+  syncWithControllerCatalog: 1
   styles:
   - {fileID: 11400000, guid: d3148c8890bf2434fb8d698b8785b066, type: 2}
   - {fileID: 11400000, guid: e4c84a45619c01f498bfa43e0699aa27, type: 2}
@@ -876,6 +895,10 @@ MonoBehaviour:
   startAllUnlocked: 1
   initiallyUnlocked: []
   clickSelectedAgainToDeselect: 1
+  pageSize: 5
+  prevPageButton: {fileID: 0}
+  nextPageButton: {fileID: 0}
+  pageLabel: {fileID: 0}
   toastGroup: {fileID: 6339459849994678946}
   toastText: {fileID: 2890978399806204010}
   toastFadeIn: 0.08
@@ -902,6 +925,10 @@ MonoBehaviour:
   startAllUnlocked: 1
   initiallyUnlocked: []
   clickSelectedAgainToDeselect: 1
+  pageSize: 5
+  prevPageButton: {fileID: 0}
+  nextPageButton: {fileID: 0}
+  pageLabel: {fileID: 0}
   toastGroup: {fileID: 0}
   toastText: {fileID: 0}
   toastFadeIn: 0.08
@@ -1095,6 +1122,7 @@ MonoBehaviour:
   controller: {fileID: 5748590224200386753}
   slotsContainer: {fileID: 8783027071520077542}
   slotPrefab: {fileID: 2347333998765122686, guid: a5c81dabeee86ea4a987f0f42c72318b, type: 3}
+  syncWithControllerCatalog: 1
   styles:
   - {fileID: 11400000, guid: d3148c8890bf2434fb8d698b8785b066, type: 2}
   - {fileID: 11400000, guid: e4c84a45619c01f498bfa43e0699aa27, type: 2}
@@ -1104,6 +1132,10 @@ MonoBehaviour:
   startAllUnlocked: 1
   initiallyUnlocked: []
   clickSelectedAgainToDeselect: 1
+  pageSize: 5
+  prevPageButton: {fileID: 0}
+  nextPageButton: {fileID: 0}
+  pageLabel: {fileID: 0}
   toastGroup: {fileID: 6339459849994678946}
   toastText: {fileID: 2890978399806204010}
   toastFadeIn: 0.08

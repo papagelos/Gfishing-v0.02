@@ -34,6 +34,9 @@ namespace GalacticFishing.Minigames.HexWorld
         Iron = 22,
         Gold = 23,
         Clay = 24,
+        Silver = 25,
+        Basalt = 26,
+        Emerald = 27,
 
         // Refined/Processed resources (TICKET 20)
         Planks = 30,

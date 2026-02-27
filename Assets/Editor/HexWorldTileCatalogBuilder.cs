@@ -17,10 +17,19 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
     private const string VerifiedTexturePropertyName = "_Basemap";
     private const string MaterialFolder = "Assets/Minigames/HexWorld3D/Materials/Tiles/Dungeon";
     private const string DefinitionFolder = "Assets/Minigames/HexWorld3D/Definitions/Tiles/Dungeon";
+    private const string OwnedTilePrefabPath = "Assets/Minigames/HexWorld3D/Prefabs/PF_HexTile3D_Owned.prefab";
+    private const string FrontierTilePrefabPath = "Assets/Minigames/HexWorld3D/Prefabs/PF_HexTile3D_Frontier.prefab";
+    private const float BaseHexSize = 0.5f;
+    private const string PrefTargetHexSize = "GF.HexWorldTileCatalogBuilder.TargetHexSize";
+    private const string PrefLastAppliedHexSize = "GF.HexWorldTileCatalogBuilder.LastAppliedHexSize";
+    private const string PrefScaleMovementAndPan = "GF.HexWorldTileCatalogBuilder.ScaleMovementAndPan";
 
     private string _sourceFolder = "Assets/Sprites/Biomes";
     private bool _appendToSceneCatalog = true;
     private DimensionGenProfile _genProfile;
+    private float _targetHexSize = BaseHexSize;
+    private float _lastAppliedHexSize = BaseHexSize;
+    private bool _scaleMovementAndPan = true;
 
     [MenuItem(WindowMenuPath)]
     public static void Open()
@@ -28,6 +37,13 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         var window = GetWindow<HexWorldTileCatalogBuilder>("Tile Auto-Builder");
         window.minSize = new Vector2(560f, 260f);
         window.Show();
+    }
+
+    private void OnEnable()
+    {
+        _targetHexSize = Mathf.Max(0.05f, EditorPrefs.GetFloat(PrefTargetHexSize, BaseHexSize));
+        _lastAppliedHexSize = Mathf.Max(0.05f, EditorPrefs.GetFloat(PrefLastAppliedHexSize, BaseHexSize));
+        _scaleMovementAndPan = EditorPrefs.GetBool(PrefScaleMovementAndPan, true);
     }
 
     private void OnGUI()
@@ -59,6 +75,19 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
         EditorGUILayout.LabelField("Definition Path", DefinitionFolder);
 
         EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Global Hex Scale Utility", EditorStyles.boldLabel);
+        _targetHexSize = Mathf.Max(0.05f, EditorGUILayout.FloatField(
+            new GUIContent("Global Hex Size", "Sets hexSize on Village/Dungeon controllers and scales core tile prefabs to match."),
+            _targetHexSize));
+        _scaleMovementAndPan = EditorGUILayout.ToggleLeft(
+            new GUIContent("Scale player moveSpeed and camera panSpeed (scene instances)",
+                "Optional: scales PlayerController3D.moveSpeed and HexCameraPanZoom3D.panSpeed by the same ratio so navigation keeps pace with world scale."),
+            _scaleMovementAndPan);
+
+        EditorPrefs.SetFloat(PrefTargetHexSize, _targetHexSize);
+        EditorPrefs.SetBool(PrefScaleMovementAndPan, _scaleMovementAndPan);
+
+        EditorGUILayout.Space();
         using (new EditorGUI.DisabledScope(EditorApplication.isPlaying))
         {
             if (GUILayout.Button("Build Tile Catalog", GUILayout.Height(34f)))
@@ -69,7 +98,49 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
                 "DESTRUCTIVE: Deletes ALL existing generated tile materials and assets, wipes the current scene's tile list, and resets the Dungeon Profile before rebuilding from the source folder.");
             if (GUILayout.Button(destructiveContent, GUILayout.Height(34f)))
                 BuildCatalog(destructive: true);
+
+            if (GUILayout.Button("Apply Global Hex Scale", GUILayout.Height(34f)))
+                ApplyGlobalHexScale();
         }
+    }
+
+    private void ApplyGlobalHexScale()
+    {
+        float targetHexSize = Mathf.Max(0.05f, _targetHexSize);
+        float baseRatio = targetHexSize / BaseHexSize;
+        float deltaRatio = targetHexSize / Mathf.Max(0.05f, _lastAppliedHexSize);
+
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Apply Global Hex Scale");
+
+        int villageSceneControllers = SetSceneFloatProperty<HexWorld3DController>("hexSize", targetHexSize);
+        int dungeonSceneRenderers = SetSceneFloatProperty<DimensionRenderer>("hexSize", targetHexSize);
+        int villagePrefabControllers = SetPrefabFloatProperty<HexWorld3DController>("hexSize", targetHexSize);
+        int dungeonPrefabRenderers = SetPrefabFloatProperty<DimensionRenderer>("hexSize", targetHexSize);
+        int tilePrefabsScaled = SetTilePrefabScale(baseRatio);
+        int propDefsUpdated = ScaleAllPropJitter(deltaRatio);
+
+        int moveSpeedScaled = 0;
+        int panSpeedScaled = 0;
+        if (_scaleMovementAndPan)
+        {
+            moveSpeedScaled = ScaleSceneFloatProperty<PlayerController3D>("moveSpeed", deltaRatio, 0.1f);
+            panSpeedScaled = ScaleSceneFloatProperty<HexCameraPanZoom3D>("panSpeed", deltaRatio, 0.01f);
+        }
+
+        _targetHexSize = targetHexSize;
+        _lastAppliedHexSize = targetHexSize;
+        EditorPrefs.SetFloat(PrefTargetHexSize, _targetHexSize);
+        EditorPrefs.SetFloat(PrefLastAppliedHexSize, _lastAppliedHexSize);
+
+        AssetDatabase.SaveAssets();
+        Undo.CollapseUndoOperations(undoGroup);
+
+        Debug.Log(
+            $"[HexWorldTileCatalogBuilder] Global hex scale applied. target={targetHexSize:0.###}, baseRatio={baseRatio:0.###}, deltaRatio={deltaRatio:0.###}. " +
+            $"Updated scene controllers/renderers: {villageSceneControllers}/{dungeonSceneRenderers}, " +
+            $"prefab controllers/renderers: {villagePrefabControllers}/{dungeonPrefabRenderers}, " +
+            $"tile prefabs: {tilePrefabsScaled}, prop jitter defs: {propDefsUpdated}, move/pan scaled: {moveSpeedScaled}/{panSpeedScaled}.");
     }
 
     private void BuildCatalog(bool destructive)
@@ -582,6 +653,170 @@ public sealed class HexWorldTileCatalogBuilder : EditorWindow
                 AssetDatabase.CreateFolder(current, parts[i]);
             current = next;
         }
+    }
+
+    private static int SetTilePrefabScale(float ratio)
+    {
+        int updated = 0;
+        updated += SetPrefabRootScale(OwnedTilePrefabPath, ratio) ? 1 : 0;
+        updated += SetPrefabRootScale(FrontierTilePrefabPath, ratio) ? 1 : 0;
+        return updated;
+    }
+
+    private static bool SetPrefabRootScale(string prefabPath, float ratio)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        if (prefab == null)
+        {
+            Debug.LogWarning($"[HexWorldTileCatalogBuilder] Missing prefab at path: {prefabPath}");
+            return false;
+        }
+
+        Vector3 targetScale = Vector3.one * ratio;
+        Transform tr = prefab.transform;
+        if ((tr.localScale - targetScale).sqrMagnitude <= 0.0000001f)
+            return false;
+
+        Undo.RecordObject(tr, "Apply Global Hex Scale");
+        tr.localScale = targetScale;
+        EditorUtility.SetDirty(tr);
+        EditorUtility.SetDirty(prefab);
+        return true;
+    }
+
+    private static int ScaleAllPropJitter(float deltaRatio)
+    {
+        if (Mathf.Approximately(deltaRatio, 1f))
+            return 0;
+
+        string[] guids = AssetDatabase.FindAssets("t:HexWorldPropDefinition");
+        int updated = 0;
+        for (int i = 0; i < guids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+            HexWorldPropDefinition def = AssetDatabase.LoadAssetAtPath<HexWorldPropDefinition>(path);
+            if (def == null)
+                continue;
+
+            float next = Mathf.Max(0f, def.jitterRadius * deltaRatio);
+            if (Mathf.Approximately(def.jitterRadius, next))
+                continue;
+
+            Undo.RecordObject(def, "Apply Global Hex Scale");
+            def.jitterRadius = next;
+            EditorUtility.SetDirty(def);
+            updated++;
+        }
+
+        return updated;
+    }
+
+    private static int SetSceneFloatProperty<T>(string propertyName, float value) where T : MonoBehaviour
+    {
+        T[] instances = Resources.FindObjectsOfTypeAll<T>();
+        int updated = 0;
+        for (int i = 0; i < instances.Length; i++)
+        {
+            T instance = instances[i];
+            if (instance == null)
+                continue;
+
+            if (EditorUtility.IsPersistent(instance))
+                continue;
+
+            if (!instance.gameObject.scene.IsValid())
+                continue;
+
+            SerializedObject so = new SerializedObject(instance);
+            SerializedProperty prop = so.FindProperty(propertyName);
+            if (prop == null || prop.propertyType != SerializedPropertyType.Float)
+                continue;
+
+            if (Mathf.Approximately(prop.floatValue, value))
+                continue;
+
+            Undo.RecordObject(instance, "Apply Global Hex Scale");
+            prop.floatValue = value;
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(instance);
+            EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
+            updated++;
+        }
+
+        return updated;
+    }
+
+    private static int ScaleSceneFloatProperty<T>(string propertyName, float multiplier, float minValue) where T : MonoBehaviour
+    {
+        if (Mathf.Approximately(multiplier, 1f))
+            return 0;
+
+        T[] instances = Resources.FindObjectsOfTypeAll<T>();
+        int updated = 0;
+        for (int i = 0; i < instances.Length; i++)
+        {
+            T instance = instances[i];
+            if (instance == null)
+                continue;
+
+            if (EditorUtility.IsPersistent(instance))
+                continue;
+
+            if (!instance.gameObject.scene.IsValid())
+                continue;
+
+            SerializedObject so = new SerializedObject(instance);
+            SerializedProperty prop = so.FindProperty(propertyName);
+            if (prop == null || prop.propertyType != SerializedPropertyType.Float)
+                continue;
+
+            float next = Mathf.Max(minValue, prop.floatValue * multiplier);
+            if (Mathf.Approximately(prop.floatValue, next))
+                continue;
+
+            Undo.RecordObject(instance, "Apply Global Hex Scale");
+            prop.floatValue = next;
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(instance);
+            EditorSceneManager.MarkSceneDirty(instance.gameObject.scene);
+            updated++;
+        }
+
+        return updated;
+    }
+
+    private static int SetPrefabFloatProperty<T>(string propertyName, float value) where T : MonoBehaviour
+    {
+        string[] prefabGuids = AssetDatabase.FindAssets("t:Prefab");
+        int updated = 0;
+        for (int i = 0; i < prefabGuids.Length; i++)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(prefabGuids[i]);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (prefab == null)
+                continue;
+
+            T component = prefab.GetComponentInChildren<T>(true);
+            if (component == null)
+                continue;
+
+            SerializedObject so = new SerializedObject(component);
+            SerializedProperty prop = so.FindProperty(propertyName);
+            if (prop == null || prop.propertyType != SerializedPropertyType.Float)
+                continue;
+
+            if (Mathf.Approximately(prop.floatValue, value))
+                continue;
+
+            Undo.RecordObject(component, "Apply Global Hex Scale");
+            prop.floatValue = value;
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(component);
+            EditorUtility.SetDirty(prefab);
+            updated++;
+        }
+
+        return updated;
     }
 }
 #endif

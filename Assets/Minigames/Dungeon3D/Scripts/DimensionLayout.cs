@@ -13,6 +13,13 @@ namespace GalacticFishing.Minigames.Dungeon3D
     }
 
     [Serializable]
+    public struct PackSeedSpawn
+    {
+        public HexCoord coord;
+        public string archetypeId;
+    }
+
+    [Serializable]
     public struct DimensionTileData
     {
         public HexCoord coord;
@@ -35,6 +42,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
         public List<HexCoord> spineCoords = new();
         public List<HexCoord> pocketCoords = new();
         public List<DimensionTileData> tiles = new();
+        public List<PackSeedSpawn> packSeeds = new();
 
         public int WalkableCount => tiles?.Count ?? 0;
 
@@ -47,6 +55,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             spineCoords.Clear();
             pocketCoords.Clear();
             tiles.Clear();
+            packSeeds.Clear();
         }
 
         public HashSet<HexCoord> BuildWalkableSet()

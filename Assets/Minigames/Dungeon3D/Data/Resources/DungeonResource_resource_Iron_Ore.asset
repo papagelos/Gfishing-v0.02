@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1d43e8f5f0a4da3be8bf795c8d99b32, type: 3}
   m_Name: DungeonResource_resource_Iron_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition
-  resourceId: resource_Iron_Ore
+  resourceId: Iron
   prefab: {fileID: 270863940762476406, guid: bfe871060dde2554da0a953f55bf07c9, type: 3}
   maxHp: 15
   minFloor: 1

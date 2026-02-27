@@ -24,6 +24,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
         // Internal store
         private readonly Dictionary<HexWorldResourceId, int> _store = new();
+        private readonly Dictionary<HexWorldResourceId, int> _weightlessStore = new();
 
         public int WarehouseLevel
         {
@@ -62,13 +63,15 @@ namespace GalacticFishing.Minigames.HexWorld
         public int Get(HexWorldResourceId id)
         {
             if (id == HexWorldResourceId.None) return 0;
-            return _store.TryGetValue(id, out int v) ? v : 0;
+            int weighted = _store.TryGetValue(id, out int v) ? v : 0;
+            int weightless = _weightlessStore.TryGetValue(id, out int vw) ? vw : 0;
+            return weighted + weightless;
         }
 
         public int GetFreeSpace(HexWorldResourceId id)
         {
             if (id == HexWorldResourceId.None) return 0;
-            return Mathf.Max(0, Capacity - Get(id));
+            return Mathf.Max(0, Capacity - GetWeighted(id));
         }
 
         /// <summary>
@@ -87,8 +90,9 @@ namespace GalacticFishing.Minigames.HexWorld
 
         public void ClearAll()
         {
-            if (_store.Count == 0) return;
+            if (_store.Count == 0 && _weightlessStore.Count == 0) return;
             _store.Clear();
+            _weightlessStore.Clear();
             RaiseChanged();
         }
 
@@ -97,12 +101,29 @@ namespace GalacticFishing.Minigames.HexWorld
             if (id == HexWorldResourceId.None) return false;
             if (amount <= 0) return true;
 
-            int cur = Get(id);
-            if (cur < amount) return false;
+            int weighted = GetWeighted(id);
+            int weightless = GetWeightless(id);
+            int total = weighted + weightless;
+            if (total < amount) return false;
 
-            int next = cur - amount;
-            if (next <= 0) _store.Remove(id);
-            else _store[id] = next;
+            int remaining = amount;
+
+            // Remove from weighted store first to free capacity.
+            if (weighted > 0)
+            {
+                int take = Mathf.Min(weighted, remaining);
+                int nextWeighted = weighted - take;
+                if (nextWeighted <= 0) _store.Remove(id);
+                else _store[id] = nextWeighted;
+                remaining -= take;
+            }
+
+            if (remaining > 0)
+            {
+                int nextWeightless = weightless - remaining;
+                if (nextWeightless <= 0) _weightlessStore.Remove(id);
+                else _weightlessStore[id] = nextWeightless;
+            }
 
             RaiseChanged();
             return true;
@@ -113,7 +134,7 @@ namespace GalacticFishing.Minigames.HexWorld
             if (id == HexWorldResourceId.None) return false;
             if (amount <= 0) return true;
 
-            int cur = Get(id);
+            int cur = GetWeighted(id);
             int room = Capacity - cur;
             if (room <= 0)
                 return false;
@@ -123,6 +144,20 @@ namespace GalacticFishing.Minigames.HexWorld
                 return false;
 
             _store[id] = cur + toAdd;
+            RaiseChanged();
+            return true;
+        }
+
+        /// <summary>
+        /// Adds resources that do not consume weighted warehouse capacity.
+        /// </summary>
+        public bool TryAddWeightless(HexWorldResourceId id, int amount)
+        {
+            if (id == HexWorldResourceId.None) return false;
+            if (amount <= 0) return true;
+
+            int cur = GetWeightless(id);
+            _weightlessStore[id] = cur + amount;
             RaiseChanged();
             return true;
         }
@@ -150,7 +185,7 @@ namespace GalacticFishing.Minigames.HexWorld
 
             foreach (var kv in pendingByResource)
             {
-                int nextAmount = Get(kv.Key) + kv.Value;
+                int nextAmount = GetWeighted(kv.Key) + kv.Value;
                 if (nextAmount > Capacity)
                     return false;
             }
@@ -158,7 +193,7 @@ namespace GalacticFishing.Minigames.HexWorld
             // Commit
             foreach (var kv in pendingByResource)
             {
-                int cur = Get(kv.Key);
+                int cur = GetWeighted(kv.Key);
                 _store[kv.Key] = cur + kv.Value;
             }
 
@@ -192,7 +227,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 if (s.id == HexWorldResourceId.None) continue;
                 if (s.amount <= 0) continue;
 
-                int cur = Get(s.id);
+                int cur = GetWeighted(s.id);
                 int room = Mathf.Max(0, Capacity - cur);
                 int add = Mathf.Min(s.amount, room);
                 int overflow = s.amount - add;
@@ -222,12 +257,28 @@ namespace GalacticFishing.Minigames.HexWorld
 
         public List<HexWorldResourceStack> ToStacks()
         {
-            var list = new List<HexWorldResourceStack>(_store.Count);
+            var list = new List<HexWorldResourceStack>(_store.Count + _weightlessStore.Count);
             foreach (var kv in _store)
             {
                 if (kv.Key == HexWorldResourceId.None) continue;
                 if (kv.Value <= 0) continue;
                 list.Add(new HexWorldResourceStack(kv.Key, kv.Value));
+            }
+            foreach (var kv in _weightlessStore)
+            {
+                if (kv.Key == HexWorldResourceId.None) continue;
+                if (kv.Value <= 0) continue;
+
+                int idx = list.FindIndex(s => s.id == kv.Key);
+                if (idx >= 0)
+                {
+                    var existing = list[idx];
+                    list[idx] = new HexWorldResourceStack(existing.id, existing.amount + kv.Value);
+                }
+                else
+                {
+                    list.Add(new HexWorldResourceStack(kv.Key, kv.Value));
+                }
             }
             return list;
         }
@@ -250,6 +301,7 @@ namespace GalacticFishing.Minigames.HexWorld
                 WarehouseLevel = level;
 
             _store.Clear();
+            // Intentionally preserve weightless (dungeon-delivered) loot when reloading weighted village save stacks.
             if (stacks != null)
             {
                 foreach (var s in stacks)
@@ -261,6 +313,18 @@ namespace GalacticFishing.Minigames.HexWorld
             }
 
             RaiseChanged();
+        }
+
+        private int GetWeighted(HexWorldResourceId id)
+        {
+            if (id == HexWorldResourceId.None) return 0;
+            return _store.TryGetValue(id, out int v) ? v : 0;
+        }
+
+        private int GetWeightless(HexWorldResourceId id)
+        {
+            if (id == HexWorldResourceId.None) return 0;
+            return _weightlessStore.TryGetValue(id, out int v) ? v : 0;
         }
 
         private void RaiseChanged()

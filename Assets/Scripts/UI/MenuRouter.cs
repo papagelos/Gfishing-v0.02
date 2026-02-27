@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using GalacticFishing.UI;
+using GalacticFishing.Minigames.Dungeon3D;
 
 public class MenuRouter : MonoBehaviour
 {
@@ -258,6 +260,44 @@ public class MenuRouter : MonoBehaviour
         }
 
         SwitchPanelFromHub(workshopPanel);
+    }
+
+    public void OpenDungeon()
+    {
+        const string preferredScene = "Dungeon_Minigame";
+        const string fallbackScene = "dungeon_minigame";
+        Debug.Log($"[MenuRouter] OpenDungeon() -> {preferredScene}");
+        CloseAllAndReturnToGameplay();
+        if (Application.CanStreamedLevelBeLoaded(preferredScene))
+        {
+            SceneManager.LoadScene(preferredScene);
+            return;
+        }
+
+        SceneManager.LoadScene(fallbackScene);
+    }
+
+    /// <summary>
+    /// Generic dungeon-exit loader. Queues run loot for warehouse delivery, then loads target scene.
+    /// </summary>
+    public void LoadSceneFromDungeon(string sceneName)
+    {
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            Debug.LogWarning("[MenuRouter] LoadSceneFromDungeon called with empty scene name.");
+            return;
+        }
+
+        DungeonRunInventory.QueueActiveRunLootForWarehouseTransfer();
+        SceneManager.LoadScene(sceneName);
+    }
+
+    /// <summary>
+    /// Convenience target for dungeon exit buttons.
+    /// </summary>
+    public void ReturnToVillageFromDungeon()
+    {
+        LoadSceneFromDungeon("HexWorld_Village");
     }
 
     public void OpenFishEncyclopediaFromHub()

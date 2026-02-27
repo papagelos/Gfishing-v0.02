@@ -1,0 +1,97 @@
+.dungeon-hotbar-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 240px;
+
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-end;
+    padding-bottom: 18px;
+    padding-left: 16px;
+    padding-right: 16px;
+
+    overflow: visible;
+}
+
+.dungeon-hotbar-strip {
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 10px;
+
+    padding: 10px 12px;
+    border-radius: 14px;
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* Uses Village .card-btn as the base shell for consistency; this class only specializes layout. */
+.skill-slot {
+    width: 85px;
+    height: 85px;
+    min-width: 85px;
+    min-height: 85px;
+
+    padding-bottom: 0;
+    -unity-text-align: middle-center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.skill-slot:hover {
+    border-color: rgba(100, 200, 255, 0.8);
+    background-color: rgba(20, 24, 32, 0.85);
+}
+
+/* Extra classes already used by DungeonHotbarController (Ticket 289) remain supported. */
+.dungeon-slot.has-gem {
+    border-color: rgba(100, 200, 255, 0.75);
+    border-width: 2px;
+}
+
+.dungeon-gem-popup {
+    position: absolute;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    min-width: 320px;
+    max-width: 860px;
+    padding: 10px;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.14);
+    background-color: rgba(8, 10, 14, 0.94);
+}
+
+.dungeon-gem-popup-title {
+    color: rgba(255, 255, 255, 0.96);
+    font-size: 12px;
+    letter-spacing: 1px;
+    -unity-font-style: bold;
+    -unity-text-outline-width: 1px;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.85);
+}
+
+.dungeon-gem-popup-row {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.dungeon-gem-popup-empty {
+    color: rgba(255, 220, 140, 0.95);
+    font-size: 12px;
+}
+
+.dungeon-gem-choice {
+    width: 55px;
+    height: 55px;
+    min-width: 55px;
+    min-height: 55px;
+    font-size: 6px;
+    padding-bottom: 8px;
+    -unity-text-align: lower-center;
+}

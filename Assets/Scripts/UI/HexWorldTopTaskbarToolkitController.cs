@@ -1,5 +1,6 @@
 // Assets/Scripts/UI/HexWorldTopTaskbarToolkitController.cs
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using GalacticFishing.Minigames.HexWorld;
@@ -31,6 +32,10 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
 
     [Tooltip("Assign the MaterialQualityController panel. BtnMaterialQuality toggles this.")]
     [SerializeField] private MaterialQualityController materialQualityController;
+
+    [Header("Dynamic Resource UI")]
+    [Tooltip("Optional template for one resource row. If null, the controller clones the inline UXML template (Res_Template).")]
+    [SerializeField] private VisualTreeAsset labelTemplate;
 
     [Header("Reveal / Pin")]
     [SerializeField] private float animSpeed = 12f;
@@ -72,11 +77,10 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
     private Label _slotsLabel;
     private Label _warehouseTotalLabel;
 
-    private Label _woodLabel;
-    private Label _stoneLabel;
-    private Label _fiberLabel;
-    private Label _baitLabel;
+    private VisualElement _resourceContainer;
+    private Label _inlineResourceLabelTemplate;
     private Label _capacityLabel;
+    private readonly Dictionary<HexWorldResourceId, Label> _dynamicResourceLabels = new();
 
     private Toggle _pinToggle;
     private Button _btnStats;
@@ -140,10 +144,9 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
         _slotsLabel = QAny<Label>(root, "SlotsValue");
         _warehouseTotalLabel = QAny<Label>(root, "WarehouseTotalValue");
 
-        _woodLabel = QAny<Label>(root, "Res_Wood");
-        _stoneLabel = QAny<Label>(root, "Res_Stone");
-        _fiberLabel = QAny<Label>(root, "Res_Fiber");
-        _baitLabel = QAny<Label>(root, "Res_Bait");
+        _resourceContainer = QAny<VisualElement>(root, "ResourceContainer", "ResourceGrid");
+        _inlineResourceLabelTemplate = QAny<Label>(root, "Res_Template", "ResourceLabelTemplate");
+        BuildDynamicResourceLabelMap(root);
         _capacityLabel = root.Q<Label>("LabelStorageCapacity");
 
         _pinToggle = QAny<Toggle>(root, "PinToggle");
@@ -512,11 +515,127 @@ public sealed class HexWorldTopTaskbarToolkitController : MonoBehaviour
             if (_warehouseTotalLabel != null) _warehouseTotalLabel.text = $"Warehouse: {total}/{cap}";
             if (_capacityLabel != null) _capacityLabel.text = $"STORAGE CAPACITY: {cap}";
 
-            if (_woodLabel != null) _woodLabel.text = $"Wood: {TryGetAmount(warehouseBehaviour, "Wood")}";
-            if (_stoneLabel != null) _stoneLabel.text = $"Stone: {TryGetAmount(warehouseBehaviour, "Stone")}";
-            if (_fiberLabel != null) _fiberLabel.text = $"Fiber: {TryGetAmount(warehouseBehaviour, "Fiber")}";
-            if (_baitLabel != null) _baitLabel.text = $"Bait: {TryGetAmount(warehouseBehaviour, "BaitIngredients")}";
+            foreach (var kv in _dynamicResourceLabels)
+            {
+                if (kv.Value == null)
+                    continue;
+
+                string id = kv.Key.ToString();
+                int amount = TryGetAmount(warehouseBehaviour, id);
+                kv.Value.text = $"{id}: {amount}";
+
+                // Hide zero-count rows to avoid clutter from undiscovered/future resources.
+                // Keep starter materials visible as stable anchors in the taskbar.
+                bool visible = amount > 0 || kv.Key == HexWorldResourceId.Wood || kv.Key == HexWorldResourceId.Stone;
+                VisualElement rowRoot = ResolveResourceRowRoot(kv.Value);
+                if (rowRoot != null)
+                    rowRoot.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            }
         }
+    }
+
+    private void BuildDynamicResourceLabelMap(VisualElement root)
+    {
+        _dynamicResourceLabels.Clear();
+        if (root == null)
+            return;
+
+        if (_resourceContainer == null)
+            _resourceContainer = QAny<VisualElement>(root, "ResourceContainer", "ResourceGrid");
+        if (_inlineResourceLabelTemplate == null)
+            _inlineResourceLabelTemplate = QAny<Label>(root, "Res_Template", "ResourceLabelTemplate");
+
+        if (_resourceContainer == null)
+            return;
+
+        for (int i = _resourceContainer.childCount - 1; i >= 0; i--)
+        {
+            VisualElement child = _resourceContainer[i];
+            if (child == _inlineResourceLabelTemplate)
+                continue;
+            child.RemoveFromHierarchy();
+        }
+
+        if (_inlineResourceLabelTemplate != null)
+            _inlineResourceLabelTemplate.style.display = DisplayStyle.None;
+
+        foreach (HexWorldResourceId id in Enum.GetValues(typeof(HexWorldResourceId)))
+        {
+            if (!ShouldAutoListTaskbarResource(id))
+                continue;
+
+            string resourceName = id.ToString();
+            if (TryCreateDynamicResourceRow(resourceName, out var rowRoot, out var valueLabel))
+            {
+                _resourceContainer.Add(rowRoot);
+                _dynamicResourceLabels[id] = valueLabel;
+            }
+        }
+    }
+
+    private bool TryCreateDynamicResourceRow(string resourceName, out VisualElement rowRoot, out Label valueLabel)
+    {
+        rowRoot = null;
+        valueLabel = null;
+
+        if (string.IsNullOrWhiteSpace(resourceName))
+            return false;
+
+        if (labelTemplate != null)
+        {
+            var tempRoot = new VisualElement();
+            labelTemplate.CloneTree(tempRoot);
+
+            rowRoot = tempRoot.childCount == 1 ? tempRoot[0] : tempRoot;
+            if (rowRoot.parent != null)
+                rowRoot.RemoveFromHierarchy();
+
+            valueLabel = rowRoot as Label ?? rowRoot.Q<Label>("ValueLabel") ?? rowRoot.Q<Label>("Label") ?? rowRoot.Q<Label>();
+        }
+
+        if (rowRoot == null || valueLabel == null)
+        {
+            var label = new Label();
+            if (_inlineResourceLabelTemplate != null)
+            {
+                foreach (string cls in _inlineResourceLabelTemplate.GetClasses())
+                    label.AddToClassList(cls);
+            }
+            else
+            {
+                label.AddToClassList("resource-entry");
+            }
+            rowRoot = label;
+            valueLabel = label;
+        }
+
+        valueLabel.name = $"Res_{resourceName}";
+        valueLabel.text = $"{resourceName}: 0";
+        return true;
+    }
+
+    private VisualElement ResolveResourceRowRoot(Label valueLabel)
+    {
+        if (valueLabel == null)
+            return null;
+
+        if (_resourceContainer == null)
+            return valueLabel;
+
+        VisualElement current = valueLabel;
+        while (current.parent != null && current.parent != _resourceContainer)
+            current = current.parent;
+
+        return current;
+    }
+
+    private static bool ShouldAutoListTaskbarResource(HexWorldResourceId id)
+    {
+        if (id == HexWorldResourceId.None)
+            return false;
+
+        int raw = (int)id;
+        return raw >= 10 && raw < 50;
     }
 
     private static int GetInt(Type type, object instance, string propName)

@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1752369568767227587, guid: 6245fa71209c9f14eacd5eaba24dde54, type: 3}
       propertyPath: m_Name
-      value: Prefab_HexWorld3D_Base_System
+      value: Prefab_HexWorld3D_Base_System Prefab_Variant2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

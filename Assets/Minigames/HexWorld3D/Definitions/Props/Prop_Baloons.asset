@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
+  m_Name: Prop_Baloons
+  m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
+  id: Baloons
+  displayName: BALOONS
+  biomeGroup: ALL
+  thumbnail: {fileID: 21300000, guid: b2e79850882af784aabf5b5020362120, type: 3}
+  prefab: {fileID: 7169854359280372861, guid: c77aee2d63d9eb04db6716af4aa26d6d, type: 3}
+  minPerTile: 1
+  maxPerTile: 1
+  jitterRadius: 0.4
+  masterScale: 0.08
+  scale: 0.08
+  randomScaleRange: {x: -10, y: 10}

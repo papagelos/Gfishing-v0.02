@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e178f2b75e4d468ea9a4a6806cd90307, type: 3}
   m_Name: Prop_resource_Iron_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.HexWorld.HexWorldPropDefinition
-  id: resource_Iron_Ore
+  id: Iron
   displayName: RESOURCE_IRON ORE
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: f3304ab3c09370743925f9e28766c70e, type: 3}

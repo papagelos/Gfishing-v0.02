@@ -2,17 +2,27 @@ using System;
 using System.Collections.Generic;
 using GalacticFishing.Minigames.HexWorld;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace GalacticFishing.Minigames.Dungeon3D
 {
     public sealed class DimensionRenderer : MonoBehaviour
     {
+        [Serializable]
+        private sealed class EnemyArchetypeEntry
+        {
+            public string archetypeId;
+            public GameObject prefab;
+        }
+
         [Header("Refs")]
         [SerializeField] private DimensionGenerator generator;
         [SerializeField] private DimensionGenProfile profile;
         [SerializeField] private GameObject ownedPrefab;
         [SerializeField] private GameObject playerPrefab;
         [SerializeField] private GameObject voidGuardPrefab;
+        [SerializeField] private List<EnemyArchetypeEntry> enemyArchetypes = new();
+        [SerializeField, HideInInspector, FormerlySerializedAs("enemyChaserPrefab")] private GameObject legacyEnemyChaserPrefab;
         [SerializeField] private Transform tilesRoot;
         [SerializeField] private Transform propsRoot;
         [SerializeField] private Transform boundariesRoot;
@@ -26,17 +36,41 @@ namespace GalacticFishing.Minigames.Dungeon3D
         [SerializeField] private bool deterministicStylePick = true;
         [SerializeField] private bool verboseLogging;
 
+        [Header("Spawning (Legacy/Disabled)")]
+        [SerializeField, Min(0.1f)] private float enemySpawnInterval = 5f;
+        [SerializeField, Min(0)] private int maxLiveEnemies = 8;
+        [SerializeField, Min(0f)] private float spawnRingRadiusInner = 18.0f;
+        [SerializeField, Min(0f)] private float spawnRingRadiusOuter = 22.0f;
+        [SerializeField, Min(1)] private int maxSpawnRetries = 8;
+
         private readonly List<GameObject> _spawnedTiles = new();
         private readonly List<GameObject> _spawnedProps = new();
+        private readonly List<GameObject> _spawnedEnemies = new();
         private readonly Dictionary<string, List<HexWorldTileStyle>> _stylesByBiome = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HexWorldTileStyle> _stylesById = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HexWorldPropDefinition> _propsByKey = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, GameObject> _enemyPrefabMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _missingPropIdsLogged = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _missingPropPrefabLogged = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _missingEnemyArchetypesLogged = new(StringComparer.OrdinalIgnoreCase);
         private bool _missingRegistryWarned;
+        private bool _missingEnemyArchetypeConfigWarned;
+        private GameObject _defaultEnemyPrefab;
+        private string _defaultEnemyArchetypeId;
         private GameObject _spawnedPlayer;
-
+        private DimensionLayout _spawnLookupLayout;
+        private int _spawnLookupTileCount;
+        private HashSet<HexCoord> _spawnWalkableSetCache;
+        private readonly Dictionary<HexCoord, DimensionTileData> _spawnTileByCoord = new();
         public PropRegistry Registry => registry;
+        public int CurrentAliveCount
+        {
+            get
+            {
+                PruneDestroyedEnemies();
+                return _spawnedEnemies.Count;
+            }
+        }
 
         private void OnEnable()
         {
@@ -46,6 +80,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             EnsureRegistryReference();
             EnsureRoots();
             RebuildPropCache();
+            RebuildEnemyArchetypeCache();
 
             if (generator)
                 generator.OnGenerated += HandleGenerated;
@@ -69,6 +104,15 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 Clear();
         }
 
+        private void Update()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            PruneDestroyedEnemies();
+            PruneDistantEnemies();
+        }
+
         [ContextMenu("Render Current Layout")]
         public void RenderCurrentLayout()
         {
@@ -90,7 +134,12 @@ namespace GalacticFishing.Minigames.Dungeon3D
             ClearRootChildren(boundariesRoot);
             _spawnedTiles.Clear();
             _spawnedProps.Clear();
+            _spawnedEnemies.Clear();
             _spawnedPlayer = null;
+            _spawnLookupLayout = null;
+            _spawnLookupTileCount = 0;
+            _spawnWalkableSetCache = null;
+            _spawnTileByCoord.Clear();
         }
 
         private void HandleGenerated(DimensionLayout layout)
@@ -115,6 +164,7 @@ namespace GalacticFishing.Minigames.Dungeon3D
             EnsureRoots();
             RebuildBiomeStyleCache();
             RebuildPropCache();
+            RebuildEnemyArchetypeCache();
             Clear();
 
             for (int i = 0; i < layout.tiles.Count; i++)
@@ -193,9 +243,212 @@ namespace GalacticFishing.Minigames.Dungeon3D
             {
                 Debug.Log(
                     $"[{nameof(DimensionRenderer)}] Rendered {layout.tiles.Count} tiles, " +
-                    $"{_spawnedProps.Count} props (seed {layout.seedUsed}).",
+                    $"{_spawnedProps.Count} props, {_spawnedEnemies.Count} enemies (seed {layout.seedUsed}).",
                     this);
             }
+        }
+
+        private void SpawnEnemies(DimensionLayout layout)
+        {
+            if (layout == null || layout.packSeeds == null || layout.packSeeds.Count == 0)
+                return;
+
+            if (_enemyPrefabMap.Count == 0 && _defaultEnemyPrefab == null)
+                RebuildEnemyArchetypeCache();
+
+            if (_defaultEnemyPrefab == null)
+            {
+                if (!_missingEnemyArchetypeConfigWarned)
+                {
+                    Debug.LogWarning(
+                        $"[{nameof(DimensionRenderer)}] No valid enemy archetype prefabs are configured; skipping pack seed spawns.",
+                        this);
+                    _missingEnemyArchetypeConfigWarned = true;
+                }
+                return;
+            }
+
+            for (int i = 0; i < layout.packSeeds.Count; i++)
+            {
+                PackSeedSpawn seed = layout.packSeeds[i];
+                if (!TryResolveEnemyPrefab(seed.archetypeId, out GameObject enemyPrefab, out string resolvedArchetypeId))
+                    continue;
+
+                Vector3 pos = AxialToWorld(seed.coord);
+                GameObject enemy = Instantiate(enemyPrefab, pos, Quaternion.identity, propsRoot);
+                string spawnNameId = string.IsNullOrEmpty(resolvedArchetypeId) ? "Enemy" : resolvedArchetypeId;
+                enemy.name = $"Enemy_{spawnNameId}_{seed.coord.q}_{seed.coord.r}_{i}";
+                _spawnedEnemies.Add(enemy);
+            }
+        }
+
+        private void PruneDestroyedEnemies()
+        {
+            for (int i = _spawnedEnemies.Count - 1; i >= 0; i--)
+            {
+                if (_spawnedEnemies[i] == null)
+                    _spawnedEnemies.RemoveAt(i);
+            }
+        }
+
+        public bool SpawnSingleRandomEnemy()
+        {
+            DimensionLayout activeLayout = generator ? generator.Layout : null;
+            return SpawnSingleRandomEnemy(activeLayout);
+        }
+
+        private bool SpawnSingleRandomEnemy(DimensionLayout layout)
+        {
+            if (layout == null || layout.tiles == null || layout.tiles.Count == 0)
+                return false;
+
+            if (_enemyPrefabMap.Count == 0 && _defaultEnemyPrefab == null)
+                RebuildEnemyArchetypeCache();
+
+            if (_defaultEnemyPrefab == null)
+            {
+                if (!_missingEnemyArchetypeConfigWarned)
+                {
+                    Debug.LogWarning(
+                        $"[{nameof(DimensionRenderer)}] No valid enemy archetype prefabs are configured; enemy spawning is disabled.",
+                        this);
+                    _missingEnemyArchetypeConfigWarned = true;
+                }
+                return false;
+            }
+
+            if (!TryPickRandomWalkableTile(layout, out DimensionTileData tile))
+                return false;
+
+            if (!TryPickRandomEnemyArchetype(out GameObject enemyPrefab, out string resolvedArchetypeId))
+                return false;
+
+            EnsureRoots();
+            Vector3 pos = AxialToWorld(tile.coord);
+            GameObject enemy = Instantiate(enemyPrefab, pos, Quaternion.identity, propsRoot);
+            string spawnNameId = string.IsNullOrEmpty(resolvedArchetypeId) ? "Enemy" : resolvedArchetypeId;
+            enemy.name = $"Enemy_{spawnNameId}_{tile.coord.q}_{tile.coord.r}_{Time.frameCount}";
+            _spawnedEnemies.Add(enemy);
+            return true;
+        }
+
+        private bool TryPickRandomWalkableTile(DimensionLayout layout, out DimensionTileData result)
+        {
+            result = default;
+            if (layout == null || layout.tiles == null || layout.tiles.Count == 0)
+                return false;
+
+            if (!TryGetPlayerSpawnOrigin(out Vector3 origin))
+                return false;
+
+            if (!TryEnsureSpawnLookupCache(layout))
+                return false;
+
+            float inner = Mathf.Max(0f, spawnRingRadiusInner);
+            float outer = Mathf.Max(inner, spawnRingRadiusOuter);
+            int retries = Mathf.Max(1, maxSpawnRetries);
+
+            for (int attempt = 0; attempt < retries; attempt++)
+            {
+                float angleRad = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+                float distance = UnityEngine.Random.Range(inner, outer);
+                Vector3 dir = new Vector3(Mathf.Cos(angleRad), 0f, Mathf.Sin(angleRad));
+                Vector3 targetPos = origin + (dir * distance);
+
+                HexCoord coord = WorldToAxial(targetPos);
+                if (_spawnWalkableSetCache == null || !_spawnWalkableSetCache.Contains(coord))
+                    continue;
+
+                if (_spawnTileByCoord.TryGetValue(coord, out result))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void PruneDistantEnemies()
+        {
+            if (_spawnedEnemies.Count == 0)
+                return;
+            if (!TryGetPlayerSpawnOrigin(out Vector3 origin))
+                return;
+
+            const float MaxDistance = 35f;
+            float maxDistanceSqr = MaxDistance * MaxDistance;
+
+            for (int i = _spawnedEnemies.Count - 1; i >= 0; i--)
+            {
+                GameObject enemy = _spawnedEnemies[i];
+                if (enemy == null)
+                    continue;
+
+                Vector3 delta = enemy.transform.position - origin;
+                delta.y = 0f;
+                if (delta.sqrMagnitude <= maxDistanceSqr)
+                    continue;
+
+                if (Application.isPlaying)
+                    Destroy(enemy);
+                else
+                    DestroyImmediate(enemy);
+
+                _spawnedEnemies.RemoveAt(i);
+            }
+        }
+
+        private static bool IsTimedSpawnTile(DimensionLayout layout, DimensionTileData tile)
+        {
+            if (tile.kind != DimensionTileKind.Spine && tile.kind != DimensionTileKind.Pocket)
+                return false;
+
+            if (tile.coord.Equals(layout.startCoord) || tile.coord.Equals(layout.bossCoord))
+                return false;
+
+            return true;
+        }
+
+        private bool TryPickRandomEnemyArchetype(out GameObject prefab, out string resolvedArchetypeId)
+        {
+            prefab = null;
+            resolvedArchetypeId = string.Empty;
+
+            if (enemyArchetypes != null && enemyArchetypes.Count > 0)
+            {
+                int validCount = 0;
+                for (int i = 0; i < enemyArchetypes.Count; i++)
+                {
+                    EnemyArchetypeEntry entry = enemyArchetypes[i];
+                    if (entry != null && entry.prefab != null)
+                        validCount++;
+                }
+
+                if (validCount > 0)
+                {
+                    int pick = UnityEngine.Random.Range(0, validCount);
+                    for (int i = 0; i < enemyArchetypes.Count; i++)
+                    {
+                        EnemyArchetypeEntry entry = enemyArchetypes[i];
+                        if (entry == null || entry.prefab == null)
+                            continue;
+
+                        if (pick-- != 0)
+                            continue;
+
+                        prefab = entry.prefab;
+                        resolvedArchetypeId = Normalize(entry.archetypeId);
+                        if (string.IsNullOrEmpty(resolvedArchetypeId))
+                            resolvedArchetypeId = Normalize(_defaultEnemyArchetypeId);
+                        return true;
+                    }
+                }
+            }
+
+            if (_defaultEnemyPrefab == null)
+                return false;
+
+            prefab = _defaultEnemyPrefab;
+            resolvedArchetypeId = Normalize(_defaultEnemyArchetypeId);
+            return true;
         }
 
         private void EnsureRoots()
@@ -335,6 +588,91 @@ namespace GalacticFishing.Minigames.Dungeon3D
                 _propsByKey.Add(key, def);
         }
 
+        private void RebuildEnemyArchetypeCache()
+        {
+            _enemyPrefabMap.Clear();
+            _missingEnemyArchetypesLogged.Clear();
+            _defaultEnemyPrefab = null;
+            _defaultEnemyArchetypeId = string.Empty;
+            _missingEnemyArchetypeConfigWarned = false;
+
+            if (enemyArchetypes == null || enemyArchetypes.Count == 0)
+            {
+                if (legacyEnemyChaserPrefab != null)
+                {
+                    const string LegacyChaserArchetypeId = "CHASER";
+                    _defaultEnemyPrefab = legacyEnemyChaserPrefab;
+                    _defaultEnemyArchetypeId = LegacyChaserArchetypeId;
+                    _enemyPrefabMap[Normalize(LegacyChaserArchetypeId)] = legacyEnemyChaserPrefab;
+                }
+                return;
+            }
+
+            for (int i = 0; i < enemyArchetypes.Count; i++)
+            {
+                EnemyArchetypeEntry entry = enemyArchetypes[i];
+                if (entry == null)
+                    continue;
+
+                if (entry.prefab == null)
+                    continue;
+
+                if (_defaultEnemyPrefab == null)
+                {
+                    _defaultEnemyPrefab = entry.prefab;
+                    _defaultEnemyArchetypeId = entry.archetypeId;
+                }
+
+                string key = Normalize(entry.archetypeId);
+                if (string.IsNullOrEmpty(key))
+                    continue;
+
+                if (!_enemyPrefabMap.ContainsKey(key))
+                    _enemyPrefabMap.Add(key, entry.prefab);
+            }
+
+            if (_defaultEnemyPrefab == null && legacyEnemyChaserPrefab != null)
+            {
+                const string LegacyChaserArchetypeId = "CHASER";
+                _defaultEnemyPrefab = legacyEnemyChaserPrefab;
+                _defaultEnemyArchetypeId = LegacyChaserArchetypeId;
+                if (!_enemyPrefabMap.ContainsKey(Normalize(LegacyChaserArchetypeId)))
+                    _enemyPrefabMap.Add(Normalize(LegacyChaserArchetypeId), legacyEnemyChaserPrefab);
+            }
+        }
+
+        private bool TryResolveEnemyPrefab(string archetypeId, out GameObject prefab, out string resolvedArchetypeId)
+        {
+            prefab = null;
+            resolvedArchetypeId = string.Empty;
+
+            string requestedKey = Normalize(archetypeId);
+            if (!string.IsNullOrEmpty(requestedKey) &&
+                _enemyPrefabMap.TryGetValue(requestedKey, out prefab) &&
+                prefab != null)
+            {
+                resolvedArchetypeId = requestedKey;
+                return true;
+            }
+
+            if (_defaultEnemyPrefab == null)
+                return false;
+
+            prefab = _defaultEnemyPrefab;
+            resolvedArchetypeId = Normalize(_defaultEnemyArchetypeId);
+
+            string warnKey = string.IsNullOrWhiteSpace(archetypeId) ? "<empty>" : archetypeId;
+            if (_missingEnemyArchetypesLogged.Add(warnKey))
+            {
+                string fallbackKey = string.IsNullOrEmpty(resolvedArchetypeId) ? "<first-entry>" : resolvedArchetypeId;
+                Debug.LogWarning(
+                    $"[{nameof(DimensionRenderer)}] Unknown enemy archetype '{warnKey}'. Falling back to '{fallbackKey}'.",
+                    this);
+            }
+
+            return true;
+        }
+
         private bool TryResolveProp(string propId, out HexWorldPropDefinition def)
         {
             def = null;
@@ -453,6 +791,111 @@ namespace GalacticFishing.Minigames.Dungeon3D
             return new Vector3(x, 0f, z);
         }
 
+        private HexCoord WorldToAxial(Vector3 worldPos)
+        {
+            float size = Mathf.Max(0.0001f, hexSize);
+            float q = (2f / 3f * worldPos.x) / size;
+            float r = ((-1f / 3f * worldPos.x) + (Mathf.Sqrt(3f) / 3f * worldPos.z)) / size;
+            return RoundAxial(q, r);
+        }
+
+        private static HexCoord RoundAxial(float q, float r)
+        {
+            float cubeX = q;
+            float cubeZ = r;
+            float cubeY = -cubeX - cubeZ;
+
+            int roundedX = Mathf.RoundToInt(cubeX);
+            int roundedY = Mathf.RoundToInt(cubeY);
+            int roundedZ = Mathf.RoundToInt(cubeZ);
+
+            float xDiff = Mathf.Abs(roundedX - cubeX);
+            float yDiff = Mathf.Abs(roundedY - cubeY);
+            float zDiff = Mathf.Abs(roundedZ - cubeZ);
+
+            if (xDiff > yDiff && xDiff > zDiff)
+                roundedX = -roundedY - roundedZ;
+            else if (yDiff > zDiff)
+                roundedY = -roundedX - roundedZ;
+            else
+                roundedZ = -roundedX - roundedY;
+
+            return new HexCoord(roundedX, roundedZ);
+        }
+
+        private bool TryGetPlayerSpawnOrigin(out Vector3 origin)
+        {
+            origin = Vector3.zero;
+            Transform playerTransform = null;
+
+            if (_spawnedPlayer != null)
+                playerTransform = _spawnedPlayer.transform;
+
+            if (playerTransform == null)
+            {
+                GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
+                if (taggedPlayer != null)
+                {
+                    _spawnedPlayer = taggedPlayer;
+                    playerTransform = taggedPlayer.transform;
+                }
+            }
+
+            if (playerTransform == null)
+                return false;
+
+            origin = playerTransform.position;
+            origin.y = 0f;
+            return true;
+        }
+
+        private static bool TryResolveTileByCoord(DimensionLayout layout, HexCoord coord, out DimensionTileData result)
+        {
+            result = default;
+            if (layout == null || layout.tiles == null)
+                return false;
+
+            for (int i = 0; i < layout.tiles.Count; i++)
+            {
+                DimensionTileData tile = layout.tiles[i];
+                if (tile.coord.Equals(coord))
+                {
+                    result = tile;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryEnsureSpawnLookupCache(DimensionLayout layout)
+        {
+            if (layout == null || layout.tiles == null || layout.tiles.Count == 0)
+                return false;
+
+            if (ReferenceEquals(_spawnLookupLayout, layout) &&
+                _spawnWalkableSetCache != null &&
+                _spawnLookupTileCount == layout.tiles.Count &&
+                _spawnTileByCoord.Count > 0)
+            {
+                return true;
+            }
+
+            _spawnLookupLayout = layout;
+            _spawnLookupTileCount = layout.tiles.Count;
+            _spawnWalkableSetCache = layout.BuildWalkableSet();
+            _spawnTileByCoord.Clear();
+
+            for (int i = 0; i < layout.tiles.Count; i++)
+            {
+                DimensionTileData tile = layout.tiles[i];
+                if (!_spawnTileByCoord.ContainsKey(tile.coord))
+                    _spawnTileByCoord.Add(tile.coord, tile);
+            }
+
+            return _spawnWalkableSetCache != null && _spawnWalkableSetCache.Count > 0 && _spawnTileByCoord.Count > 0;
+        }
+
         private void FocusMainCameraOnTile(HexCoord coord)
         {
             Camera cam = Camera.main;
@@ -503,6 +946,10 @@ namespace GalacticFishing.Minigames.Dungeon3D
 
             _spawnedPlayer = Instantiate(playerPrefab, spawnPos, Quaternion.identity, propsRoot);
             _spawnedPlayer.name = "DungeonPlayer";
+
+            // Health foundation for extraction reset + future enemy damage hooks.
+            if (_spawnedPlayer.GetComponent<PlayerHealth>() == null)
+                _spawnedPlayer.AddComponent<PlayerHealth>();
 
             Camera cam = Camera.main;
             if (cam == null)

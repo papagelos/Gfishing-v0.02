@@ -634,6 +634,7 @@ MonoBehaviour:
   warehouseBehaviour: {fileID: 1479000108}
   townInfraController: {fileID: 922497759}
   materialQualityController: {fileID: 1796998017}
+  labelTemplate: {fileID: 0}
   animSpeed: 12
   revealZoneHeightPx: 100
   autoSizeHoverZone: 1
@@ -1602,6 +1603,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 820393f52815fc842a29d1284beb0591, type: 2}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
+      propertyPath: hexSize
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: warehouse
       value: 
       objectReference: {fileID: 1479000108}
@@ -1643,7 +1648,7 @@ PrefabInstance:
       objectReference: {fileID: 85584544}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: isDungeonEditorMode
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: townHallBuildingDef
@@ -1655,7 +1660,7 @@ PrefabInstance:
       objectReference: {fileID: 11400000, guid: 695e13ba4dbc436c8aa2c7ff1f860e8a, type: 2}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: propCatalog.Array.size
-      value: 84
+      value: 79
       objectReference: {fileID: 0}
     - target: {fileID: 1390062119592650455, guid: bc67acc20c81d3943ad823feb3549dc1, type: 3}
       propertyPath: styleCatalog.Array.size
@@ -2685,6 +2690,11 @@ MonoBehaviour:
   - Clay
   - Metal
   - Herbs
+  - Copper
+  - Iron
+  - Silver
+  - Gold
+  - Basalt
 --- !u!1 &1811423120
 GameObject:
   m_ObjectHideFlags: 0

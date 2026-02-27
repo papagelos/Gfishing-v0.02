@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: PINES
   biomeGroup: ALL
   thumbnail: {fileID: 21300000, guid: 673a05e7f890e7449babcb89fedc9180, type: 3}
-  prefab: {fileID: 4908250532190755943, guid: 1179fb37f57408345b1a0f9b2e10923c, type: 3}
+  prefab: {fileID: 7854030930129766608, guid: fa3d91efe143cc84a9356b7d7eb332fa, type: 3}
   minPerTile: 1
   maxPerTile: 1
   jitterRadius: 0.4

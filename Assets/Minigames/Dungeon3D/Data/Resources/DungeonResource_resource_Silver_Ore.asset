@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1d43e8f5f0a4da3be8bf795c8d99b32, type: 3}
   m_Name: DungeonResource_resource_Silver_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition
-  resourceId: resource_Silver_Ore
+  resourceId: Silver
   prefab: {fileID: 6529515070863603969, guid: 900ea48a5f1a2cb4fbf11842e0405ee1, type: 3}
   maxHp: 15
   minFloor: 1
   maxFloor: 0
   veinSizeRange: {x: 2, y: 8}
-  lootId: 23
+  lootId: 25

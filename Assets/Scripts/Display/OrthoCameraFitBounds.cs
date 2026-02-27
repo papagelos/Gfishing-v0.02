@@ -22,7 +22,11 @@ namespace GalacticFishing
         float _lastAspect = -1f;
         Vector2 _lastMin, _lastMax;
 
-        void OnEnable()   { Refit(true); }
+        void OnEnable()
+        {
+            ForceZeroRotation();
+            Refit(true);
+        }
         void OnValidate() { Refit(true); }
 
         void Update()
@@ -48,6 +52,8 @@ namespace GalacticFishing
             var cam = targetCamera ? targetCamera : Camera.main;
             if (!cam || !boundsMin || !boundsMax) return;
             cam.orthographic = true;
+            cam.transform.localEulerAngles = Vector3.zero;
+            cam.transform.rotation = Quaternion.identity;
 
             Vector2 min = boundsMin.position;
             Vector2 max = boundsMax.position;
@@ -69,6 +75,18 @@ namespace GalacticFishing
             Vector3 pos = center + centerOffset;
             if (!lockZToOffset) pos.z = cam.transform.position.z;
             cam.transform.position = pos;
+        }
+
+        private void ForceZeroRotation()
+        {
+            var cam = targetCamera ? targetCamera : Camera.main;
+            if (cam != null)
+            {
+                cam.transform.localEulerAngles = Vector3.zero;
+                cam.transform.rotation = Quaternion.identity;
+            }
+
+            transform.localEulerAngles = Vector3.zero;
         }
     }
 }

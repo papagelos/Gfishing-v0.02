@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a1d43e8f5f0a4da3be8bf795c8d99b32, type: 3}
   m_Name: DungeonResource_resource_Copper_Ore
   m_EditorClassIdentifier: Assembly-CSharp::GalacticFishing.Minigames.Dungeon3D.DungeonResourceDefinition
-  resourceId: resource_Copper_Ore
+  resourceId: Copper
   prefab: {fileID: 3015787637908433513, guid: 22df3b472663e6e43bddae96916addf2, type: 3}
   maxHp: 15
   minFloor: 1
